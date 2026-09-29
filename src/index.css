@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	:root {
+		--app-surface: #f8fafc;
+		--app-surface-alt: #f1f5f9;
+		--app-card: #ffffff;
+		--app-text: #1e293b;
+		--app-muted: #64748b;
+		--app-border: #e2e8f0;
+	}
+
+	.dark {
+		--app-surface: #0f172a;
+		--app-surface-alt: #1e293b;
+		--app-card: #1e293b;
+		--app-text: #f1f5f9;
+		--app-muted: #94a3b8;
+		--app-border: #334155;
+	}
+
+	body {
+		color: var(--app-text);
+	}
+
+	input,
+	textarea,
+	select {
+		color: var(--app-text);
+		background-color: var(--app-card);
+	}
+
+	input::placeholder,
+	textarea::placeholder {
+		color: var(--app-muted);
+	}
+
+	select option {
+		background-color: var(--app-card);
+		color: var(--app-text);
+	}
+
+	select option:checked,
+	select option:hover,
+	select option:focus {
+		background-color: var(--app-surface-alt);
+		color: var(--app-text);
+	}
+}

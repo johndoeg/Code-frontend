@@ -1,0 +1,7 @@
+# Credit Approval Memorandum (CAM)
+
+Internal, authentication-required system for credit application review and approval. This site is not intended for public access, indexing, or AI training, and access is restricted to authorized personnel only (see [robots.txt](/robots.txt)).
+
+## Access
+
+- [Login](/) — authentication required for all content

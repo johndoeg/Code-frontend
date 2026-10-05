@@ -46,17 +46,17 @@ export function GuarantorNavButtons({
 		<div className="flex flex-wrap items-center justify-center gap-2 border-t border-[var(--app-border)] px-6 py-4">
 			{primary}
 			{current !== 'info' && (
-				<button type="button" onClick={() => onNavigate('info')} className={btn + ' bg-slate-200 text-[var(--app-text)] hover:bg-slate-300'}>
+				<button type="button" onClick={() => onNavigate('info')} className={btn + ' bg-orange-500 text-white hover:bg-orange-600'}>
 					Information
 				</button>
 			)}
 			{current !== 'bank' && (
-				<button type="button" onClick={() => onNavigate('bank')} className={btn + ' bg-slate-200 text-[var(--app-text)] hover:bg-slate-300'}>
+				<button type="button" onClick={() => onNavigate('bank')} className={btn + ' bg-orange-500 text-white hover:bg-orange-600'}>
 					Bank Summary
 				</button>
 			)}
 			{current !== 'document' && (
-				<button type="button" onClick={() => onNavigate('document')} className={btn + ' bg-slate-200 text-[var(--app-text)] hover:bg-slate-300'}>
+				<button type="button" onClick={() => onNavigate('document')} className={btn + ' bg-orange-500 text-white hover:bg-orange-600'}>
 					Upload Document
 				</button>
 			)}
@@ -89,7 +89,7 @@ export function FileList({
 										type="button"
 										onClick={() => window.open(f.downloadUrl, '_blank', 'noopener,noreferrer')}
 										disabled={!f.downloadUrl}
-										className="rounded bg-slate-200 px-2.5 py-1 text-xs font-medium text-[var(--app-text)] hover:bg-slate-300 disabled:opacity-50"
+										className="rounded bg-orange-500 px-2.5 py-1 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
 									>
 										Download
 									</button>

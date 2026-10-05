@@ -140,15 +140,15 @@ const GuarantorListPage = forwardRef<CamTabHandle, GuarantorListPageProps>(funct
 									<td className={cellValue}>
 										<div className="flex flex-wrap gap-2">
 											<button type="button" onClick={() => openSub("info", row.grnId)}
-												className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-[var(--app-text)] rounded text-xs font-medium">
+												className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-medium">
 												Edit
 											</button>
 											<button type="button" onClick={() => openSub("bank", row.grnId)}
-												className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-[var(--app-text)] rounded text-xs font-medium">
+												className="px-2.5 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-medium">
 												Edit Bank
 											</button>
 											<button type="button" onClick={() => openSub("document", row.grnId)}
-												className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-[var(--app-text)] rounded text-xs font-medium">
+												className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium">
 												Upload Document
 											</button>
 											<button type="button" onClick={() => handleDelete(row)} disabled={deletingId === row.grnId}

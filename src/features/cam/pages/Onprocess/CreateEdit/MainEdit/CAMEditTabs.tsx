@@ -2,6 +2,7 @@ import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import CamTabBoundary from './CamTabBoundary';
 
 import CAMCustomerDetailPage from '../Customer/CAMCustomerDetailPage.tsx';
 import CAMCustomerCorporateDetailPage from '../Customer/CAMCustomerCorporateDetailPage.tsx';
@@ -671,11 +672,13 @@ export default function CamEditTabs({
 
 				<div>
 					{ActiveComponent && RenderableActiveComponent ? (
-						<RenderableActiveComponent
-							ctx={ctx}
-							onSaved={handleSaved}
-							ref={activeTabRef}
-						/>
+						<CamTabBoundary key={activeSubmenu?.page}>
+							<RenderableActiveComponent
+								ctx={ctx}
+								onSaved={handleSaved}
+								ref={activeTabRef}
+							/>
+						</CamTabBoundary>
 					) : (
 						<div className="rounded-2xl bg-[var(--app-card)] p-8 text-center shadow">
 							<p className="text-base font-medium text-[var(--app-text)]">

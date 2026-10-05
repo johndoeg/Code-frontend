@@ -1,14 +1,13 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import Modal from '@/shared/components/Modal';
+import { useOverlay } from '@/shared/contexts/OverlayContext';
 import AddCAMGuarantorForm from './AddCAMGuarantorForm';
 
 const AddCAMGuarantorModal: React.FC = () => {
-    const navigate = useNavigate();
-    const close = () => navigate(-1);
+    const { closeAddCamGuarantor } = useOverlay();
 
     return (
-        <Modal onClose={close} maxWidthClass="max-w-lg">
+        <Modal onClose={closeAddCamGuarantor} maxWidthClass="max-w-lg">
             <AddCAMGuarantorForm />
         </Modal>
     );

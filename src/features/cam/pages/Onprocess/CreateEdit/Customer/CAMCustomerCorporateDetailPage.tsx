@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
 
 interface Option {
 	value: string;
@@ -38,60 +39,6 @@ export interface CamTabHandle {
 	save: () => void;
 }
 
-const cellLabel =
-	"border-b border-[var(--app-border)] bg-[var(--app-surface)]/70 px-4 py-2.5 align-top text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] whitespace-nowrap";
-const cellValue = "border-b border-[var(--app-border)] px-4 py-2.5 align-top text-sm text-[var(--app-text)]";
-const cellEmpty = "border-b border-[var(--app-border)] px-4 py-2.5";
-const subheadCell =
-	"border-b border-[var(--app-border)] bg-indigo-50/70 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-600";
-
-function Row({
-	left,
-	right,
-	rightHeader,
-}: {
-	left?: [React.ReactNode, React.ReactNode];
-	right?: [React.ReactNode, React.ReactNode];
-	rightHeader?: string;
-}) {
-	return (
-		<tr>
-			{left ? (
-				<>
-					<td className={cellLabel}>{left[0]}</td>
-					<td className={cellValue}>{left[1]}</td>
-				</>
-			) : (
-				<>
-					<td className={cellEmpty}></td>
-					<td className={cellEmpty}></td>
-				</>
-			)}
-			{rightHeader ? (
-				<td colSpan={2} className={subheadCell}>{rightHeader}</td>
-			) : right ? (
-				<>
-					<td className={cellLabel}>{right[0]}</td>
-					<td className={cellValue}>{right[1]}</td>
-				</>
-			) : (
-				<>
-					<td className={cellEmpty}></td>
-					<td className={cellEmpty}></td>
-				</>
-			)}
-		</tr>
-	);
-}
-
-function FullRow({ label, children }: { label: React.ReactNode; children: React.ReactNode }) {
-	return (
-		<tr>
-			<td className={cellLabel}>{label}</td>
-			<td colSpan={3} className={cellValue}>{children}</td>
-		</tr>
-	);
-}
 
 function InfoTooltip({ text }: { text: string }) {
 	return (
@@ -107,15 +54,6 @@ function splitIndustryValue(value: string): { code: string; header: string } {
 	return { code: value.slice(0, idx), header: value.slice(idx + 1) };
 }
 
-const inputCls =
-	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400";
-const errCls = "text-red-600 text-xs mt-1";
-const selectCls = (editable: boolean) =>
-	`border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 ${editable ? "bg-[var(--app-card)]" : "bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
-	}`;
-const inputClsFor = (editable: boolean) =>
-	`${inputCls} ${editable ? "bg-[var(--app-card)]" : "bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"}`;
-
 function filterDigits(value: string): string {
 	return value.replace(/\D/g, "");
 }
@@ -124,21 +62,85 @@ function filterPhoneDigits(value: string): string {
 	return value.replace(/[^0-9xX]/g, "");
 }
 
-function PhoneField({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+const fFieldBase =
+	"w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-1.5 text-[13px] text-[var(--app-text)] shadow-sm transition-colors duration-150 placeholder:text-[var(--app-muted)]/60 hover:border-[var(--app-border-strong,var(--app-border))] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25 disabled:cursor-not-allowed disabled:bg-[var(--app-surface-alt)] disabled:text-[var(--app-muted)] disabled:shadow-none disabled:hover:border-[var(--app-border)]";
+const fInput = fFieldBase;
+const fRO =
+	"w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-alt)] px-3 py-1.5 text-[13px] font-medium text-[var(--app-muted)] shadow-none cursor-default select-text";
+const fLabel = "text-[12.5px] font-medium text-[var(--app-muted)] pt-2 pr-3 leading-snug";
+const fErr = "text-red-500 text-[11px] mt-1 flex items-center gap-1";
+
+function styleLabel(label?: React.ReactNode): React.ReactNode {
+	if (typeof label !== "string") return label;
+	if (!label.includes("*")) return label;
+	const idx = label.indexOf("*");
 	return (
-		<div className="relative">
-			<span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-[var(--app-muted)]">62</span>
-			<input
-				type="tel"
-				inputMode="numeric"
-				className={`${inputClsFor(!disabled)} pl-7`}
-				value={value}
-				disabled={disabled}
-				onChange={e => onChange(filterPhoneDigits(e.target.value))}
-			/>
+		<>
+			{label.slice(0, idx)}
+			<span className="text-red-400">{label.slice(idx)}</span>
+		</>
+	);
+}
+
+function F({ label, children, error }: { label?: React.ReactNode; children: React.ReactNode; error?: string }) {
+	return (
+		<div className="grid grid-cols-[170px_minmax(0,1fr)] gap-x-3 items-start rounded-md px-1 py-0.5 transition-colors hover:bg-[var(--app-surface)]/40">
+			<div className={fLabel}>{styleLabel(label)}</div>
+			<div className="py-0.5">
+				{children}
+				{error && (
+					<p className={fErr}>
+						<svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor" aria-hidden="true"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3.5a.9.9 0 01.9.9v3a.9.9 0 11-1.8 0v-3A.9.9 0 018 4.5zM8 10a1 1 0 110 2 1 1 0 010-2z" /></svg>
+						{error}
+					</p>
+				)}
+			</div>
 		</div>
 	);
 }
+
+function SectionBar({ title }: { title: string }) {
+	return (
+		<div className="mt-5 mb-2 flex items-center gap-2">
+			<span className="h-4 w-1 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
+			<span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--app-text)]">{title}</span>
+			<span className="h-px flex-1 bg-[var(--app-border)]" />
+		</div>
+	);
+}
+
+
+function PhoneInput({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+	return (
+		<div className="flex items-center gap-2">
+			<div className="group flex flex-1 items-stretch rounded-lg border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm transition-colors duration-150 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/25">
+				<span className="inline-flex select-none items-center rounded-l-lg border-r border-[var(--app-border)] bg-[var(--app-surface-alt)] px-2.5 text-[12px] font-medium text-[var(--app-muted)]">+62</span>
+				<input
+					type="tel"
+					inputMode="numeric"
+					className="w-full rounded-r-lg bg-transparent px-3 py-1.5 text-[13px] text-[var(--app-text)] focus:outline-none disabled:cursor-not-allowed disabled:text-[var(--app-muted)]"
+					value={value}
+					disabled={disabled}
+					onChange={e => onChange(filterPhoneDigits(e.target.value))}
+				/>
+			</div>
+		</div>
+	);
+}
+
+const parseDMY = (value: string): Date | null => {
+	if (!value) return null;
+	const [d, m, y] = value.slice(0, 10).split("-").map(Number);
+	if (!y || !m || !d) return null;
+	return new Date(y, m - 1, d);
+};
+
+const formatDMY = (value: Date | null): string => {
+	if (!value) return "";
+	const pad = (n: number) => String(n).padStart(2, "0");
+	return `${pad(value.getDate())}-${pad(value.getMonth() + 1)}-${value.getFullYear()}`;
+};
+
 
 type IndCodeSel = { l0: string; l1: string; l2: string; l3: string; l4: string; l5: string };
 
@@ -465,412 +467,317 @@ const CAMCustomerCorporateDetailPage = forwardRef<CamTabHandle, CAMCustomerCorpo
 	}
 
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
+	const today = new Date();
 
 	return (
-		<div className="space-y-4 rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl overflow-hidden">
-			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
+		<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M10 10a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm0 1.5c-3.3 0-6 1.8-6 4v.5a1 1 0 001 1h10a1 1 0 001-1V15.5c0-2.2-2.7-4-6-4z" /></svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Corporate Detail</h2>
 				</div>
-			)}
-			<div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
-				<h2 className="text-xl font-bold text-[var(--app-text)]">Corporate Detail</h2>
-
-				<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[820px] border-collapse text-sm">
-							<tbody>
-								<Row
-									left={[<>Name in Akta * <InfoTooltip text="Merupakan nama debitur sesuai Akta, Akan digunakan di kontrak" /></>, (
-										<>
-											<input className={inputClsFor(false)} value={d.lesseeNm || ""} readOnly />
-											{errors.lesseeNm && <p className={errCls}>{errors.lesseeNm}</p>}
-										</>
-									)]}
-									right={["Customer No. *", (
-										<input className={inputClsFor(false)} value={initialApless} readOnly />
-									)]}
-								/>
-								<Row
-									left={[<>Customer Name * <InfoTooltip text="Merupakan nama debitur tanpa PT, CV, dsb" /></>, (
-										<>
-											<input className={inputCls} value={d.idCardName || ""} onChange={e => set("idCardName", e.target.value)} />
-											{errors.idCardName && <p className={errCls}>{errors.idCardName}</p>}
-										</>
-									)]}
-									right={["NPWP *", (
-										<>
-											<div className="flex gap-1 items-center">
-												{[2, 3, 3, 1, 3, 4].map((len, i) => (
-													<input
-														key={i}
-														className={inputCls}
-														style={{ width: `${len * 14 + 16}px` }}
-														maxLength={len}
-														inputMode="numeric"
-														value={npwpParts[i]}
-														onChange={e => {
-															const next = [...npwpParts];
-															next[i] = filterDigits(e.target.value);
-															setNpwpParts(next);
-														}}
-													/>
-												))}
-											</div>
-											{errors.npwp && <p className={errCls}>{errors.npwp}</p>}
-										</>
-									)]}
-								/>
-								<Row
-									left={["Customer Profile *", (
-										<>
-											<select className={selectCls(true)} value={d.lesseeCat || ""} onChange={e => handleLesseeCatChange(e.target.value)}>
-												<option value="">Select</option>
-												{lookups.customerProfiles.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-											</select>
-											{errors.lesseeCat && <p className={errCls}>{errors.lesseeCat}</p>}
-										</>
-									)]}
-									right={["Address in NPWP *", (
-										<textarea className={inputCls} value={d.addrNpwp || ""} onChange={e => set("addrNpwp", e.target.value)} maxLength={250} />
-									)]}
-								/>
-								<Row
-									left={["Occupation / Business Type", (
-										<select className={selectCls(d.lesseeCat !== "FD")} value={d.ocuType || ""} disabled={d.lesseeCat === "FD"} onChange={e => set("ocuType", e.target.value)}>
-											<option value="">Select</option>
-											{businessTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["Address in SK. Domisili *", (
-										<>
-											<textarea className={inputCls} value={d.address2 || ""} onChange={e => set("address2", e.target.value)} maxLength={250} />
-											{errors.address2 && <p className={errCls}>{errors.address2}</p>}
-										</>
-									)]}
-									right={["Area *", (
-										<select className={selectCls(true)} value={d.areaCdNpwp || ""} onChange={e => handleAreaNpwpChange(e.target.value)}>
-											<option value="">Select</option>
-											{areas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									right={["Province *", (
-										<input className={inputClsFor(false)} value={d.provinceNpwp || ""} readOnly />
-									)]}
-								/>
-								<Row
-									right={["District / City *", (
-										<input className={inputClsFor(false)} value={d.cityNpwp || ""} readOnly />
-									)]}
-								/>
-								<Row
-									left={["Area *", (
-										<>
-											<select className={selectCls(true)} value={d.areaCd || ""} onChange={e => handleAreaChange(e.target.value)}>
-												<option value="">Select</option>
-												{areas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-											</select>
-											{errors.areaCd && <p className={errCls}>{errors.areaCd}</p>}
-										</>
-									)]}
-									right={["Kecamatan *", (
-										<select className={selectCls(true)} value={d.kecamatanNpwp || ""} onChange={e => handleKecamatanNpwpChange(e.target.value)}>
-											<option value="">Select</option>
-											{kecamatanNpwpOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["Province *", (
-										<input className={inputClsFor(false)} value={d.province2 || ""} readOnly />
-									)]}
-									right={["Kelurahan *", (
-										<select className={selectCls(true)} value={d.kelurahanNpwp || ""} onChange={e => set("kelurahanNpwp", e.target.value)}>
-											<option value="">Select</option>
-											{kelurahanNpwpOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["District / City *", (
-										<>
-											<input className={inputClsFor(false)} value={d.city2 || ""} readOnly />
-											{errors.city2 && <p className={errCls}>{errors.city2}</p>}
-										</>
-									)]}
-									right={["Post Code *", (
-										<input className={inputCls} value={d.zipcode2Npwp || ""} inputMode="numeric" onChange={e => set("zipcode2Npwp", filterDigits(e.target.value))} maxLength={5} />
-									)]}
-								/>
-								<Row
-									left={["Kecamatan *", (
-										<select className={selectCls(true)} value={d.kecamatan1 || ""} onChange={e => handleKecamatan1Change(e.target.value)}>
-											<option value="">Select</option>
-											{kecamatan1Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-									right={["Form of Business Entity *", (
-										<>
-											<select className={selectCls(true)} value={d.businessEntity || ""} onChange={e => set("businessEntity", e.target.value)}>
-												<option value="">Select</option>
-												{lookups.businessEntities.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-											</select>
-											{errors.businessEntity && <p className={errCls}>{errors.businessEntity}</p>}
-										</>
-									)]}
-								/>
-								<Row
-									left={["Kelurahan *", (
-										<select className={selectCls(true)} value={d.kelurahan1 || ""} onChange={e => set("kelurahan1", e.target.value)}>
-											<option value="">Select</option>
-											{kelurahan1Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-									right={["Line of Business", (
-										<textarea className={inputCls} value={d.lob || ""} onChange={e => set("lob", e.target.value)} maxLength={250} />
-									)]}
-								/>
-								<Row
-									left={["RT / RW", (
-										<div className="flex gap-2">
-											<input className={inputCls} value={d.rt1 || ""} inputMode="numeric" onChange={e => set("rt1", filterDigits(e.target.value))} placeholder="RT" />
-											<input className={inputCls} value={d.rw1 || ""} inputMode="numeric" onChange={e => set("rw1", filterDigits(e.target.value))} placeholder="RW" />
-										</div>
-									)]}
-								/>
-								<Row
-									left={["Post Code *", (
-										<>
-											<input className={inputCls} value={d.zipcode2 || ""} inputMode="numeric" onChange={e => set("zipcode2", filterDigits(e.target.value))} maxLength={5} />
-											{errors.zipcode2 && <p className={errCls}>{errors.zipcode2}</p>}
-										</>
-									)]}
-									right={["SIUP No.", (
-										<input className={inputCls} value={d.siup || ""} onChange={e => set("siup", e.target.value)} />
-									)]}
-								/>
-								<Row
-									left={["Office Status *", (
-										<>
-											<select className={selectCls(true)} value={d.addressStatus || ""} onChange={e => set("addressStatus", e.target.value)}>
-												<option value="">Select</option>
-												{lookups.officeStatuses.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-											</select>
-											{errors.addressStatus && <p className={errCls}>{errors.addressStatus}</p>}
-										</>
-									)]}
-									right={["Domicile No.", (
-										<input className={inputCls} value={d.domicile || ""} onChange={e => set("domicile", e.target.value)} />
-									)]}
-								/>
-								<Row
-									left={["Fax", (
-										<div className="flex gap-2">
-											<input className={inputCls} style={{ width: "4rem" }} placeholder="Code" value={d.faxH || ""} maxLength={3} onChange={e => set("faxH", e.target.value)} />
-											<input className={inputCls} style={{ width: "4rem" }} placeholder="Area" value={d.faxA || ""} maxLength={4} onChange={e => set("faxA", e.target.value)} />
-											<input className={inputCls} placeholder="Number" value={d.fax1 || ""} maxLength={11} onChange={e => set("fax1", e.target.value)} />
-										</div>
-									)]}
-								/>
-								<Row
-									right={["Number of Employee *", (
-										<div className="flex items-center gap-2">
-											<input className={inputCls} value={d.employeeNumber || ""} inputMode="numeric" onChange={e => set("employeeNumber", filterDigits(e.target.value))} maxLength={7} />
-											<span className="text-xs text-[var(--app-muted)] whitespace-nowrap">people (s)</span>
-										</div>
-									)]}
-								/>
-								<Row
-									left={["Phone *", (
-										<>
-											<PhoneField value={d.phone1 || ""} onChange={v => set("phone1", v)} />
-											{errors.phone1 && <p className={errCls}>{errors.phone1}</p>}
-										</>
-									)]}
-									right={["Relationship with Genie *", (
-										<select className={selectCls(true)} value={d.relMlci || "e3"} onChange={e => set("relMlci", e.target.value)}>
-											{lookups.relationshipWithCompany.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["Whatsapp No. *", (
-										<>
-											<PhoneField value={d.mobilePhone1 || ""} onChange={v => set("mobilePhone1", v)} />
-											{errors.mobilePhone1 && <p className={errCls}>{errors.mobilePhone1}</p>}
-										</>
-									)]}
-									rightHeader="Contact Person"
-								/>
-								<Row
-									left={["Mobile 2", (
-										<PhoneField value={d.mobilePhone2 || ""} onChange={v => set("mobilePhone2", v)} />
-									)]}
-									right={["Name *", (
-										<>
-											<input className={inputCls} value={d.contact || ""} onChange={e => set("contact", e.target.value)} />
-											{errors.contact && <p className={errCls}>{errors.contact}</p>}
-										</>
-									)]}
-								/>
-								<Row
-									left={["Mobile 3", (
-										<PhoneField value={d.mobilePhone3 || ""} onChange={v => set("mobilePhone3", v)} />
-									)]}
-									right={["Position *", (
-										<>
-											<input className={inputCls} value={d.occupation || ""} onChange={e => set("occupation", e.target.value)} />
-											{errors.occupation && <p className={errCls}>{errors.occupation}</p>}
-										</>
-									)]}
-								/>
-								<Row
-									left={["Other Phone 1", (
-										<PhoneField value={d.otherPhone1 || ""} onChange={v => set("otherPhone1", v)} />
-									)]}
-									right={["Address *", (
-										<textarea className={inputCls} value={d.address1 || ""} onChange={e => set("address1", e.target.value)} maxLength={250} />
-									)]}
-								/>
-								<Row
-									left={["Other Phone Notes 1", (
-										<input className={inputCls} value={d.otherPhoneNotes1 || ""} onChange={e => set("otherPhoneNotes1", e.target.value)} maxLength={50} />
-									)]}
-								/>
-								<Row
-									left={["Other Phone 2", (
-										<PhoneField value={d.otherPhone2 || ""} onChange={v => set("otherPhone2", v)} />
-									)]}
-								/>
-								<Row
-									left={["Other Phone Notes 2", (
-										<input className={inputCls} value={d.otherPhoneNotes2 || ""} onChange={e => set("otherPhoneNotes2", e.target.value)} maxLength={50} />
-									)]}
-								/>
-								<Row
-									left={["Office Email for Correspondence *", (
-										<input type="email" className={inputCls} value={d.email1 || ""} onChange={e => set("email1", e.target.value)} />
-									)]}
-									rightHeader="Emergency Contact"
-								/>
-								<Row
-									left={["Establishment Place / Date *", (
-										<>
-											<div className="flex gap-2">
-												<input className={inputCls} value={d.placebirth || ""} onChange={e => set("placebirth", e.target.value)} placeholder="Place" />
-												<input className={inputCls} value={d.tglbirth || ""} onChange={e => set("tglbirth", e.target.value)} placeholder="dd-mm-yyyy" />
-											</div>
-											{errors.tglbirth && <p className={errCls}>{errors.tglbirth}</p>}
-										</>
-									)]}
-									right={["Emergency Name *", (
-										<input className={inputCls} value={d.emergencyName || ""} onChange={e => set("emergencyName", e.target.value)} />
-									)]}
-								/>
-								<Row
-									left={["Group *", (
-										<select className={selectCls(true)} value={d.grpcode || ""} onChange={e => set("grpcode", e.target.value)}>
-											<option value="">Select</option>
-											{lookups.groups.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-									right={["Emergency Address *", (
-										<textarea className={inputCls} value={d.emergencyAddress || ""} onChange={e => set("emergencyAddress", e.target.value)} />
-									)]}
-								/>
-								<Row
-									left={["BI Customer Type", (
-										<select className={selectCls(true)} value={d.custType || ""} onChange={e => set("custType", e.target.value)}>
-											<option value="">Select</option>
-											{d.custType && !(lookups.biCustomerTypes ?? []).some(o => o.value === d.custType) && (
-												<option value={d.custType}>{d.custType}</option>
-											)}
-											{(lookups.biCustomerTypes ?? []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-									right={["Emergency Phone *", (
-										<PhoneField value={d.emergencyPhone || ""} onChange={v => set("emergencyPhone", v)} />
-									)]}
-								/>
-								<Row
-									left={["Industrial Code *", (
-										<select className={selectCls(true)} value={indCodeSel.l0} onChange={e => handleIndCodeL0Change(e.target.value)}>
-											<option value="">Select</option>
-											{indCodeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-									right={["Emergency Relation *", (
-										<input className={inputCls} value={d.emergencyRelation || ""} onChange={e => set("emergencyRelation", e.target.value)} />
-									)]}
-								/>
-								<Row
-									left={["", (
-										<select className={selectCls(!!indCodeSel.l0)} value={indCodeSel.l1} disabled={!indCodeSel.l0} onChange={e => handleIndCodeL1Change(e.target.value)}>
-											<option value="">Select</option>
-											{indCode1Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["", (
-										<select className={selectCls(!!indCodeSel.l1)} value={indCodeSel.l2} disabled={!indCodeSel.l1} onChange={e => handleIndCodeL2Change(e.target.value)}>
-											<option value="">Select</option>
-											{indCode2Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["", (
-										<select className={selectCls(!!indCodeSel.l2)} value={indCodeSel.l3} disabled={!indCodeSel.l2} onChange={e => handleIndCodeL3Change(e.target.value)}>
-											<option value="">Select</option>
-											{indCode3Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["", (
-										<select className={selectCls(!!indCodeSel.l3)} value={indCodeSel.l4} disabled={!indCodeSel.l3} onChange={e => handleIndCodeL4Change(e.target.value)}>
-											<option value="">Select</option>
-											{indCode4Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-								/>
-								<Row
-									left={["", (
-										<>
-											<select className={selectCls(!!indCodeSel.l4)} value={indCodeSel.l5} disabled={!indCodeSel.l4} onChange={e => handleIndCodeL5Change(e.target.value)}>
-												<option value="">Select</option>
-												{indCode5Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-											</select>
-											{errors.indusCode && <p className={errCls}>{errors.indusCode}</p>}
-										</>
-									)]}
-								/>
-								<tr>
-									<td colSpan={4} className="px-4 py-2 text-xs text-red-600">*) wajib diisi</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
-				</div>
-
-				{saving && <p className="text-sm text-[var(--app-muted)] mt-3">Saving…</p>}
-
-				{(formMessage || Object.keys(errors).length > 0) && (
-					<div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-						<ul className="list-disc list-inside text-sm text-red-700 space-y-1">
-							{formMessage && <li>{formMessage}</li>}
-							{Object.entries(errors).map(([key, msg]) => (
-								<li key={key}>{msg}</li>
-							))}
-						</ul>
-					</div>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
 				)}
 			</div>
+
+			<div className="relative grid grid-cols-1 gap-x-10 gap-y-0.5 px-4 py-5 sm:px-6 lg:grid-cols-2 lg:[&>div:first-child]:pr-8 lg:[&>div:last-child]:border-l lg:[&>div:last-child]:border-[var(--app-border)] lg:[&>div:last-child]:pl-8">
+				<div className="space-y-0.5">
+					<F label={<>Name in Akta * <InfoTooltip text="Merupakan nama debitur sesuai Akta, Akan digunakan di kontrak" /></>} error={errors.lesseeNm}>
+						<input className={fRO} value={d.lesseeNm || ""} readOnly />
+					</F>
+					<F label={<>Customer Name * <InfoTooltip text="Merupakan nama debitur tanpa PT, CV, dsb" /></>} error={errors.idCardName}>
+						<input className={fInput} value={d.idCardName || ""} onChange={e => set("idCardName", e.target.value)} />
+					</F>
+					<F label="Customer Profile *" error={errors.lesseeCat}>
+						<select className={fInput} value={d.lesseeCat || ""} onChange={e => handleLesseeCatChange(e.target.value)}>
+							<option value="">Select</option>
+							{lookups.customerProfiles.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Occupation / Business Type">
+						<select className={fInput} value={d.ocuType || ""} disabled={d.lesseeCat === "FD"} onChange={e => set("ocuType", e.target.value)}>
+							<option value="">Select</option>
+							{businessTypeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Address in SK. Domisili *" error={errors.address2}>
+						<textarea className={fInput} rows={2} value={d.address2 || ""} onChange={e => set("address2", e.target.value)} maxLength={250} />
+					</F>
+					<F label="Area *" error={errors.areaCd}>
+						<select className={fInput} value={d.areaCd || ""} onChange={e => handleAreaChange(e.target.value)}>
+							<option value="">Select</option>
+							{areas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Province *">
+						<input className={fRO} value={d.province2 || ""} readOnly />
+					</F>
+					<F label="District / City *" error={errors.city2}>
+						<input className={fRO} value={d.city2 || ""} readOnly />
+					</F>
+					<F label="Kecamatan *">
+						<select className={fInput} value={d.kecamatan1 || ""} onChange={e => handleKecamatan1Change(e.target.value)}>
+							<option value="">Select</option>
+							{kecamatan1Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Kelurahan *">
+						<select className={fInput} value={d.kelurahan1 || ""} onChange={e => set("kelurahan1", e.target.value)}>
+							<option value="">Select</option>
+							{kelurahan1Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="RT / RW">
+						<div className="flex items-center gap-2">
+							<span className="text-[12.5px] font-medium text-[var(--app-muted)]">RT</span>
+							<input className={fInput} style={{ width: "80px" }} inputMode="numeric" maxLength={3} value={d.rt1 || ""} onChange={e => set("rt1", filterDigits(e.target.value).slice(0, 3))} />
+							<span className="text-[12.5px] font-medium text-[var(--app-muted)]">RW</span>
+							<input className={fInput} style={{ width: "80px" }} inputMode="numeric" maxLength={3} value={d.rw1 || ""} onChange={e => set("rw1", filterDigits(e.target.value).slice(0, 3))} />
+						</div>
+					</F>
+					<F label="Post Code *" error={errors.zipcode2}>
+						<input className={fInput} style={{ width: "140px" }} value={d.zipcode2 || ""} inputMode="numeric" onChange={e => set("zipcode2", filterDigits(e.target.value))} maxLength={5} />
+					</F>
+					<F label="Office Status *" error={errors.addressStatus}>
+						<select className={fInput} value={d.addressStatus || ""} onChange={e => set("addressStatus", e.target.value)}>
+							<option value="">Select</option>
+							{lookups.officeStatuses.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Fax">
+						<div className="flex items-center gap-2">
+							<input className={fInput} style={{ width: "56px" }} placeholder="Code" value={d.faxH || ""} maxLength={3} onChange={e => set("faxH", e.target.value)} />
+							<input className={fInput} style={{ width: "56px" }} placeholder="Area" value={d.faxA || ""} maxLength={4} onChange={e => set("faxA", e.target.value)} />
+							<input className={fInput} placeholder="Number" value={d.fax1 || ""} maxLength={11} onChange={e => set("fax1", e.target.value)} />
+						</div>
+					</F>
+					<F label="Phone *" error={errors.phone1}>
+						<PhoneInput value={d.phone1 || ""} onChange={v => set("phone1", v)} />
+					</F>
+					<F label="Whatsapp No. *" error={errors.mobilePhone1}>
+						<PhoneInput value={d.mobilePhone1 || ""} onChange={v => set("mobilePhone1", v)} />
+					</F>
+					<F label="Mobile 2">
+						<PhoneInput value={d.mobilePhone2 || ""} onChange={v => set("mobilePhone2", v)} />
+					</F>
+					<F label="Mobile 3">
+						<PhoneInput value={d.mobilePhone3 || ""} onChange={v => set("mobilePhone3", v)} />
+					</F>
+					<F label="Other Phone 1">
+						<PhoneInput value={d.otherPhone1 || ""} onChange={v => set("otherPhone1", v)} />
+					</F>
+					<F label="Other Phone Notes 1">
+						<input className={fInput} value={d.otherPhoneNotes1 || ""} onChange={e => set("otherPhoneNotes1", e.target.value)} maxLength={50} />
+					</F>
+					<F label="Other Phone 2">
+						<PhoneInput value={d.otherPhone2 || ""} onChange={v => set("otherPhone2", v)} />
+					</F>
+					<F label="Other Phone Notes 2">
+						<input className={fInput} value={d.otherPhoneNotes2 || ""} onChange={e => set("otherPhoneNotes2", e.target.value)} maxLength={50} />
+					</F>
+					<F label="Office Email for Correspondence *">
+						<input type="email" className={fInput} value={d.email1 || ""} onChange={e => set("email1", e.target.value)} />
+					</F>
+					<F label="Establishment Place / Date *" error={errors.tglbirth}>
+						<div className="flex items-center gap-2">
+							<input className={`${fInput} flex-1 min-w-0`} value={d.placebirth || ""} onChange={e => set("placebirth", e.target.value)} placeholder="Place" />
+							<span className="text-[13px] text-[var(--app-muted)]">/</span>
+							<div className="w-[170px] shrink-0">
+								<AsOfDatePickerComponent
+									label=""
+									format="dd-MM-yyyy"
+									placeholder="dd-mm-yyyy"
+									maxDate={today}
+									value={parseDMY((d.tglbirth || "").trim())}
+									onChange={date => setD(f => ({ ...f, tglbirth: formatDMY(date) }))}
+								/>
+							</div>
+						</div>
+					</F>
+					<F label="Group *">
+						<select className={fInput} value={d.grpcode || ""} onChange={e => set("grpcode", e.target.value)}>
+							<option value="">Select</option>
+							{lookups.groups.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="BI Customer Type">
+						<select className={fInput} value={d.custType || ""} onChange={e => set("custType", e.target.value)}>
+							<option value="">Select</option>
+							{d.custType && !(lookups.biCustomerTypes ?? []).some(o => o.value === d.custType) && (
+								<option value={d.custType}>{d.custType}</option>
+							)}
+							{(lookups.biCustomerTypes ?? []).map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Industrial Code *">
+						<select className={fInput} value={indCodeSel.l0} onChange={e => handleIndCodeL0Change(e.target.value)}>
+							<option value="">Select</option>
+							{indCodeOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="">
+						<select className={fInput} value={indCodeSel.l1} disabled={!indCodeSel.l0} onChange={e => handleIndCodeL1Change(e.target.value)}>
+							<option value="">Select</option>
+							{indCode1Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="">
+						<select className={fInput} value={indCodeSel.l2} disabled={!indCodeSel.l1} onChange={e => handleIndCodeL2Change(e.target.value)}>
+							<option value="">Select</option>
+							{indCode2Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="">
+						<select className={fInput} value={indCodeSel.l3} disabled={!indCodeSel.l2} onChange={e => handleIndCodeL3Change(e.target.value)}>
+							<option value="">Select</option>
+							{indCode3Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="">
+						<select className={fInput} value={indCodeSel.l4} disabled={!indCodeSel.l3} onChange={e => handleIndCodeL4Change(e.target.value)}>
+							<option value="">Select</option>
+							{indCode4Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="" error={errors.indusCode}>
+						<select className={fInput} value={indCodeSel.l5} disabled={!indCodeSel.l4} onChange={e => handleIndCodeL5Change(e.target.value)}>
+							<option value="">Select</option>
+							{indCode5Options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+				</div>
+
+				<div className="space-y-0.5">
+					<F label="Customer No. *">
+						<input className={fRO} value={initialApless} readOnly />
+					</F>
+					<F label="NPWP *" error={errors.npwp}>
+						<div className="flex items-center gap-1.5">
+							{[2, 3, 3, 1, 3, 4].map((len, i) => (
+								<React.Fragment key={i}>
+									<input
+										className={`${fInput} px-1.5`}
+										style={{ width: `${len * 16 + 24}px`, textAlign: "center" }}
+										inputMode="numeric"
+										maxLength={len}
+										value={npwpParts[i]}
+										onChange={e => {
+											const next = [...npwpParts];
+											next[i] = filterDigits(e.target.value);
+											setNpwpParts(next);
+										}}
+									/>
+									{i < 5 && <span className="text-[13px] text-[var(--app-muted)]">{i === 3 ? "-" : "."}</span>}
+								</React.Fragment>
+							))}
+						</div>
+					</F>
+					<F label="Address in NPWP *">
+						<textarea className={fInput} rows={2} value={d.addrNpwp || ""} onChange={e => set("addrNpwp", e.target.value)} maxLength={250} />
+					</F>
+					<F label="Area *">
+						<select className={fInput} value={d.areaCdNpwp || ""} onChange={e => handleAreaNpwpChange(e.target.value)}>
+							<option value="">Select</option>
+							{areas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Province *">
+						<input className={fRO} value={d.provinceNpwp || ""} readOnly />
+					</F>
+					<F label="District / City *">
+						<input className={fRO} value={d.cityNpwp || ""} readOnly />
+					</F>
+					<F label="Kecamatan *">
+						<select className={fInput} value={d.kecamatanNpwp || ""} onChange={e => handleKecamatanNpwpChange(e.target.value)}>
+							<option value="">Select</option>
+							{kecamatanNpwpOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Kelurahan *">
+						<select className={fInput} value={d.kelurahanNpwp || ""} onChange={e => set("kelurahanNpwp", e.target.value)}>
+							<option value="">Select</option>
+							{kelurahanNpwpOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Post Code *">
+						<input className={fInput} style={{ width: "140px" }} value={d.zipcode2Npwp || ""} inputMode="numeric" onChange={e => set("zipcode2Npwp", filterDigits(e.target.value))} maxLength={5} />
+					</F>
+					<F label="Form of Business Entity *" error={errors.businessEntity}>
+						<select className={fInput} value={d.businessEntity || ""} onChange={e => set("businessEntity", e.target.value)}>
+							<option value="">Select</option>
+							{lookups.businessEntities.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+					<F label="Line of Business">
+						<textarea className={fInput} rows={2} value={d.lob || ""} onChange={e => set("lob", e.target.value)} maxLength={250} />
+					</F>
+					<F label="SIUP No.">
+						<input className={fInput} value={d.siup || ""} onChange={e => set("siup", e.target.value)} />
+					</F>
+					<F label="Domicile No.">
+						<input className={fInput} value={d.domicile || ""} onChange={e => set("domicile", e.target.value)} />
+					</F>
+					<F label="Number of Employee *">
+						<div className="flex items-center gap-2">
+							<input className={fInput} style={{ width: "120px" }} value={d.employeeNumber || ""} inputMode="numeric" onChange={e => set("employeeNumber", filterDigits(e.target.value))} maxLength={7} />
+							<span className="text-[12.5px] text-[var(--app-muted)]">people (s)</span>
+						</div>
+					</F>
+					<F label="Relationship with Genie *">
+						<select className={fInput} value={d.relMlci || "e3"} onChange={e => set("relMlci", e.target.value)}>
+							{lookups.relationshipWithCompany.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+					</F>
+
+					<SectionBar title="Contact Person" />
+					<F label="Name *" error={errors.contact}>
+						<input className={fInput} value={d.contact || ""} onChange={e => set("contact", e.target.value)} />
+					</F>
+					<F label="Position *" error={errors.occupation}>
+						<input className={fInput} value={d.occupation || ""} onChange={e => set("occupation", e.target.value)} />
+					</F>
+					<F label="Address *">
+						<textarea className={fInput} rows={2} value={d.address1 || ""} onChange={e => set("address1", e.target.value)} maxLength={250} />
+					</F>
+
+					<SectionBar title="Emergency Contact" />
+					<F label="Emergency Name *">
+						<input className={fInput} value={d.emergencyName || ""} onChange={e => set("emergencyName", e.target.value)} />
+					</F>
+					<F label="Emergency Address *">
+						<textarea className={fInput} rows={2} value={d.emergencyAddress || ""} onChange={e => set("emergencyAddress", e.target.value)} />
+					</F>
+					<F label="Emergency Phone *">
+						<PhoneInput value={d.emergencyPhone || ""} onChange={v => set("emergencyPhone", v)} />
+					</F>
+					<F label="Emergency Relation *">
+						<input className={fInput} value={d.emergencyRelation || ""} onChange={e => set("emergencyRelation", e.target.value)} />
+					</F>
+				</div>
+			</div>
+
+			<p className="px-5 pb-3 text-xs text-red-600 sm:px-6">*) wajib diisi</p>
+
+			{saving && (
+				<div className="flex items-center gap-2 border-t border-[var(--app-border)] bg-[var(--app-surface)] px-5 py-3 text-[13px] font-medium text-[var(--app-muted)] sm:px-6">
+					<span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-500 border-b-transparent" />
+					Saving…
+				</div>
+			)}
+
+			{(formMessage || Object.keys(errors).length > 0) && (
+				<div className="mx-5 mb-5 rounded-lg border border-red-200 bg-red-50 p-4 sm:mx-6">
+					<ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+						{formMessage && <li>{formMessage}</li>}
+						{Object.entries(errors).map(([key, msg]) => (
+							<li key={key}>{msg}</li>
+						))}
+					</ul>
+				</div>
+			)}
 		</div>
 	);
 });

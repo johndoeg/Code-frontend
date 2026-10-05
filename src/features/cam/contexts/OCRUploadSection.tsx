@@ -16,6 +16,7 @@ export interface CustomerData {
 	city: string;
 	province: string;
 	religion: string;
+	maritalStatus: string;
 	job: string;
 	citizen: string;
 	photo: string;
@@ -71,17 +72,20 @@ interface Props {
 	maritalStatus?: string;
 	initialData?: InitialOcrData;
 	initialDocs?: InitialOcrDoc[];
+	docTypeAliases?: string[];
+	idTypeLabel?: string;
 	expectedNik?: string;
 	previousPrecheckingId?: string;
 	onDataChange?: (data: CustomerData, conf: ConfidenceMap, verified: VerifiedMap, verification: DukcapilVerification) => void;
 	onHistoryModal?: (msg: string, apless: string, type: string, pid: string) => void;
+	onUpload?: () => void;
 }
 
 const EMPTY_DATA = (): CustomerData => ({
 	idCardNo: "", name: "", placeOfBirth: "", dateOfBirth: "",
 	gender: "", bloodType: "", address: "", rt: "", rw: "",
 	subdistrict: "", district: "", city: "", province: "",
-	religion: "", job: "", citizen: "", photo: "", signature: "",
+	religion: "", maritalStatus: "", job: "", citizen: "", photo: "", signature: "",
 });
 
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "heic", "heif", "tiff", "tif", "webp"]);
@@ -91,6 +95,16 @@ const _normCitizen = (value?: string): "WNI" | "WNA" => {
 	if (v === "WNA" || v === "ASING" || v.startsWith("FOREIGN")) return "WNA";
 	return "WNI";
 };
+
+const CUSTOMER_DATA_KEYS: (keyof CustomerData)[] = [
+	"idCardNo", "name", "placeOfBirth", "dateOfBirth", "gender", "bloodType",
+	"address", "rt", "rw", "subdistrict", "district", "city", "province",
+	"religion", "maritalStatus", "job", "citizen", "photo", "signature",
+];
+function customerDataEquals(a: CustomerData, b: CustomerData): boolean {
+	for (const k of CUSTOMER_DATA_KEYS) if (a[k] !== b[k]) return false;
+	return true;
+}
 
 const API_OCR = "/Prechecking/OCR/scanOCRCustomer";
 const API_BASE = "/Prechecking/OCR";
@@ -166,6 +180,8 @@ const OcrRow: React.FC<RowProps> = ({
 	label, value, confidence, verified, required,
 	textarea, numeric, maxLen, onChange,
 }) => {
+	const [focused, setFocused] = useState(false);
+
 	const handle = (raw: string) => {
 		if (numeric) {
 			const d = raw.replace(/\D/g, "");
@@ -178,15 +194,17 @@ const OcrRow: React.FC<RowProps> = ({
 	const inputStyle: React.CSSProperties = {
 		width: "100%", padding: "7px 12px", fontSize: ".82rem",
 		fontFamily: "var(--font, 'Plus Jakarta Sans', sans-serif)",
-		border: "1.5px solid var(--border, #DDE3F0)", borderRadius: 8,
+		border: `1.5px solid ${focused ? "#3B82F6" : "var(--border, #DDE3F0)"}`,
+		borderRadius: 8,
 		color: "var(--ink, #0F1D3C)", background: "#fff", outline: "none",
-		transition: "border-color .18s",
+		boxShadow: focused ? "0 0 0 3px rgba(59,130,246,.12)" : "none",
+		transition: "border-color .15s, box-shadow .15s",
 		textTransform: numeric ? "none" : "uppercase",
 		resize: textarea ? "vertical" : undefined,
 	};
 
 	return (
-		<tr style={{ borderBottom: "1px solid #F0F3FA" }}>
+		<tr style={{ borderBottom: "1px solid #F0F3FA", background: focused ? "#EFF6FF" : "transparent", transition: "background .15s" }}>
 			<td style={{ padding: "10px 14px", whiteSpace: "nowrap", width: "22%", verticalAlign: "middle" }}>
 				<span style={{ fontSize: ".8rem", fontWeight: 600, color: "var(--ink, #0F1D3C)" }}>
 					{label}{required && <span style={{ color: "#EF4444", marginLeft: 2 }}>*</span>}
@@ -197,6 +215,8 @@ const OcrRow: React.FC<RowProps> = ({
 					<textarea
 						value={value}
 						onChange={(e) => handle(e.target.value)}
+						onFocus={() => setFocused(true)}
+						onBlur={() => setFocused(false)}
 						rows={2} maxLength={250}
 						style={{ ...inputStyle, minHeight: 56 }}
 					/>
@@ -206,6 +226,8 @@ const OcrRow: React.FC<RowProps> = ({
 						inputMode={numeric ? "numeric" : "text"}
 						value={value}
 						onChange={(e) => handle(e.target.value)}
+						onFocus={() => setFocused(true)}
+						onBlur={() => setFocused(false)}
 						maxLength={maxLen}
 						style={inputStyle}
 					/>
@@ -232,9 +254,12 @@ const OCRUploadSection: React.FC<Props> = ({
 	maritalStatus,
 	initialData,
 	initialDocs,
+	docTypeAliases,
+	idTypeLabel,
 	expectedNik,
 	previousPrecheckingId,
 	onDataChange,
+	onUpload,
 }) => {
 	const route = ROUTES[ocrFor];
 
@@ -243,7 +268,6 @@ const OCRUploadSection: React.FC<Props> = ({
 	const [ver, setVer] = useState<VerifiedMap>(() => initialData?.ver ?? {});
 	const [docs, setDocs] = useState<UploadedDoc[]>(() => {
 		const seeded = (initialDocs ?? []).map((d) => ({ id: d.id, name: d.name, key: d.key, type: docType, readonly: true }));
-		console.log(`[OCRUploadSection:${docType}] lazy init — initialDocs prop:`, initialDocs, 'seeded docs:', seeded);
 		return seeded;
 	});
 	const [scanning, setScanning] = useState(false);
@@ -258,6 +282,16 @@ const OCRUploadSection: React.FC<Props> = ({
 	const [previewDoc, setPreviewDoc] = useState<UploadedDoc | null>(null);
 	const [previewLoadingId, setPreviewLoadingId] = useState<number | null>(null);
 
+	const verifiedSnapshotRef = useRef<{
+		data: CustomerData;
+		ver: VerifiedMap;
+		dukcapil: DukcapilVerification;
+	} | null>(
+		initialData?.verification?.checked && initialData.data?.idCardNo
+			? { data: initialData.data, ver: initialData.ver ?? {}, dukcapil: initialData.verification }
+			: null
+	);
+
 	const seededRef = useRef(false);
 	useEffect(() => {
 		if (seededRef.current) return;
@@ -270,6 +304,13 @@ const OCRUploadSection: React.FC<Props> = ({
 			setVer(initialData.ver ?? {});
 			setDukcapilResult(initialData.verification ?? DUKCAPIL_UNCHECKED);
 			setShowVerify(true);
+			if (initialData.verification?.checked) {
+				verifiedSnapshotRef.current = {
+					data: initialData.data,
+					ver: initialData.ver ?? {},
+					dukcapil: initialData.verification,
+				};
+			}
 		}
 		if (initialDocs && initialDocs.length > 0) {
 			setDocs((prev) => {
@@ -296,7 +337,8 @@ const OCRUploadSection: React.FC<Props> = ({
 			const res = await api.get(`${API_BASE}${route.list}`, {
 				params: { apless, prechecking_id: precheckingId, previous_prechecking_id: previousPrecheckingId || "" },
 			});
-			const fetched: UploadedDoc[] = (res.data ?? []).filter((d: UploadedDoc) => d.type === docType);
+			const allowed = new Set<string>([docType, ...(docTypeAliases ?? [])]);
+			const fetched: UploadedDoc[] = (res.data ?? []).filter((d: UploadedDoc) => allowed.has(d.type));
 			setDocs((prev) => {
 				const previewMap = new Map(prev.map((d) => [d.id, d.previewUrl]));
 				const readonlyDocs = prev.filter((d) => d.readonly);
@@ -312,7 +354,7 @@ const OCRUploadSection: React.FC<Props> = ({
 		} catch (e) {
 			console.error("refreshDocs error", e);
 		}
-	}, [apless, precheckingId, route.list, docType, previousPrecheckingId]);
+	}, [apless, precheckingId, route.list, docType, previousPrecheckingId, (docTypeAliases ?? []).join("|")]);
 
 	const uploadDoc = useCallback(async (file: File, type: string): Promise<string | undefined> => {
 		const ALLOWED = [".png", ".jpg", ".jpeg", ".pdf", ".tiff", ".tif", ".bmp", ".gif", ".heic", ".heif", ".xlsx", ".docx"];
@@ -348,6 +390,7 @@ const OCRUploadSection: React.FC<Props> = ({
 			}
 
 			await refreshDocs(localPreview, res.data.document_name);
+			onUpload?.();
 			return res.data.document_name;
 		} catch (e: any) {
 			if (localPreview) URL.revokeObjectURL(localPreview);
@@ -411,6 +454,7 @@ const OCRUploadSection: React.FC<Props> = ({
 				city: read.kotaKabupaten?.value ?? "",
 				province: read.provinsi?.value ?? "",
 				religion: read.agama?.value ?? "",
+				maritalStatus: read.statusPerkawinan?.value ?? "",
 				job: read.pekerjaan?.value ?? "",
 				citizen: _normCitizen(read.kewarganegaraan?.value),
 				photo: images.photo ?? "",
@@ -424,7 +468,7 @@ const OCRUploadSection: React.FC<Props> = ({
 				["bloodType", "golonganDarah"], ["address", "alamat"], ["rt", "rtRw"],
 				["subdistrict", "kelurahanDesa"], ["district", "kecamatan"],
 				["city", "kotaKabupaten"], ["province", "provinsi"],
-				["religion", "agama"], ["job", "pekerjaan"],
+				["religion", "agama"], ["maritalStatus", "statusPerkawinan"], ["job", "pekerjaan"],
 			];
 			for (const [k, src] of confFields) {
 				if (read[src]?.confidence != null) newConf[k] = `${read[src].confidence}%`;
@@ -434,6 +478,7 @@ const OCRUploadSection: React.FC<Props> = ({
 			setConf(newConf);
 			setVer({});
 			setDukcapilResult(DUKCAPIL_UNCHECKED);
+			verifiedSnapshotRef.current = null;
 			setShowVerify(true);
 
 			if (expectedNik && mapped.idCardNo && mapped.idCardNo !== expectedNik) {
@@ -472,7 +517,7 @@ const OCRUploadSection: React.FC<Props> = ({
 			const toLabel = (v: unknown): string =>
 				v === true ? "True" : v === false ? "False" : "";
 
-			setVer({
+			const nextVer: VerifiedMap = {
 				idCardNo: toLabel(result.nik),
 				name: toLabel(result.name),
 				placeOfBirth: toLabel(result.place_of_birth),
@@ -486,16 +531,19 @@ const OCRUploadSection: React.FC<Props> = ({
 				city: toLabel(result.city),
 				province: toLabel(result.province),
 				job: toLabel(result.job_type),
-			});
-
-			setDukcapilResult({
+			};
+			const nextDukcapil: DukcapilVerification = {
 				checked: true,
 				status: typeof body.verification_status === "boolean" ? body.verification_status : false,
 				reason: body.reason ?? "",
-			});
+			};
+			setVer(nextVer);
+			setDukcapilResult(nextDukcapil);
+			verifiedSnapshotRef.current = { data, ver: nextVer, dukcapil: nextDukcapil };
 		} catch {
 			alert("Verification failed. Please try again.");
 			setDukcapilResult(DUKCAPIL_UNCHECKED);
+			verifiedSnapshotRef.current = null;
 		}
 		finally { setVerifying(false); }
 	}, [data, precheckingId, maritalStatus]);
@@ -539,6 +587,7 @@ const OCRUploadSection: React.FC<Props> = ({
 			setConf({});
 			setVer({});
 			setDukcapilResult(DUKCAPIL_UNCHECKED);
+			verifiedSnapshotRef.current = null;
 			setShowVerify(false);
 		} catch { alert("Hapus gagal."); }
 		finally {
@@ -546,13 +595,20 @@ const OCRUploadSection: React.FC<Props> = ({
 		}
 	}, [docs, precheckingId, refreshDocs, route.del, data.idCardNo]);
 
-	const upd = (field: keyof CustomerData) => (v: string) => {
-		setData((prev) => ({ ...prev, [field]: v }));
-		setDukcapilResult(DUKCAPIL_UNCHECKED);
-	};
+	const [rtRwFocused, setRtRwFocused] = useState(false);
 
-	// eslint-disable-next-line no-console
-	console.log(`[OCRUploadSection:${docType}] render — docs.length=${docs.length}`, docs);
+	const upd = (field: keyof CustomerData) => (v: string) => {
+		const next = { ...data, [field]: v };
+		setData(next);
+
+		const snap = verifiedSnapshotRef.current;
+		if (snap && customerDataEquals(next, snap.data)) {
+			setVer(snap.ver);
+			setDukcapilResult(snap.dukcapil);
+		} else {
+			setDukcapilResult(DUKCAPIL_UNCHECKED);
+		}
+	};
 
 	return (
 		<>
@@ -659,42 +715,63 @@ const OCRUploadSection: React.FC<Props> = ({
 				marginBottom: 20, boxShadow: "0 2px 12px rgba(15,29,60,.05)",
 			}}>
 				<div style={{
-					background: "linear-gradient(135deg, #1B3A7A, #2D5BE3)",
-					padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center",
+					background: "linear-gradient(135deg, #16244E, #2D5BE3)",
+					padding: "15px 22px", display: "flex", justifyContent: "space-between", alignItems: "center",
+					gap: 16,
 				}}>
-					<span style={{ color: "#fff", fontSize: ".875rem", fontWeight: 700 }}>{title}</span>
-					<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-						<label style={{
-							background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.3)",
-							borderRadius: 8, padding: "6px 14px", color: "#fff",
-							fontSize: ".78rem", fontWeight: 600, fontFamily: "inherit",
-							cursor: scanning || uploading ? "not-allowed" : "pointer",
-							display: "flex", alignItems: "center", gap: 6,
-							opacity: scanning || uploading ? 0.6 : 1,
+					<div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+						<span style={{
+							display: "flex", alignItems: "center", justifyContent: "center",
+							width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+							background: "rgba(255,255,255,.14)",
 						}}>
-							{scanning || uploading
-								? <Spinner size={14} />
-								: (
-									<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-											d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-									</svg>
-								)
-							}
-							{scanning ? "Scanning…" : uploading ? "Uploading…" : "Upload KTP for OCR"}
-							<input
-								ref={fileRef}
-								type="file"
-								accept=".png,.jpg,.jpeg,.pdf,.tiff"
-								style={{ display: "none" }}
-								disabled={scanning || uploading}
-								onChange={(e) => {
-									const f = e.target.files?.[0];
-									if (f) { handleFileChange(f); e.target.value = ""; }
-								}}
-							/>
-						</label>
+							<svg width="16" height="16" fill="none" stroke="#fff" strokeWidth="1.8" viewBox="0 0 24 24">
+								<rect x="3" y="5" width="18" height="14" rx="2.5" />
+								<circle cx="9" cy="11.3" r="1.8" />
+								<path strokeLinecap="round" d="M14.2 10.3h3.8M14.2 13.3h3.8M6.3 16c.5-1.3 1.7-1.9 2.5-1.9s2 .6 2.5 1.9" />
+							</svg>
+						</span>
+						<span style={{
+							color: "#fff", fontSize: ".9rem", fontWeight: 700, letterSpacing: ".01em",
+							whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+						}}>{title}</span>
 					</div>
+
+					<label
+						style={{
+							background: scanning || uploading ? "rgba(255,255,255,.7)" : "#fff",
+							border: "none", borderRadius: 999, padding: "8px 16px",
+							color: "#16244E", fontSize: ".78rem", fontWeight: 700, fontFamily: "inherit",
+							cursor: scanning || uploading ? "not-allowed" : "pointer",
+							display: "inline-flex", alignItems: "center", gap: 7, flexShrink: 0,
+							whiteSpace: "nowrap", boxShadow: "0 1px 3px rgba(10,18,40,.3)",
+							transition: "background .15s",
+						}}
+						onMouseEnter={(e) => { if (!scanning && !uploading) e.currentTarget.style.background = "#E8EFFE"; }}
+						onMouseLeave={(e) => { if (!scanning && !uploading) e.currentTarget.style.background = "#fff"; }}
+					>
+						{scanning || uploading
+							? <Spinner dark size={14} />
+							: (
+								<svg width="14" height="14" fill="none" stroke="#16244E" strokeWidth="2.2" viewBox="0 0 24 24">
+									<path strokeLinecap="round" strokeLinejoin="round"
+										d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+								</svg>
+							)
+						}
+						{scanning ? "Scanning…" : uploading ? "Uploading…" : "Upload KTP for OCR"}
+						<input
+							ref={fileRef}
+							type="file"
+							accept=".png,.jpg,.jpeg,.pdf,.tiff"
+							style={{ display: "none" }}
+							disabled={scanning || uploading}
+							onChange={(e) => {
+								const f = e.target.files?.[0];
+								if (f) { handleFileChange(f); e.target.value = ""; }
+							}}
+						/>
+					</label>
 				</div>
 
 				{showVerify && (
@@ -834,9 +911,7 @@ const OCRUploadSection: React.FC<Props> = ({
 													onClick={handleVerify}
 													disabled={verifying}
 													style={{
-														background: dukcapilResult.checked
-															? "linear-gradient(135deg,#64748B,#475569)"
-															: "linear-gradient(135deg,#10B981,#059669)",
+														background: "linear-gradient(135deg,#10B981,#059669)",
 														border: "none", borderRadius: 8, padding: "6px 14px",
 														color: "#fff", fontSize: ".75rem", fontWeight: 700,
 														fontFamily: "inherit", cursor: "pointer",
@@ -861,15 +936,36 @@ const OCRUploadSection: React.FC<Props> = ({
 							</tr>
 						</thead>
 						<tbody>
+							{idTypeLabel && (
+								<tr style={{ borderBottom: "1px solid #F0F3FA" }}>
+									<td style={{ padding: "10px 14px", whiteSpace: "nowrap", width: "22%", verticalAlign: "middle" }}>
+										<span style={{ fontSize: ".8rem", fontWeight: 600, color: "var(--ink, #0F1D3C)" }}>ID Type</span>
+									</td>
+									<td style={{ padding: "10px 14px", width: "38%", verticalAlign: "middle" }}>
+										<input
+											readOnly
+											value={idTypeLabel}
+											style={{
+												width: "100%", padding: "7px 12px", fontSize: ".82rem",
+												fontFamily: "var(--font, 'Plus Jakarta Sans', sans-serif)",
+												border: "1.5px solid #E8EEF8", borderRadius: 8,
+												color: "#64748B", background: "#F4F7FF", cursor: "default", outline: "none",
+											}}
+										/>
+									</td>
+									<td style={{ padding: "10px 14px", width: "20%" }} />
+									<td style={{ padding: "10px 14px", width: "20%" }} />
+								</tr>
+							)}
 							<OcrRow label="NIK" value={data.idCardNo} confidence={conf.idCardNo} verified={ver.idCardNo} required numeric maxLen={16} onChange={upd("idCardNo")} />
 							<OcrRow label="Nama" value={data.name} confidence={conf.name} verified={ver.name} required onChange={upd("name")} />
 							<OcrRow label="Tempat Lahir" value={data.placeOfBirth} confidence={conf.placeOfBirth} verified={ver.placeOfBirth} required onChange={upd("placeOfBirth")} />
 							<OcrRow label="Tanggal Lahir" value={data.dateOfBirth} confidence={conf.dateOfBirth} verified={ver.dateOfBirth} required onChange={upd("dateOfBirth")} />
 							<OcrRow label="Jenis Kelamin" value={data.gender} confidence={conf.gender} verified={ver.gender} required onChange={upd("gender")} />
-							<OcrRow label="Golongan Darah" value={data.bloodType} confidence={conf.bloodType} onChange={upd("bloodType")} />
+							<OcrRow label="Golongan Darah" value={data.bloodType} confidence={conf.bloodType} maxLen={3} onChange={upd("bloodType")} />
 							<OcrRow label="Alamat" value={data.address} confidence={conf.address} verified={ver.address} required textarea onChange={upd("address")} />
 
-							<tr style={{ borderBottom: "1px solid #F0F3FA" }}>
+							<tr style={{ borderBottom: "1px solid #F0F3FA", background: rtRwFocused ? "#EFF6FF" : "transparent", transition: "background .15s" }}>
 								<td style={{ padding: "10px 14px", whiteSpace: "nowrap", verticalAlign: "middle" }}>
 									<span style={{ fontSize: ".8rem", fontWeight: 600, color: "#0F1D3C" }}>
 										RT/RW <span style={{ color: "#EF4444" }}>*</span>
@@ -880,20 +976,30 @@ const OCRUploadSection: React.FC<Props> = ({
 										<input
 											value={data.rt} inputMode="numeric" maxLength={3} placeholder="RT"
 											onChange={(e) => upd("rt")(e.target.value.replace(/\D/g, "").slice(0, 3))}
+											onFocus={() => setRtRwFocused(true)}
+											onBlur={() => setRtRwFocused(false)}
 											style={{
 												width: 72, padding: "7px 12px", fontSize: ".82rem",
-												border: "1.5px solid #DDE3F0", borderRadius: 8,
+												border: `1.5px solid ${rtRwFocused ? "#3B82F6" : "#DDE3F0"}`,
+												borderRadius: 8,
 												color: "#0F1D3C", background: "#fff", outline: "none",
+												boxShadow: rtRwFocused ? "0 0 0 3px rgba(59,130,246,.12)" : "none",
+												transition: "border-color .15s, box-shadow .15s",
 											}}
 										/>
 										<span style={{ color: "#64748B", fontWeight: 700 }}>/</span>
 										<input
 											value={data.rw} inputMode="numeric" maxLength={3} placeholder="RW"
 											onChange={(e) => upd("rw")(e.target.value.replace(/\D/g, "").slice(0, 3))}
+											onFocus={() => setRtRwFocused(true)}
+											onBlur={() => setRtRwFocused(false)}
 											style={{
 												width: 72, padding: "7px 12px", fontSize: ".82rem",
-												border: "1.5px solid #DDE3F0", borderRadius: 8,
+												border: `1.5px solid ${rtRwFocused ? "#3B82F6" : "#DDE3F0"}`,
+												borderRadius: 8,
 												color: "#0F1D3C", background: "#fff", outline: "none",
+												boxShadow: rtRwFocused ? "0 0 0 3px rgba(59,130,246,.12)" : "none",
+												transition: "border-color .15s, box-shadow .15s",
 											}}
 										/>
 									</div>

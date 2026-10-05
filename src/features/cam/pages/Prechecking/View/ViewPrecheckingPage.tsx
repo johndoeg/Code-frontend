@@ -65,6 +65,7 @@ interface ViewData {
 	corp_address?: string;
 	corp_type_label?: string;
 	wna_board?: { name: string; idCardNo: string; idType?: string }[];
+	shareholders?: { name: string; npwpNo: string; idType?: string }[];
 	corporate?: OcrData[];
 	sik: { subject: string; credit_bureau: string; status: string; score: string; grade: string; }[];
 	documents: Record<string, Document[]>;
@@ -84,6 +85,9 @@ const PREVIEW_CLOSED: PreviewState = {
 };
 
 const CORP_KTP_PREFIX = "corp-ocr-ktp_";
+const SHAREHOLDER_DOC_PREFIX = "shareholder-npwp_";
+
+const CANCEL_PATH = "/cam-request-onhand";
 
 const idTypeLabel = (citizen?: string, idType?: string): string => {
 	if ((citizen || "").toUpperCase() !== "WNA") return "KTP";
@@ -111,10 +115,6 @@ const spouseIdDocTypes = (isIndividu: boolean, mainCitizen?: string, spouseCitiz
 		: [`${prefix}-spouse-ktp`];
 };
 
-const docsByPrefix = (documents: Record<string, Document[]>, prefix: string): Document[] =>
-	Object.entries(documents)
-		.filter(([type]) => type.startsWith(prefix))
-		.flatMap(([, list]) => list);
 
 const officerKtpDocs = (
 	documents: Record<string, Document[]>,
@@ -140,6 +140,36 @@ const officerKtpDocs = (
 	return entries
 		.filter(([t]) => matchesOfficer(suffixOf(t), index))
 		.flatMap(([, list]) => list);
+};
+
+const boardDocsFor = (
+	documents: Record<string, Document[]>,
+	prefix: string,
+	members: { idCardNo: string }[],
+	index: number,
+): Document[] => {
+	const entries = Object.entries(documents).filter(([t]) => t.startsWith(prefix));
+	if (!entries.length) return [];
+
+	const suffixOf = (type: string) => type.slice(prefix.length).trim();
+	const suffixes = entries.map(([t]) => suffixOf(t));
+	const zeroBased = suffixes.includes("0");
+	const posKey = (i: number) => String(zeroBased ? i : i + 1);
+	const nikOf = (i: number) => (members[i]?.idCardNo || "").trim();
+	const matches = (suffix: string, i: number) =>
+		suffix === posKey(i) || (!!nikOf(i) && suffix === nikOf(i));
+
+	const anyMatch = suffixes.some((s) => members.some((_, i) => matches(s, i)));
+	if (!anyMatch) return index === 0 ? entries.flatMap(([, list]) => list) : [];
+
+	return entries
+		.filter(([t]) => matches(suffixOf(t), index))
+		.flatMap(([, list]) => list);
+};
+
+const shareholderDocsFor = (documents: Record<string, Document[]>, npwpNo: string): Document[] => {
+	const token = (npwpNo || "").replace(/[^A-Za-z0-9]/g, "");
+	return token ? documents[`${SHAREHOLDER_DOC_PREFIX}${token}`] ?? [] : [];
 };
 
 const triggerBlobDownload = (blob: Blob, fileName: string) => {
@@ -517,6 +547,21 @@ const FieldRow: React.FC<{ label: string; value?: React.ReactNode }> = ({ label,
 	</div>
 );
 
+const StatBlock: React.FC<{ rows: [string, React.ReactNode][] }> = ({ rows }) => (
+	<div className="flex justify-end w-full mb-8">
+		<table className="border-collapse ml-auto">
+			<tbody>
+				{rows.map(([label, value]) => (
+					<tr key={label}>
+						<td className="py-0.5 pr-3.5 text-left text-[.82rem] text-[var(--app-muted)] whitespace-nowrap">{label}</td>
+						<td className="py-0.5 text-right text-[.95rem] font-extrabold text-[var(--app-text)] whitespace-nowrap">{value}</td>
+					</tr>
+				))}
+			</tbody>
+		</table>
+	</div>
+);
+
 const DocRow: React.FC<{
 	label: string;
 	docs: Document[];
@@ -812,7 +857,7 @@ const ViewPrecheckingPage: React.FC<ViewPrecheckingPageProps> = ({
 		if (onClose) {
 			onClose();
 		} else {
-			navigate(-1);
+			navigate(CANCEL_PATH);
 		}
 	};
 
@@ -843,7 +888,6 @@ const ViewPrecheckingPage: React.FC<ViewPrecheckingPageProps> = ({
 	const isIndividu = data.check_for === "C" && data.customer_type === "PR";
 	const isGuarnPR = data.check_for === "G" && data.customer_type === "PR";
 	const isCorporate = !!data.is_corporate || !!data.is_guarantor_pt;
-	const wnaBoardDocs = isCorporate ? docsByPrefix(docs, "wna-corp-board_") : [];
 
 	const custIdLabel = idTypeLabel(data.customer?.citizen, data.customer?.idType ?? data.wna_id_type);
 	const spouseIdLabel = idTypeLabel(data.spouse?.citizen, data.spouse?.idType);
@@ -916,6 +960,10 @@ const ViewPrecheckingPage: React.FC<ViewPrecheckingPageProps> = ({
 
 						<section>
 							<SectionHeader title="General Information" />
+							<StatBlock rows={[
+								["Last Prechecking Date", data.last_checking_date || "—"],
+								["Outstanding", `IDR ${(data.outstanding ?? 0).toLocaleString("id-ID")}`],
+							]} />
 							<div className="grid md:grid-cols-2 gap-x-12">
 								<div>
 									<FieldRow label="Checking For"
@@ -933,12 +981,8 @@ const ViewPrecheckingPage: React.FC<ViewPrecheckingPageProps> = ({
 										value={<span className="font-mono">{data.apless}</span>} />
 								</div>
 								<div>
-									<FieldRow label="Nationality" value={data.nationality} />
+									{!isCorporate && <FieldRow label="Nationality" value={data.nationality} />}
 									{!isCorporate && <FieldRow label="ID Type" value={custIdLabel} />}
-									<FieldRow label="Last Prechecking Date"
-										value={data.last_checking_date || "—"} />
-									<FieldRow label="Outstanding"
-										value={`IDR ${(data.outstanding ?? 0).toLocaleString("id-ID")}`} />
 								</div>
 							</div>
 						</section>
@@ -949,6 +993,14 @@ const ViewPrecheckingPage: React.FC<ViewPrecheckingPageProps> = ({
 								<FieldRow label="Company Type" value={data.corp_type_label} />
 								<FieldRow label="Nama" value={data.corp_name} />
 								<FieldRow label="NPWP" value={data.corp_npwp} />
+								<DocRow
+									label="File NPWP"
+									docs={docs["corp-npwp"] ?? []}
+									onPreview={handlePreview}
+									onDownload={handleDownload}
+									loadingId={fetchingId}
+									downloadingId={downloadingId}
+								/>
 								<FieldRow label="Alamat" value={data.corp_address} />
 							</section>
 						)}
@@ -970,34 +1022,111 @@ const ViewPrecheckingPage: React.FC<ViewPrecheckingPageProps> = ({
 						{isCorporate && (data.wna_board?.length ?? 0) > 0 && (
 							<section>
 								<SectionHeader title="Data Pengurus (WNA)" />
-								<div className="rounded-xl border border-[var(--app-border)] overflow-hidden mb-3">
-									<table className="w-full text-sm">
+								<div className="rounded-xl border border-[var(--app-border)] overflow-x-auto mb-3">
+									<table className="w-full text-sm table-fixed">
+										<colgroup>
+											<col style={{ width: "30%" }} />
+											<col style={{ width: "15%" }} />
+											<col style={{ width: "20%" }} />
+											<col style={{ width: "35%" }} />
+										</colgroup>
 										<thead className="bg-[var(--app-surface)]">
 											<tr>
 												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">Name</th>
 												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">ID Type</th>
 												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">ID Card No.</th>
+												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">File Identitas</th>
 											</tr>
 										</thead>
 										<tbody className="divide-y divide-[var(--app-border)]">
-											{data.wna_board!.map((w, i) => (
-												<tr key={i}>
-													<td className="px-4 py-2.5 text-[var(--app-text)]">{w.name || "—"}</td>
-													<td className="px-4 py-2.5 text-[var(--app-text)]">{idTypeLabel("WNA", w.idType)}</td>
-													<td className="px-4 py-2.5 text-[var(--app-text)]">{w.idCardNo || "—"}</td>
-												</tr>
-											))}
+											{data.wna_board!.map((w, i) => {
+												const fileDocs = boardDocsFor(docs, "wna-corp-board_", data.wna_board!, i);
+												return (
+													<tr key={i}>
+														<td className="px-4 py-2.5 text-[var(--app-text)] align-top break-words">{w.name || "—"}</td>
+														<td className="px-4 py-2.5 text-[var(--app-text)] align-top break-words">{idTypeLabel("WNA", w.idType)}</td>
+														<td className="px-4 py-2.5 text-[var(--app-text)] align-top break-words">{w.idCardNo || "—"}</td>
+														<td className="px-4 py-2.5 align-top">
+															{fileDocs.length === 0 ? (
+																<span className="text-[var(--app-muted)] text-sm">No file(s) uploaded.</span>
+															) : (
+																<div className="flex flex-wrap gap-2">
+																	{fileDocs.map((d) => (
+																		<DocChip
+																			key={d.id}
+																			doc={d}
+																			onPreview={handlePreview}
+																			onDownload={handleDownload}
+																			loading={fetchingId === d.id}
+																			downloading={downloadingId === d.id}
+																		/>
+																	))}
+																</div>
+															)}
+														</td>
+													</tr>
+												);
+											})}
 										</tbody>
 									</table>
 								</div>
-								<KtpFileChips
-									label="File Identitas Pengurus WNA"
-									docs={wnaBoardDocs}
-									onPreview={handlePreview}
-									onDownload={handleDownload}
-									loadingId={fetchingId}
-									downloadingId={downloadingId}
-								/>
+							</section>
+						)}
+
+						{isCorporate && (data.shareholders?.length ?? 0) > 0 && (
+							<section>
+								<SectionHeader title="Data Shareholder Company" />
+								<div className="rounded-xl border border-[var(--app-border)] overflow-x-auto mb-3">
+									<table className="w-full text-sm table-fixed">
+										<colgroup>
+											<col style={{ width: "6%" }} />
+											<col style={{ width: "28%" }} />
+											<col style={{ width: "12%" }} />
+											<col style={{ width: "20%" }} />
+											<col style={{ width: "34%" }} />
+										</colgroup>
+										<thead className="bg-[var(--app-surface)]">
+											<tr>
+												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">#</th>
+												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">Name</th>
+												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">ID Type</th>
+												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">NPWP No.</th>
+												<th className="px-4 py-2.5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">File NPWP</th>
+											</tr>
+										</thead>
+										<tbody className="divide-y divide-[var(--app-border)]">
+											{data.shareholders!.map((sh, i) => {
+												const fileDocs = shareholderDocsFor(docs, sh.npwpNo);
+												return (
+													<tr key={i}>
+														<td className="px-4 py-2.5 text-[var(--app-text)] align-top">{i + 1}</td>
+														<td className="px-4 py-2.5 text-[var(--app-text)] align-top break-words">{sh.name || "—"}</td>
+														<td className="px-4 py-2.5 text-[var(--app-text)] align-top break-words">{sh.idType || "NPWP"}</td>
+														<td className="px-4 py-2.5 text-[var(--app-text)] align-top break-words font-mono">{sh.npwpNo || "—"}</td>
+														<td className="px-4 py-2.5 align-top">
+															{fileDocs.length === 0 ? (
+																<span className="text-[var(--app-muted)] text-sm">No file(s) uploaded.</span>
+															) : (
+																<div className="flex flex-wrap gap-2">
+																	{fileDocs.map((d) => (
+																		<DocChip
+																			key={d.id}
+																			doc={d}
+																			onPreview={handlePreview}
+																			onDownload={handleDownload}
+																			loading={fetchingId === d.id}
+																			downloading={downloadingId === d.id}
+																		/>
+																	))}
+																</div>
+															)}
+														</td>
+													</tr>
+												);
+											})}
+										</tbody>
+									</table>
+								</div>
 							</section>
 						)}
 
@@ -1116,7 +1245,6 @@ const ViewPrecheckingPage: React.FC<ViewPrecheckingPageProps> = ({
 							<section>
 								<SectionHeader title="Supporting Documents, Reference & Notes" />
 								<div className="max-w-2xl">
-									<DocRow label="NPWP" docs={docs["corp-npwp"] ?? []} onPreview={handlePreview} onDownload={handleDownload} loadingId={fetchingId} downloadingId={downloadingId} />
 									<DocRow label="Akta Pendirian" docs={docs["corp-akta"] ?? []} onPreview={handlePreview} onDownload={handleDownload} loadingId={fetchingId} downloadingId={downloadingId} />
 									<DocRow label="SK Kemenkumham Akta Pendirian" docs={docs["corp-sk-akta"] ?? []} onPreview={handlePreview} onDownload={handleDownload} loadingId={fetchingId} downloadingId={downloadingId} />
 									<DocRow label="Akta Perubahan Terakhir" docs={docs["corp-akta-terakhir"] ?? []} onPreview={handlePreview} onDownload={handleDownload} loadingId={fetchingId} downloadingId={downloadingId} />

@@ -1133,7 +1133,7 @@ const PrecheckingGuarantorCorporatePage: React.FC = () => {
 						</div>
 						<div className="form-field">
 							<label className="form-label">Note for Prechecking</label>
-							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea" placeholder="Optional notes…" style={{ textTransform: "uppercase" }} />
+							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea" placeholder="" style={{ textTransform: "uppercase" }} />
 						</div>
 					</div>
 

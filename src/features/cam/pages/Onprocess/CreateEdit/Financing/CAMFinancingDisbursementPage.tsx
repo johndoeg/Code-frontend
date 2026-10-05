@@ -749,358 +749,505 @@ const CAMFinancingDisbursementPage = forwardRef<CamTabHandle, CAMFinancingDisbur
 	);
 
 	return (
-		<div className="rounded-2xl bg-[var(--app-card)] p-4 shadow sm:p-6">
-			<div className="judul mb-2 border-b border-[var(--app-border)] pb-1">
-				<div className="flex items-end justify-between">
-					<strong className="text-sm font-bold text-[var(--app-text)]">Disbursement</strong>
-					{judul && <span className="judul1 text-xs font-semibold text-blue-500">{judul}</span>}
+		<div className="overflow-hidden rounded-2xl bg-[var(--app-card)] shadow">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Disbursement</h2>
 				</div>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
 			</div>
-
-			<div className="overflow-x-auto">
-				<table className={`border-collapse ${splitView ? "w-full" : ""}`}>
-					<tbody>
-						<tr>
-							<td className={rowLabel}>Split Purchase Order</td>
-							<td className={rowValue} colSpan={visibleKeys.length + (splitView ? 1 : 0)}>
-								<span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--app-text)]">
-									<label className="inline-flex items-center gap-1">
-										<input
-											type="radio"
-											name="pilihan_PO"
-											checked={!splitView}
-											disabled={!editable}
-											onChange={() => setSplitView(false)}
-										/>
-										No
-									</label>
-									<label className="inline-flex items-center gap-1">
-										<input
-											type="radio"
-											name="pilihan_PO"
-											checked={splitView}
-											disabled={!editable}
-											onChange={() => setSplitView(true)}
-										/>
-										Yes
-									</label>
-									{active.others && (
-										<span className="inline-flex items-center gap-1">
-											<label>Other&apos;s name :</label>
-											<Box
-												kind="text"
-												value={othersField}
-												onChange={setOthersField}
-												readOnly={!editable}
-												align="left"
-												className="w-[133px]"
-											/>
-										</span>
-									)}
-								</span>
-							</td>
-						</tr>
-
-						<tr>
-							<td className={rowLabel}>&nbsp;</td>
-							{visibleKeys.map((key) => (
-								<td key={key} className="py-[3px] pr-3 text-center text-sm text-[var(--app-text)]">
-									{active[key] ? (key === "others" ? othersLabel : CATEGORY_LABELS[key]) : <Spacer />}
-								</td>
-							))}
-							{splitView && <td className="py-[3px] pr-3 text-center text-sm text-[var(--app-text)]">Total</td>}
-						</tr>
-
-						{fieldRow("Asset Value", "assetValue", { totalField: "assetValue" })}
-						{fieldRow(ketDpSecurity, "dp", { totalField: "dp" })}
-						{fieldRow("Survey Fee Gross 1", "surveyFeeGross1", { totalField: "surveyFeeGross1" })}
-						{fieldRow("Survey Fee Gross 2", "surveyFeeGross2")}
-						{fieldRow("Notary Fee Gross", "notaryFeeGross", { totalField: "notaryFeeGross" })}
-						{fieldRow("Provision Fee", "provisionFee", { totalField: "provisionFee" })}
-						{fieldRow("Bussiness Trip Fee", "businessTripFee", { totalField: "businessTripFee" })}
-						{fieldRow("Insurance", "insurance")}
-
-						<tr>
-							<td className={rowLabel}>First Installment</td>
-							{visibleKeys.map((key) => (
-								<td key={key} className={rowValue}>
-									{active[key] ? (
-										<Box
-											value={liveCategories[key]?.firstInstallment ?? 0}
-											readOnly={!editable || key !== "dealer" || readonlyFirstInstallment}
-											onChange={(v) => updateCategory(key, { firstInstallment: num(v) })}
-											className={money}
-										/>
-									) : <Spacer />}
-								</td>
-							))}
-							{splitView && (
-								<td className={rowValue}>
-									<Box value={totals.firstInstallment} readOnly className={money} />
-								</td>
-							)}
-						</tr>
-
-						<tr>
-							<td className={rowLabel}>
-								<span className="flex items-center justify-between gap-4">
-									<span>Advance Grace Period</span>
-									<span>Month(s)</span>
-								</span>
-							</td>
-							{visibleKeys.map((key) => (
-								<td key={key} className={rowValue}>
-									{!active[key] ? <Spacer /> : key === "dealer" ? (
-										<span className="inline-flex items-center gap-1">
-											<Box
-												value={liveCategories.dealer?.advanceGraceMonths ?? 0}
-												readOnly={!editable}
-												onChange={handleGraceMonths}
-												className="w-[40px]"
-											/>
-											<Box
-												value={liveCategories.dealer?.advanceGraceAmount ?? 0}
-												readOnly
-												className="w-[155px]"
-											/>
-										</span>
-									) : (
-										<Box value={0} readOnly className={money} />
-									)}
-								</td>
-							))}
-							{splitView && (
-								<td className={rowValue}>
-									<Box value={columnTotal("advanceGraceAmount")} readOnly className={money} />
-								</td>
-							)}
-						</tr>
-
-						{fieldRow("Agency Fee Gross", "agencyFeeGross", { dealerEditable: false, totalField: "agencyFeeGross" })}
-						{fieldRow("BBN Fee", "bbnFee", { dealerEditable: false, totalField: "bbnFee" })}
-
-						{dividerRow("-", "minus1")}
-
-						{showRefund && (
+			<div className="p-4 sm:p-6">
+				<div className="overflow-x-auto">
+					<table className={`border-collapse ${splitView ? "w-full" : ""}`}>
+						<tbody>
 							<tr>
-								<td className={rowLabel}>Refund to Dealer</td>
+								<td className={rowLabel}>Split Purchase Order</td>
+								<td className={rowValue} colSpan={visibleKeys.length + (splitView ? 1 : 0)}>
+									<span className="inline-flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--app-text)]">
+										<label className="inline-flex items-center gap-1">
+											<input
+												type="radio"
+												name="pilihan_PO"
+												checked={!splitView}
+												disabled={!editable}
+												onChange={() => setSplitView(false)}
+											/>
+											No
+										</label>
+										<label className="inline-flex items-center gap-1">
+											<input
+												type="radio"
+												name="pilihan_PO"
+												checked={splitView}
+												disabled={!editable}
+												onChange={() => setSplitView(true)}
+											/>
+											Yes
+										</label>
+										{active.others && (
+											<span className="inline-flex items-center gap-1">
+												<label>Other&apos;s name :</label>
+												<Box
+													kind="text"
+													value={othersField}
+													onChange={setOthersField}
+													readOnly={!editable}
+													align="left"
+													className="w-[133px]"
+												/>
+											</span>
+										)}
+									</span>
+								</td>
+							</tr>
+
+							<tr>
+								<td className={rowLabel}>&nbsp;</td>
+								{visibleKeys.map((key) => (
+									<td key={key} className="py-[3px] pr-3 text-center text-sm text-[var(--app-text)]">
+										{active[key] ? (key === "others" ? othersLabel : CATEGORY_LABELS[key]) : <Spacer />}
+									</td>
+								))}
+								{splitView && <td className="py-[3px] pr-3 text-center text-sm text-[var(--app-text)]">Total</td>}
+							</tr>
+
+							{fieldRow("Asset Value", "assetValue", { totalField: "assetValue" })}
+							{fieldRow(ketDpSecurity, "dp", { totalField: "dp" })}
+							{fieldRow("Survey Fee Gross 1", "surveyFeeGross1", { totalField: "surveyFeeGross1" })}
+							{fieldRow("Survey Fee Gross 2", "surveyFeeGross2")}
+							{fieldRow("Notary Fee Gross", "notaryFeeGross", { totalField: "notaryFeeGross" })}
+							{fieldRow("Provision Fee", "provisionFee", { totalField: "provisionFee" })}
+							{fieldRow("Bussiness Trip Fee", "businessTripFee", { totalField: "businessTripFee" })}
+							{fieldRow("Insurance", "insurance")}
+
+							<tr>
+								<td className={rowLabel}>First Installment</td>
+								{visibleKeys.map((key) => (
+									<td key={key} className={rowValue}>
+										{active[key] ? (
+											<Box
+												value={liveCategories[key]?.firstInstallment ?? 0}
+												readOnly={!editable || key !== "dealer" || readonlyFirstInstallment}
+												onChange={(v) => updateCategory(key, { firstInstallment: num(v) })}
+												className={money}
+											/>
+										) : <Spacer />}
+									</td>
+								))}
+								{splitView && (
+									<td className={rowValue}>
+										<Box value={totals.firstInstallment} readOnly className={money} />
+									</td>
+								)}
+							</tr>
+
+							<tr>
+								<td className={rowLabel}>
+									<span className="flex items-center justify-between gap-4">
+										<span>Advance Grace Period</span>
+										<span>Month(s)</span>
+									</span>
+								</td>
+								{visibleKeys.map((key) => (
+									<td key={key} className={rowValue}>
+										{!active[key] ? <Spacer /> : key === "dealer" ? (
+											<span className="inline-flex items-center gap-1">
+												<Box
+													value={liveCategories.dealer?.advanceGraceMonths ?? 0}
+													readOnly={!editable}
+													onChange={handleGraceMonths}
+													className="w-[40px]"
+												/>
+												<Box
+													value={liveCategories.dealer?.advanceGraceAmount ?? 0}
+													readOnly
+													className="w-[155px]"
+												/>
+											</span>
+										) : (
+											<Box value={0} readOnly className={money} />
+										)}
+									</td>
+								))}
+								{splitView && (
+									<td className={rowValue}>
+										<Box value={columnTotal("advanceGraceAmount")} readOnly className={money} />
+									</td>
+								)}
+							</tr>
+
+							{fieldRow("Agency Fee Gross", "agencyFeeGross", { dealerEditable: false, totalField: "agencyFeeGross" })}
+							{fieldRow("BBN Fee", "bbnFee", { dealerEditable: false, totalField: "bbnFee" })}
+
+							{dividerRow("-", "minus1")}
+
+							{showRefund && (
+								<tr>
+									<td className={rowLabel}>Refund to Dealer</td>
+									{visibleKeys.map((key) => (
+										<td key={key} className={rowValue}>
+											{active[key]
+												? <Box value={key === "dealer" ? refundToDealer : 0} readOnly className={money} />
+												: <Spacer />}
+										</td>
+									))}
+									{splitView && (
+										<td className={rowValue}><Box value={refundToDealer} readOnly className={money} /></td>
+									)}
+								</tr>
+							)}
+
+							<tr>
+								<td className={rowLabel}>Subsidy from Dealer</td>
 								{visibleKeys.map((key) => (
 									<td key={key} className={rowValue}>
 										{active[key]
-											? <Box value={key === "dealer" ? refundToDealer : 0} readOnly className={money} />
+											? <Box value={key === "dealer" ? subsidyFromDealer : 0} readOnly className={money} />
 											: <Spacer />}
 									</td>
 								))}
 								{splitView && (
-									<td className={rowValue}><Box value={refundToDealer} readOnly className={money} /></td>
+									<td className={rowValue}><Box value={subsidyFromDealer} readOnly className={money} /></td>
 								)}
 							</tr>
-						)}
 
-						<tr>
-							<td className={rowLabel}>Subsidy from Dealer</td>
-							{visibleKeys.map((key) => (
-								<td key={key} className={rowValue}>
-									{active[key]
-										? <Box value={key === "dealer" ? subsidyFromDealer : 0} readOnly className={money} />
-										: <Spacer />}
-								</td>
-							))}
-							{splitView && (
-								<td className={rowValue}><Box value={subsidyFromDealer} readOnly className={money} /></td>
+							{dividerRow("-", "minus2")}
+
+							{fieldRow("Disbursement to Dealer", "netFinance", { dealerEditable: false })}
+							{fieldRow("Commission to Dealer (Gross)", "commissionToDealer", {
+								dealerEditable: false, dealerOnly: true, totalField: "commissionToDealer",
+							})}
+
+							{dividerRow("+", "plus1")}
+
+							{fieldRow("Total Payment to Dealer", "totalPayment", { dealerEditable: false })}
+
+							{editable && (
+								<tr>
+									<td className={rowLabel}>
+										<button type="button" onClick={handleReset} disabled={resetting} className={buttonClass}>
+											{resetting ? "Resetting…" : "Reset To Default"}
+										</button>
+									</td>
+									<td className={rowValue} colSpan={visibleKeys.length + (splitView ? 1 : 0)}>
+										<button type="button" onClick={handleCalculate} disabled={calculating} className={buttonClass}>
+											{calculating ? "Calculating…" : "Calculate"}
+										</button>
+									</td>
+								</tr>
 							)}
-						</tr>
-
-						{dividerRow("-", "minus2")}
-
-						{fieldRow("Disbursement to Dealer", "netFinance", { dealerEditable: false })}
-						{fieldRow("Commission to Dealer (Gross)", "commissionToDealer", {
-							dealerEditable: false, dealerOnly: true, totalField: "commissionToDealer",
-						})}
-
-						{dividerRow("+", "plus1")}
-
-						{fieldRow("Total Payment to Dealer", "totalPayment", { dealerEditable: false })}
-
-						{editable && (
-							<tr>
-								<td className={rowLabel}>
-									<button type="button" onClick={handleReset} disabled={resetting} className={buttonClass}>
-										{resetting ? "Resetting…" : "Reset To Default"}
-									</button>
-								</td>
-								<td className={rowValue} colSpan={visibleKeys.length + (splitView ? 1 : 0)}>
-									<button type="button" onClick={handleCalculate} disabled={calculating} className={buttonClass}>
-										{calculating ? "Calculating…" : "Calculate"}
-									</button>
-								</td>
-							</tr>
-						)}
-					</tbody>
-				</table>
-			</div>
-
-			{(messages.length > 0 || successMessage) && (
-				<div className="message mt-2 space-y-1">
-					{successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
-					{messages.map((line, i) => (
-						<p key={i} className="text-sm text-red-600">{line}</p>
-					))}
-				</div>
-			)}
-
-			<div className="mt-6">
-				<strong className="text-sm font-bold text-[var(--app-text)]">Disbursement To:</strong>
-			</div>
-
-			<table className="mt-2 border-collapse">
-				<tbody>
-					<tr>
-						<td className={rowLabel}>Disbursement Type</td>
-						<td className={rowValue}>
-							<Dropdown
-								value={disbursementType}
-								onChange={setDisbursementType}
-								options={disbursementTypeOptions}
-								disabled={!editable}
-								className="w-[200px]"
-							/>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-
-			{disbursementType === "1" && (
-				<div className="mt-4">
-					<strong className="text-sm font-bold text-[var(--app-text)]">Disbursement To:</strong>
-					<table className="mt-2 border-collapse">
-						<tbody>
-							<tr>
-								<td className={rowLabel}>Disbursement to</td>
-								<td className={rowValue}>
-									<Dropdown
-										value={disbursessTo}
-										onChange={setDisbursessTo}
-										options={disbursessToOptions}
-										disabled={!editable}
-										className="w-[200px]"
-									/>
-								</td>
-							</tr>
 						</tbody>
 					</table>
+				</div>
 
-					<div className="mt-3 overflow-x-auto">
+				{(messages.length > 0 || successMessage) && (
+					<div className="message mt-2 space-y-1">
+						{successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
+						{messages.map((line, i) => (
+							<p key={i} className="text-sm text-red-600">{line}</p>
+						))}
+					</div>
+				)}
+
+				<div className="mt-6">
+					<strong className="text-sm font-bold text-[var(--app-text)]">Disbursement To:</strong>
+				</div>
+
+				<table className="mt-2 border-collapse">
+					<tbody>
+						<tr>
+							<td className={rowLabel}>Disbursement Type</td>
+							<td className={rowValue}>
+								<Dropdown
+									value={disbursementType}
+									onChange={setDisbursementType}
+									options={disbursementTypeOptions}
+									disabled={!editable}
+									className="w-[200px]"
+								/>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+
+				{disbursementType === "1" && (
+					<div className="mt-4">
+						<strong className="text-sm font-bold text-[var(--app-text)]">Disbursement To:</strong>
+						<table className="mt-2 border-collapse">
+							<tbody>
+								<tr>
+									<td className={rowLabel}>Disbursement to</td>
+									<td className={rowValue}>
+										<Dropdown
+											value={disbursessTo}
+											onChange={setDisbursessTo}
+											options={disbursessToOptions}
+											disabled={!editable}
+											className="w-[200px]"
+										/>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+
+						<div className="mt-3 overflow-x-auto">
+							<table className="w-full border-collapse border border-[var(--app-border)]">
+								<thead>
+									<tr>
+										<th className={`${headCell} w-[10%]`}>Disbursement to</th>
+										<th className={`${headCell} w-[15%]`}>Bank Name</th>
+										<th className={`${headCell} w-[15%]`}>Bank Branch</th>
+										<th className={`${headCell} w-[18%]`}>Account Name</th>
+										<th className={`${headCell} w-[14%]`}>Account Number</th>
+										<th className={`${headCell} w-[11%]`}>Amount</th>
+										<th className={`${headCell} w-[5%]`}>&nbsp;</th>
+									</tr>
+								</thead>
+								<tbody>
+									{savedExternalRows.map((row, index) => (
+										<tr key={`saved-${row.id ?? index}`}>
+											<td className={cellBorder}>{row.split}</td>
+											<td className={cellBorder}>{row.bankLabel || row.bank}</td>
+											<td className={cellBorder}>{row.bankBranch}</td>
+											<td className={cellBorder}>{row.accName}</td>
+											<td className={cellBorder}>{row.accNo}</td>
+											<td className={`${cellBorder} text-center`}>
+												<Box
+													value={row.amount}
+													readOnly={!editable}
+													onChange={(v) => updateSavedExternal(row.accNo, { amount: num(v) })}
+													className="w-[186px]"
+												/>
+											</td>
+											<td className={`${cellBorder} text-center`}>
+												<input
+													type="checkbox"
+													checked={row.checked !== false}
+													disabled={!editable}
+													onChange={(e) => updateSavedExternal(row.accNo, { checked: e.target.checked })}
+												/>
+											</td>
+										</tr>
+									))}
+									{stagingExternal.map((row, index) => (
+										<tr key={`new-${index}`}>
+											<td className={cellBorder}>{disbursessTo}</td>
+											<td className={cellBorder}>
+												<Dropdown
+													value={row.bank}
+													onChange={(v) => updateStagingExternal(index, { bank: v })}
+													options={bankOptions}
+													className="w-[200px]"
+												/>
+											</td>
+											<td className={cellBorder}>
+												<Box
+													kind="text"
+													value={row.bankBranch}
+													onChange={(v) => updateStagingExternal(index, { bankBranch: v })}
+													align="left"
+													maxLength={40}
+													className="w-[173px]"
+												/>
+											</td>
+											<td className={cellBorder}>
+												<Box
+													kind="text"
+													value={row.accName}
+													onChange={(v) => updateStagingExternal(index, { accName: v })}
+													align="left"
+													maxLength={50}
+													className="w-[186px]"
+												/>
+											</td>
+											<td className={cellBorder}>
+												<Box
+													kind="text"
+													value={row.accNo}
+													onChange={(v) => updateStagingExternal(index, { accNo: v.replace(/[^0-9]/g, "") })}
+													align="left"
+													maxLength={30}
+													className="w-[133px]"
+												/>
+											</td>
+											<td className={`${cellBorder} text-center`}>
+												<Box
+													value={row.amount}
+													onChange={(v) => updateStagingExternal(index, { amount: num(v) })}
+													className="w-[186px]"
+												/>
+											</td>
+											<td className={`${cellBorder} text-center`}>
+												<input
+													type="checkbox"
+													checked={row.checked !== false}
+													onChange={(e) => updateStagingExternal(index, { checked: e.target.checked })}
+												/>
+											</td>
+										</tr>
+									))}
+									<tr>
+										<td className={`${cellBorder} text-right`} colSpan={5}>
+											<span className="flex items-center gap-2">
+												<button
+													type="button"
+													onClick={addExternalRow}
+													disabled={!editable || !disbursessTo}
+													className="h-5 w-5 rounded-full bg-[#FF6600] text-xs font-bold leading-none text-white disabled:opacity-50"
+												>
+													+
+												</button>
+												<button
+													type="button"
+													onClick={removeExternalRow}
+													disabled={!editable || stagingExternal.length === 0}
+													className="h-5 w-5 rounded-full bg-slate-400 text-xs font-bold leading-none text-white disabled:opacity-50"
+												>
+													−
+												</button>
+												<strong className="ml-auto">Total</strong>
+											</span>
+										</td>
+										<td className={`${cellBorder} text-right`}>
+											<Box
+												value={[...savedExternalRows, ...stagingExternal].reduce((acc, r) => acc + num(r.amount), 0)}
+												readOnly
+												className="w-[186px]"
+											/>
+										</td>
+										<td className={cellBorder}>&nbsp;</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						{editable && (
+							<div className="mt-3 text-center">
+								<button type="button" onClick={saveExternalAccounts} disabled={savingExternal} className={buttonClass}>
+									{savingExternal ? "Saving…" : "Save"}
+								</button>
+							</div>
+						)}
+					</div>
+				)}
+
+				{disbursementType === "2" && (
+					<div className="mt-4 overflow-x-auto">
 						<table className="w-full border-collapse border border-[var(--app-border)]">
 							<thead>
 								<tr>
 									<th className={`${headCell} w-[10%]`}>Disbursement to</th>
-									<th className={`${headCell} w-[15%]`}>Bank Name</th>
-									<th className={`${headCell} w-[15%]`}>Bank Branch</th>
-									<th className={`${headCell} w-[18%]`}>Account Name</th>
-									<th className={`${headCell} w-[14%]`}>Account Number</th>
-									<th className={`${headCell} w-[11%]`}>Amount</th>
+									<th className={`${headCell} w-[15%]`}>Contract Number</th>
+									<th className={`${headCell} w-[15%]`}>Amount</th>
+									<th className={`${headCell} w-[18%]`}>Purpose</th>
+									<th className={`${headCell} w-[14%]`}>&nbsp;</th>
+									<th className={`${headCell} w-[11%]`}>&nbsp;</th>
 									<th className={`${headCell} w-[5%]`}>&nbsp;</th>
 								</tr>
 							</thead>
 							<tbody>
-								{savedExternalRows.map((row, index) => (
-									<tr key={`saved-${row.id ?? index}`}>
-										<td className={cellBorder}>{row.split}</td>
-										<td className={cellBorder}>{row.bankLabel || row.bank}</td>
-										<td className={cellBorder}>{row.bankBranch}</td>
-										<td className={cellBorder}>{row.accName}</td>
-										<td className={cellBorder}>{row.accNo}</td>
-										<td className={`${cellBorder} text-center`}>
+								{internalAccounts.map((row, index) => (
+									<tr key={`saved-cross-${row.id ?? index}`}>
+										<td className={cellBorder}>COMPANY</td>
+										<td className={cellBorder}>
+											<input
+												type="text"
+												value={row.crossNo}
+												maxLength={20}
+												readOnly={!editable}
+												onChange={(e) => updateSavedInternal(row.id, { crossNo: e.target.value.replace(/[^0-9]/g, "") })}
+												onBlur={(e) => void validateContract(e.target.value)}
+												className={`${boxClass} w-[173px] text-left`}
+											/>
+										</td>
+										<td className={`${cellBorder} text-right`}>
 											<Box
 												value={row.amount}
 												readOnly={!editable}
-												onChange={(v) => updateSavedExternal(row.accNo, { amount: num(v) })}
+												onChange={(v) => updateSavedInternal(row.id, { amount: num(v) })}
 												className="w-[186px]"
 											/>
 										</td>
+										<td className={cellBorder}>
+											<Dropdown
+												value={row.purpose}
+												onChange={(v) => updateSavedInternal(row.id, { purpose: v })}
+												options={purposeOptions}
+												disabled={!editable}
+												className="w-[200px]"
+											/>
+										</td>
+										<td className={cellBorder} colSpan={2}>&nbsp;</td>
 										<td className={`${cellBorder} text-center`}>
 											<input
 												type="checkbox"
 												checked={row.checked !== false}
 												disabled={!editable}
-												onChange={(e) => updateSavedExternal(row.accNo, { checked: e.target.checked })}
+												onChange={(e) => updateSavedInternal(row.id, { checked: e.target.checked })}
 											/>
 										</td>
 									</tr>
 								))}
-								{stagingExternal.map((row, index) => (
-									<tr key={`new-${index}`}>
-										<td className={cellBorder}>{disbursessTo}</td>
+								{stagingInternal.map((row, index) => (
+									<tr key={`new-cross-${index}`}>
+										<td className={cellBorder}>COMPANY</td>
+										<td className={cellBorder}>
+											<input
+												type="text"
+												value={row.crossNo}
+												maxLength={20}
+												onChange={(e) => updateStagingInternal(index, { crossNo: e.target.value.replace(/[^0-9]/g, "") })}
+												onBlur={(e) => void validateContract(e.target.value)}
+												className={`${boxClass} w-[173px] text-left`}
+											/>
+										</td>
+										<td className={`${cellBorder} text-right`}>
+											<Box
+												value={row.amount}
+												onChange={(v) => updateStagingInternal(index, { amount: num(v) })}
+												className="w-[186px]"
+											/>
+										</td>
 										<td className={cellBorder}>
 											<Dropdown
-												value={row.bank}
-												onChange={(v) => updateStagingExternal(index, { bank: v })}
-												options={bankOptions}
+												value={row.purpose}
+												onChange={(v) => updateStagingInternal(index, { purpose: v })}
+												options={purposeOptions}
 												className="w-[200px]"
 											/>
 										</td>
-										<td className={cellBorder}>
-											<Box
-												kind="text"
-												value={row.bankBranch}
-												onChange={(v) => updateStagingExternal(index, { bankBranch: v })}
-												align="left"
-												maxLength={40}
-												className="w-[173px]"
-											/>
-										</td>
-										<td className={cellBorder}>
-											<Box
-												kind="text"
-												value={row.accName}
-												onChange={(v) => updateStagingExternal(index, { accName: v })}
-												align="left"
-												maxLength={50}
-												className="w-[186px]"
-											/>
-										</td>
-										<td className={cellBorder}>
-											<Box
-												kind="text"
-												value={row.accNo}
-												onChange={(v) => updateStagingExternal(index, { accNo: v.replace(/[^0-9]/g, "") })}
-												align="left"
-												maxLength={30}
-												className="w-[133px]"
-											/>
-										</td>
-										<td className={`${cellBorder} text-center`}>
-											<Box
-												value={row.amount}
-												onChange={(v) => updateStagingExternal(index, { amount: num(v) })}
-												className="w-[186px]"
-											/>
-										</td>
+										<td className={cellBorder} colSpan={2}>&nbsp;</td>
 										<td className={`${cellBorder} text-center`}>
 											<input
 												type="checkbox"
 												checked={row.checked !== false}
-												onChange={(e) => updateStagingExternal(index, { checked: e.target.checked })}
+												onChange={(e) => updateStagingInternal(index, { checked: e.target.checked })}
 											/>
 										</td>
 									</tr>
 								))}
 								<tr>
-									<td className={`${cellBorder} text-right`} colSpan={5}>
+									<td className={`${cellBorder} text-right`} colSpan={2}>
 										<span className="flex items-center gap-2">
 											<button
 												type="button"
-												onClick={addExternalRow}
-												disabled={!editable || !disbursessTo}
+												onClick={addInternalRow}
+												disabled={!editable}
 												className="h-5 w-5 rounded-full bg-[#FF6600] text-xs font-bold leading-none text-white disabled:opacity-50"
 											>
 												+
 											</button>
 											<button
 												type="button"
-												onClick={removeExternalRow}
-												disabled={!editable || stagingExternal.length === 0}
+												onClick={removeInternalRow}
+												disabled={!editable || stagingInternal.length === 0}
 												className="h-5 w-5 rounded-full bg-slate-400 text-xs font-bold leading-none text-white disabled:opacity-50"
 											>
 												−
@@ -1110,419 +1257,280 @@ const CAMFinancingDisbursementPage = forwardRef<CamTabHandle, CAMFinancingDisbur
 									</td>
 									<td className={`${cellBorder} text-right`}>
 										<Box
-											value={[...savedExternalRows, ...stagingExternal].reduce((acc, r) => acc + num(r.amount), 0)}
+											value={[...internalAccounts, ...stagingInternal].reduce((acc, r) => acc + num(r.amount), 0)}
 											readOnly
 											className="w-[186px]"
 										/>
+									</td>
+									<td className={cellBorder} colSpan={4}>&nbsp;</td>
+								</tr>
+							</tbody>
+						</table>
+
+						{editable && (
+							<div className="mt-3 text-center">
+								<button type="button" onClick={saveInternalAccounts} disabled={savingInternal} className={buttonClass}>
+									{savingInternal ? "Saving…" : "Save"}
+								</button>
+							</div>
+						)}
+					</div>
+				)}
+
+				<div className="mt-6">
+					<strong className="text-sm font-bold text-[var(--app-text)]">Internal Disbursement</strong>
+					<div className="mt-2 overflow-x-auto">
+						<table className="w-full border-collapse border border-[var(--app-border)]">
+							<thead>
+								<tr>
+									<th className={`${headCell} w-[10%]`}>Disbursement to</th>
+									<th className={`${headCell} w-[15%]`}>Contract Number</th>
+									<th className={`${headCell} w-[15%]`}>Amount</th>
+									<th className={`${headCell} w-[18%]`}>Purpose</th>
+									<th className={`${headCell} w-[25%]`} colSpan={3}>&nbsp;</th>
+									<th className={`${headCell} w-[19%]`}>Action</th>
+								</tr>
+							</thead>
+							<tbody>
+								{internalAccounts.map((row, index) => {
+									const editing = row.id !== undefined && editInternalId === row.id && editInternalDraft !== null;
+									return (
+										<tr key={`int-${row.id ?? index}`}>
+											<td className={cellBorder}>COMPANY</td>
+											<td className={cellBorder}>
+												{editing && editInternalDraft ? (
+													<Box
+														kind="text"
+														value={editInternalDraft.crossNo}
+														onChange={(v) => setEditInternalDraft((prev) => (prev ? { ...prev, crossNo: v.replace(/[^0-9]/g, "") } : prev))}
+														align="left"
+														maxLength={20}
+														className="w-[173px]"
+													/>
+												) : row.crossNo}
+											</td>
+											<td className={`${cellBorder} text-right`}>
+												{editing && editInternalDraft ? (
+													<Box
+														value={editInternalDraft.amount}
+														onChange={(v) => setEditInternalDraft((prev) => (prev ? { ...prev, amount: num(v) } : prev))}
+														className="w-[186px]"
+													/>
+												) : fmt(row.amount)}
+											</td>
+											<td className={cellBorder} colSpan={4}>
+												{editing && editInternalDraft ? (
+													<Dropdown
+														value={editInternalDraft.purpose}
+														onChange={(v) => setEditInternalDraft((prev) => (prev ? { ...prev, purpose: v } : prev))}
+														options={purposeOptions}
+														className="w-[200px]"
+													/>
+												) : (row.purposeLabel || row.purpose)}
+											</td>
+											<td className={`${cellBorder} text-center`}>
+												{editable && (
+													<span className="inline-flex justify-center gap-1">
+														{editing ? (
+															<>
+																<button
+																	type="button"
+																	onClick={cancelEditInternal}
+																	className={actionButton}
+																>
+																	Cancel
+																</button>
+																<button
+																	type="button"
+																	onClick={() => void saveEditInternal()}
+																	disabled={savingRow}
+																	className={actionButton}
+																>
+																	Save
+																</button>
+															</>
+														) : (
+															<>
+																<button
+																	type="button"
+																	onClick={() => beginEditInternal(row)}
+																	className={actionButton}
+																>
+																	Edit
+																</button>
+																<button
+																	type="button"
+																	onClick={() => void deleteInternalAccount(row)}
+																	className={actionButton}
+																>
+																	Delete
+																</button>
+															</>
+														)}
+													</span>
+												)}
+											</td>
+										</tr>
+									);
+								})}
+								<tr>
+									<td className={cellBorder} colSpan={2}><strong>Total</strong></td>
+									<td className={`${cellBorder} text-right`}>
+										<strong>{fmt(internalAccounts.reduce((acc, r) => acc + num(r.amount), 0))}</strong>
+									</td>
+									<td className={cellBorder} colSpan={5}>&nbsp;</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div className="mt-6">
+					<strong className="text-sm font-bold text-[var(--app-text)]">External Disbursement</strong>
+					<div className="mt-2 overflow-x-auto">
+						<table className="w-full border-collapse border border-[var(--app-border)]">
+							<thead>
+								<tr>
+									<th className={`${headCell} w-[10%]`}>Disbursement to</th>
+									<th className={`${headCell} w-[15%]`}>Bank Name</th>
+									<th className={`${headCell} w-[15%]`}>Bank Branch</th>
+									<th className={`${headCell} w-[18%]`}>Account Name</th>
+									<th className={`${headCell} w-[14%]`}>Account Number</th>
+									<th className={`${headCell} w-[11%]`}>Amount</th>
+									<th className={`${headCell} w-[19%]`}>Action</th>
+								</tr>
+							</thead>
+							<tbody>
+								{externalAccounts.map((row, index) => {
+									const editing = row.id !== undefined && editExternalId === row.id && editExternalDraft !== null;
+									const companyRow = row.split === "Company";
+									return (
+										<tr key={`ext-${row.id ?? index}`}>
+											<td className={cellBorder}>{row.split}</td>
+											<td className={cellBorder}>
+												{editing && editExternalDraft ? (
+													<Dropdown
+														value={editExternalDraft.bank}
+														onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, bank: v } : prev))}
+														options={bankOptions}
+														disabled={companyRow}
+														className="w-[200px]"
+													/>
+												) : (row.bankLabel || row.bank)}
+											</td>
+											<td className={cellBorder}>
+												{editing && editExternalDraft ? (
+													<Box
+														kind="text"
+														value={editExternalDraft.bankBranch}
+														onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, bankBranch: v } : prev))}
+														align="left"
+														maxLength={40}
+														disabled={companyRow}
+														className="w-[173px]"
+													/>
+												) : row.bankBranch}
+											</td>
+											<td className={cellBorder}>
+												{editing && editExternalDraft ? (
+													<Box
+														kind="text"
+														value={editExternalDraft.accName}
+														onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, accName: v } : prev))}
+														align="left"
+														maxLength={50}
+														disabled={companyRow}
+														className="w-[186px]"
+													/>
+												) : row.accName}
+											</td>
+											<td className={cellBorder}>
+												{editing && editExternalDraft ? (
+													<Box
+														kind="text"
+														value={editExternalDraft.accNo}
+														onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, accNo: v.replace(/[^0-9]/g, "") } : prev))}
+														align="left"
+														maxLength={30}
+														disabled={companyRow}
+														className="w-[133px]"
+													/>
+												) : row.accNo}
+											</td>
+											<td className={`${cellBorder} whitespace-nowrap text-right`}>
+												{editing && editExternalDraft ? (
+													<Box
+														value={editExternalDraft.amount}
+														onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, amount: num(v) } : prev))}
+														className="w-[186px]"
+													/>
+												) : fmt(row.amount)}
+											</td>
+											<td className={`${cellBorder} text-center`}>
+												{editable && (
+													<span className="inline-flex justify-center gap-1">
+														{editing ? (
+															<>
+																<button
+																	type="button"
+																	onClick={cancelEditExternal}
+																	className={actionButton}
+																>
+																	Cancel
+																</button>
+																<button
+																	type="button"
+																	onClick={() => void saveEditExternal()}
+																	disabled={savingRow}
+																	className={actionButton}
+																>
+																	Save
+																</button>
+															</>
+														) : (
+															<>
+																<button
+																	type="button"
+																	onClick={() => beginEditExternal(row)}
+																	className={actionButton}
+																>
+																	Edit
+																</button>
+																<button
+																	type="button"
+																	onClick={() => void deleteExternalAccount(row)}
+																	className={actionButton}
+																>
+																	Delete
+																</button>
+															</>
+														)}
+													</span>
+												)}
+											</td>
+										</tr>
+									);
+								})}
+								<tr>
+									<td className={`${cellBorder} text-right`} colSpan={5}><strong>Total</strong></td>
+									<td className={`${cellBorder} text-right`}>
+										<strong>{fmt(externalAccounts.reduce((acc, r) => acc + num(r.amount), 0))}</strong>
 									</td>
 									<td className={cellBorder}>&nbsp;</td>
 								</tr>
 							</tbody>
 						</table>
 					</div>
-
-					{editable && (
-						<div className="mt-3 text-center">
-							<button type="button" onClick={saveExternalAccounts} disabled={savingExternal} className={buttonClass}>
-								{savingExternal ? "Saving…" : "Save"}
-							</button>
-						</div>
-					)}
 				</div>
-			)}
 
-			{disbursementType === "2" && (
-				<div className="mt-4 overflow-x-auto">
-					<table className="w-full border-collapse border border-[var(--app-border)]">
-						<thead>
-							<tr>
-								<th className={`${headCell} w-[10%]`}>Disbursement to</th>
-								<th className={`${headCell} w-[15%]`}>Contract Number</th>
-								<th className={`${headCell} w-[15%]`}>Amount</th>
-								<th className={`${headCell} w-[18%]`}>Purpose</th>
-								<th className={`${headCell} w-[14%]`}>&nbsp;</th>
-								<th className={`${headCell} w-[11%]`}>&nbsp;</th>
-								<th className={`${headCell} w-[5%]`}>&nbsp;</th>
-							</tr>
-						</thead>
-						<tbody>
-							{internalAccounts.map((row, index) => (
-								<tr key={`saved-cross-${row.id ?? index}`}>
-									<td className={cellBorder}>COMPANY</td>
-									<td className={cellBorder}>
-										<input
-											type="text"
-											value={row.crossNo}
-											maxLength={20}
-											readOnly={!editable}
-											onChange={(e) => updateSavedInternal(row.id, { crossNo: e.target.value.replace(/[^0-9]/g, "") })}
-											onBlur={(e) => void validateContract(e.target.value)}
-											className={`${boxClass} w-[173px] text-left`}
-										/>
-									</td>
-									<td className={`${cellBorder} text-right`}>
-										<Box
-											value={row.amount}
-											readOnly={!editable}
-											onChange={(v) => updateSavedInternal(row.id, { amount: num(v) })}
-											className="w-[186px]"
-										/>
-									</td>
-									<td className={cellBorder}>
-										<Dropdown
-											value={row.purpose}
-											onChange={(v) => updateSavedInternal(row.id, { purpose: v })}
-											options={purposeOptions}
-											disabled={!editable}
-											className="w-[200px]"
-										/>
-									</td>
-									<td className={cellBorder} colSpan={2}>&nbsp;</td>
-									<td className={`${cellBorder} text-center`}>
-										<input
-											type="checkbox"
-											checked={row.checked !== false}
-											disabled={!editable}
-											onChange={(e) => updateSavedInternal(row.id, { checked: e.target.checked })}
-										/>
-									</td>
-								</tr>
-							))}
-							{stagingInternal.map((row, index) => (
-								<tr key={`new-cross-${index}`}>
-									<td className={cellBorder}>COMPANY</td>
-									<td className={cellBorder}>
-										<input
-											type="text"
-											value={row.crossNo}
-											maxLength={20}
-											onChange={(e) => updateStagingInternal(index, { crossNo: e.target.value.replace(/[^0-9]/g, "") })}
-											onBlur={(e) => void validateContract(e.target.value)}
-											className={`${boxClass} w-[173px] text-left`}
-										/>
-									</td>
-									<td className={`${cellBorder} text-right`}>
-										<Box
-											value={row.amount}
-											onChange={(v) => updateStagingInternal(index, { amount: num(v) })}
-											className="w-[186px]"
-										/>
-									</td>
-									<td className={cellBorder}>
-										<Dropdown
-											value={row.purpose}
-											onChange={(v) => updateStagingInternal(index, { purpose: v })}
-											options={purposeOptions}
-											className="w-[200px]"
-										/>
-									</td>
-									<td className={cellBorder} colSpan={2}>&nbsp;</td>
-									<td className={`${cellBorder} text-center`}>
-										<input
-											type="checkbox"
-											checked={row.checked !== false}
-											onChange={(e) => updateStagingInternal(index, { checked: e.target.checked })}
-										/>
-									</td>
-								</tr>
-							))}
-							<tr>
-								<td className={`${cellBorder} text-right`} colSpan={2}>
-									<span className="flex items-center gap-2">
-										<button
-											type="button"
-											onClick={addInternalRow}
-											disabled={!editable}
-											className="h-5 w-5 rounded-full bg-[#FF6600] text-xs font-bold leading-none text-white disabled:opacity-50"
-										>
-											+
-										</button>
-										<button
-											type="button"
-											onClick={removeInternalRow}
-											disabled={!editable || stagingInternal.length === 0}
-											className="h-5 w-5 rounded-full bg-slate-400 text-xs font-bold leading-none text-white disabled:opacity-50"
-										>
-											−
-										</button>
-										<strong className="ml-auto">Total</strong>
-									</span>
-								</td>
-								<td className={`${cellBorder} text-right`}>
-									<Box
-										value={[...internalAccounts, ...stagingInternal].reduce((acc, r) => acc + num(r.amount), 0)}
-										readOnly
-										className="w-[186px]"
-									/>
-								</td>
-								<td className={cellBorder} colSpan={4}>&nbsp;</td>
-							</tr>
-						</tbody>
-					</table>
+				{saving && <p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>}
 
-					{editable && (
-						<div className="mt-3 text-center">
-							<button type="button" onClick={saveInternalAccounts} disabled={savingInternal} className={buttonClass}>
-								{savingInternal ? "Saving…" : "Save"}
-							</button>
-						</div>
-					)}
-				</div>
-			)}
-
-			<div className="mt-6">
-				<strong className="text-sm font-bold text-[var(--app-text)]">Internal Disbursement</strong>
-				<div className="mt-2 overflow-x-auto">
-					<table className="w-full border-collapse border border-[var(--app-border)]">
-						<thead>
-							<tr>
-								<th className={`${headCell} w-[10%]`}>Disbursement to</th>
-								<th className={`${headCell} w-[15%]`}>Contract Number</th>
-								<th className={`${headCell} w-[15%]`}>Amount</th>
-								<th className={`${headCell} w-[18%]`}>Purpose</th>
-								<th className={`${headCell} w-[25%]`} colSpan={3}>&nbsp;</th>
-								<th className={`${headCell} w-[19%]`}>Action</th>
-							</tr>
-						</thead>
-						<tbody>
-							{internalAccounts.map((row, index) => {
-								const editing = row.id !== undefined && editInternalId === row.id && editInternalDraft !== null;
-								return (
-									<tr key={`int-${row.id ?? index}`}>
-										<td className={cellBorder}>COMPANY</td>
-										<td className={cellBorder}>
-											{editing && editInternalDraft ? (
-												<Box
-													kind="text"
-													value={editInternalDraft.crossNo}
-													onChange={(v) => setEditInternalDraft((prev) => (prev ? { ...prev, crossNo: v.replace(/[^0-9]/g, "") } : prev))}
-													align="left"
-													maxLength={20}
-													className="w-[173px]"
-												/>
-											) : row.crossNo}
-										</td>
-										<td className={`${cellBorder} text-right`}>
-											{editing && editInternalDraft ? (
-												<Box
-													value={editInternalDraft.amount}
-													onChange={(v) => setEditInternalDraft((prev) => (prev ? { ...prev, amount: num(v) } : prev))}
-													className="w-[186px]"
-												/>
-											) : fmt(row.amount)}
-										</td>
-										<td className={cellBorder} colSpan={4}>
-											{editing && editInternalDraft ? (
-												<Dropdown
-													value={editInternalDraft.purpose}
-													onChange={(v) => setEditInternalDraft((prev) => (prev ? { ...prev, purpose: v } : prev))}
-													options={purposeOptions}
-													className="w-[200px]"
-												/>
-											) : (row.purposeLabel || row.purpose)}
-										</td>
-										<td className={`${cellBorder} text-center`}>
-											{editable && (
-												<span className="inline-flex justify-center gap-1">
-													{editing ? (
-														<>
-															<button
-																type="button"
-																onClick={cancelEditInternal}
-																className={actionButton}
-															>
-																Cancel
-															</button>
-															<button
-																type="button"
-																onClick={() => void saveEditInternal()}
-																disabled={savingRow}
-																className={actionButton}
-															>
-																Save
-															</button>
-														</>
-													) : (
-														<>
-															<button
-																type="button"
-																onClick={() => beginEditInternal(row)}
-																className={actionButton}
-															>
-																Edit
-															</button>
-															<button
-																type="button"
-																onClick={() => void deleteInternalAccount(row)}
-																className={actionButton}
-															>
-																Delete
-															</button>
-														</>
-													)}
-												</span>
-											)}
-										</td>
-									</tr>
-								);
-							})}
-							<tr>
-								<td className={cellBorder} colSpan={2}><strong>Total</strong></td>
-								<td className={`${cellBorder} text-right`}>
-									<strong>{fmt(internalAccounts.reduce((acc, r) => acc + num(r.amount), 0))}</strong>
-								</td>
-								<td className={cellBorder} colSpan={5}>&nbsp;</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
+				{locked && lockMessage && (
+					<div className="message mt-3">
+						<p className="text-sm text-red-600">{lockMessage}</p>
+					</div>
+				)}
 			</div>
-
-			<div className="mt-6">
-				<strong className="text-sm font-bold text-[var(--app-text)]">External Disbursement</strong>
-				<div className="mt-2 overflow-x-auto">
-					<table className="w-full border-collapse border border-[var(--app-border)]">
-						<thead>
-							<tr>
-								<th className={`${headCell} w-[10%]`}>Disbursement to</th>
-								<th className={`${headCell} w-[15%]`}>Bank Name</th>
-								<th className={`${headCell} w-[15%]`}>Bank Branch</th>
-								<th className={`${headCell} w-[18%]`}>Account Name</th>
-								<th className={`${headCell} w-[14%]`}>Account Number</th>
-								<th className={`${headCell} w-[11%]`}>Amount</th>
-								<th className={`${headCell} w-[19%]`}>Action</th>
-							</tr>
-						</thead>
-						<tbody>
-							{externalAccounts.map((row, index) => {
-								const editing = row.id !== undefined && editExternalId === row.id && editExternalDraft !== null;
-								const companyRow = row.split === "Company";
-								return (
-									<tr key={`ext-${row.id ?? index}`}>
-										<td className={cellBorder}>{row.split}</td>
-										<td className={cellBorder}>
-											{editing && editExternalDraft ? (
-												<Dropdown
-													value={editExternalDraft.bank}
-													onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, bank: v } : prev))}
-													options={bankOptions}
-													disabled={companyRow}
-													className="w-[200px]"
-												/>
-											) : (row.bankLabel || row.bank)}
-										</td>
-										<td className={cellBorder}>
-											{editing && editExternalDraft ? (
-												<Box
-													kind="text"
-													value={editExternalDraft.bankBranch}
-													onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, bankBranch: v } : prev))}
-													align="left"
-													maxLength={40}
-													disabled={companyRow}
-													className="w-[173px]"
-												/>
-											) : row.bankBranch}
-										</td>
-										<td className={cellBorder}>
-											{editing && editExternalDraft ? (
-												<Box
-													kind="text"
-													value={editExternalDraft.accName}
-													onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, accName: v } : prev))}
-													align="left"
-													maxLength={50}
-													disabled={companyRow}
-													className="w-[186px]"
-												/>
-											) : row.accName}
-										</td>
-										<td className={cellBorder}>
-											{editing && editExternalDraft ? (
-												<Box
-													kind="text"
-													value={editExternalDraft.accNo}
-													onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, accNo: v.replace(/[^0-9]/g, "") } : prev))}
-													align="left"
-													maxLength={30}
-													disabled={companyRow}
-													className="w-[133px]"
-												/>
-											) : row.accNo}
-										</td>
-										<td className={`${cellBorder} whitespace-nowrap text-right`}>
-											{editing && editExternalDraft ? (
-												<Box
-													value={editExternalDraft.amount}
-													onChange={(v) => setEditExternalDraft((prev) => (prev ? { ...prev, amount: num(v) } : prev))}
-													className="w-[186px]"
-												/>
-											) : fmt(row.amount)}
-										</td>
-										<td className={`${cellBorder} text-center`}>
-											{editable && (
-												<span className="inline-flex justify-center gap-1">
-													{editing ? (
-														<>
-															<button
-																type="button"
-																onClick={cancelEditExternal}
-																className={actionButton}
-															>
-																Cancel
-															</button>
-															<button
-																type="button"
-																onClick={() => void saveEditExternal()}
-																disabled={savingRow}
-																className={actionButton}
-															>
-																Save
-															</button>
-														</>
-													) : (
-														<>
-															<button
-																type="button"
-																onClick={() => beginEditExternal(row)}
-																className={actionButton}
-															>
-																Edit
-															</button>
-															<button
-																type="button"
-																onClick={() => void deleteExternalAccount(row)}
-																className={actionButton}
-															>
-																Delete
-															</button>
-														</>
-													)}
-												</span>
-											)}
-										</td>
-									</tr>
-								);
-							})}
-							<tr>
-								<td className={`${cellBorder} text-right`} colSpan={5}><strong>Total</strong></td>
-								<td className={`${cellBorder} text-right`}>
-									<strong>{fmt(externalAccounts.reduce((acc, r) => acc + num(r.amount), 0))}</strong>
-								</td>
-								<td className={cellBorder}>&nbsp;</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
-			</div>
-
-			{saving && <p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>}
-
-			{locked && lockMessage && (
-				<div className="message mt-3">
-					<p className="text-sm text-red-600">{lockMessage}</p>
-				</div>
-			)}
 		</div>
 	);
 });

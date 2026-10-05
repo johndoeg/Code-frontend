@@ -154,8 +154,6 @@ function pruneEmptyDirs(dir) {
 }
 pruneEmptyDirs(SRC);
 
-console.log(`\nMoved/processed ${allFiles.length} files.`);
-console.log(`Rewrote ${totalRewrites} import specifiers across ${rewriteLog.length} files.\n`);
 if (unmapped.length) {
 	console.log(`${unmapped.length} file(s) left in place (unmapped) - see above.`);
 }

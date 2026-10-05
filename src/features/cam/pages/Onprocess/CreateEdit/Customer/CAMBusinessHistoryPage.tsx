@@ -44,68 +44,31 @@ export interface CamTabHandle {
 	save: () => void;
 }
 
-const cellLabel =
-	"border-b border-[var(--app-border)] bg-[var(--app-surface)]/70 px-4 py-2.5 align-top text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] whitespace-nowrap";
-const cellValue = "border-b border-[var(--app-border)] px-4 py-2.5 align-top text-sm text-[var(--app-text)]";
-const cellEmpty = "border-b border-[var(--app-border)] px-4 py-2.5";
+const fieldBase =
+	"w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-2 text-[13px] text-[var(--app-text)] shadow-sm transition-colors placeholder:text-[var(--app-muted)]/50 hover:border-[var(--app-muted)]/50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25 disabled:cursor-not-allowed disabled:bg-[var(--app-surface-alt)] disabled:text-[var(--app-muted)] disabled:shadow-none";
+const fieldRO =
+	"w-full cursor-default rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-alt)] px-3 py-2 text-[13px] font-medium text-[var(--app-muted)]";
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+function Field({ label, required, children, className = "" }: { label: string; required?: boolean; children: React.ReactNode; className?: string }) {
 	return (
-		<div className="border-b border-t border-[var(--app-border)] bg-[var(--app-surface)] px-6 py-3 first:border-t-0">
-			<h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">{children}</h2>
+		<div className={`grid grid-cols-[130px_minmax(0,1fr)] items-start gap-x-3 ${className}`}>
+			<label className="pt-2 text-[13px] font-medium text-[var(--app-muted)]">
+				{label}
+				{required && <span className="ml-0.5 text-red-400">*</span>}
+			</label>
+			<div>{children}</div>
 		</div>
 	);
 }
 
-function Row({
-	left,
-	right,
-}: {
-	left?: [string, React.ReactNode];
-	right?: [string, React.ReactNode];
-}) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
-		<tr>
-			{left ? (
-				<>
-					<td className={cellLabel}>{left[0]}</td>
-					<td className={cellValue}>{left[1]}</td>
-				</>
-			) : (
-				<>
-					<td className={cellEmpty}></td>
-					<td className={cellEmpty}></td>
-				</>
-			)}
-			{right ? (
-				<>
-					<td className={cellLabel}>{right[0]}</td>
-					<td className={cellValue}>{right[1]}</td>
-				</>
-			) : (
-				<>
-					<td className={cellEmpty}></td>
-					<td className={cellEmpty}></td>
-				</>
-			)}
-		</tr>
+		<div className="flex items-center gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2.5 sm:px-6">
+			<span className="h-4 w-1 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
+			<h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--app-text)]">{children}</h3>
+		</div>
 	);
 }
-
-function FullRow({ label, children }: { label: string; children: React.ReactNode }) {
-	return (
-		<tr>
-			<td className={cellLabel}>{label}</td>
-			<td colSpan={3} className={cellValue}>{children}</td>
-		</tr>
-	);
-}
-
-const inputCls =
-	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full bg-[var(--app-card)] focus:outline-none focus:ring-2 focus:ring-blue-400";
-const inputClsDisabled =
-	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed";
-const fieldCls = (disabled?: boolean) => (disabled ? inputClsDisabled : inputCls);
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
 const CURRENT_YEAR = new Date().getFullYear();
@@ -278,192 +241,196 @@ const CAMBusinessHistoryPage = forwardRef<CamTabHandle, CAMBusinessHistoryPagePr
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
 	const untilYearDisabled = form.untilMonth === "13";
 
+	const th = "border-b border-[var(--app-border)] bg-[var(--app-surface)] px-3 py-2 text-left text-[12px] font-semibold text-[var(--app-text)] whitespace-nowrap";
+	const td = "px-3 py-2.5 align-top text-[13px] text-[var(--app-text)]";
+
 	return (
-		<div className="space-y-4 rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl overflow-hidden">
-			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
+		<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
+			<div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--app-border)] px-4 py-3 sm:px-6">
+				<div>
+					<h2 className="text-[17px] font-bold text-[var(--app-text)]">Business / Job History</h2>
+					<p className="text-xs text-[var(--app-muted)]">Customer No. {apless || "(new)"}</p>
 				</div>
-			)}
-			<div>
-				<h2 className="text-xl font-bold text-[var(--app-text)] mb-1">Business / Job History</h2>
-				<p className="text-sm text-[var(--app-muted)] mb-4">Customer No. {apless || "(new)"}</p>
+				{judul && <span className="text-xs font-bold text-blue-700">{judul}</span>}
+			</div>
 
-				<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
-					<SectionHeader>{editingId ? "Edit Entry" : "Add Entry"}</SectionHeader>
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[820px] border-collapse text-sm">
-							<tbody>
-								<FullRow label="Period (From - Until) *">
-									<div className="flex flex-wrap items-center gap-2">
-										<select className={inputCls} style={{ width: "80px" }} value={form.fromMonth} onChange={e => setField("fromMonth", e.target.value)}>
-											<option value="">Month</option>
-											{MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-										</select>
-										<select className={inputCls} style={{ width: "90px" }} value={form.fromYear} onChange={e => setField("fromYear", e.target.value)}>
-											<option value="">Year</option>
-											{YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-										</select>
-										<span className="text-sm text-[var(--app-muted)]">to</span>
-										<select className={inputCls} style={{ width: "110px" }} value={form.untilMonth} onChange={e => handleUntilMonthChange(e.target.value)}>
-											<option value="">Month</option>
-											<option value="13">Present</option>
-											{MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
-										</select>
-										<select
-											className={fieldCls(untilYearDisabled)}
-											style={{ width: "90px" }}
-											value={form.untilYear}
-											disabled={untilYearDisabled}
-											onChange={e => setField("untilYear", e.target.value)}
-										>
-											<option value="">Year</option>
-											{YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-										</select>
-									</div>
-								</FullRow>
-
-								{showEmployeeId && (
-									<Row left={["Employee ID No.", (
-										<input className={inputCls} value={form.employeeId} onChange={e => setField("employeeId", e.target.value)} maxLength={25} />
-									)]} />
-								)}
-
-								<Row
-									left={["Position *", (
-										<div className="flex flex-col gap-2">
-											<select className={inputCls} value={form.position} onChange={e => setField("position", e.target.value)}>
-												<option value="">Select</option>
-												{data.positions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-											</select>
-											<input
-												className={inputCls}
-												placeholder="Position Other"
-												value={form.positionOther}
-												onChange={e => setField("positionOther", e.target.value)}
-												maxLength={100}
-											/>
-										</div>
-									)]}
-									right={["Company Name *", (
-										<input className={inputCls} value={form.company} onChange={e => setField("company", e.target.value)} maxLength={100} />
-									)]}
-								/>
-
-								<FullRow label="Company Address">
-									<textarea className={inputCls} value={form.companyAddress} onChange={e => setField("companyAddress", e.target.value)} maxLength={500} />
-								</FullRow>
-
-								<Row
-									left={["Area *", (
-										<select className={inputCls} value={form.areaCd} onChange={e => handleAreaChange(e.target.value)}>
-											<option value="">Select</option>
-											{areas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									)]}
-									right={["Province", (
-										<input className={fieldCls(true)} value={form.province} readOnly />
-									)]}
-								/>
-								<Row
-									left={["District / City *", (
-										<input className={fieldCls(true)} value={form.city} readOnly />
-									)]}
-									right={["Post Code *", (
-										<input
-											className={inputCls}
-											value={form.postcode}
-											maxLength={5}
-											inputMode="numeric"
-											onChange={e => setField("postcode", e.target.value.replace(/\D/g, ""))}
-										/>
-									)]}
-								/>
-								<Row left={["Phone", (
-									<input
-										className={inputCls}
-										value={form.phone}
-										maxLength={20}
-										inputMode="numeric"
-										onChange={e => setField("phone", e.target.value.replace(/\D/g, ""))}
-									/>
-								)]} />
-							</tbody>
-						</table>
-					</div>
-
-					<div className="flex justify-end gap-3 px-6 py-4">
-						{editingId && (
-							<button
-								onClick={resetForm}
-								className="px-6 py-2 border border-[var(--app-border)] text-[var(--app-muted)] hover:bg-[var(--app-surface)] rounded-lg text-sm font-medium"
-							>
-								Cancel
-							</button>
-						)}
-						<button
-							onClick={handleSaveRow}
-							disabled={savingRow}
-							className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium"
+			<SectionTitle>{editingId ? "Edit Entry" : "Add Entry"}</SectionTitle>
+			<div className="grid grid-cols-1 gap-x-10 gap-y-3 px-4 py-5 sm:px-6 lg:grid-cols-2">
+				<Field label="Period" required className="lg:col-span-2">
+					<div className="flex flex-wrap items-center gap-2">
+						<select className={`${fieldBase} !w-24`} value={form.fromMonth} onChange={e => setField("fromMonth", e.target.value)}>
+							<option value="">Month</option>
+							{MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+						</select>
+						<select className={`${fieldBase} !w-28`} value={form.fromYear} onChange={e => setField("fromYear", e.target.value)}>
+							<option value="">Year</option>
+							{YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+						</select>
+						<span className="px-1 text-[13px] text-[var(--app-muted)]">to</span>
+						<select className={`${fieldBase} !w-28`} value={form.untilMonth} onChange={e => handleUntilMonthChange(e.target.value)}>
+							<option value="">Month</option>
+							<option value="13">Present</option>
+							{MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
+						</select>
+						<select
+							className={`${fieldBase} !w-28`}
+							value={form.untilYear}
+							disabled={untilYearDisabled}
+							onChange={e => setField("untilYear", e.target.value)}
 						>
-							{savingRow ? "Saving…" : editingId ? "Update Entry" : "Add Entry"}
-						</button>
+							<option value="">Year</option>
+							{YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+						</select>
 					</div>
+				</Field>
 
-					<SectionHeader>Existing Entries</SectionHeader>
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[960px] border-collapse text-sm">
-							<tbody>
-								<tr>
-									<td className={cellLabel}>No.</td>
-									<td className={cellLabel}>From</td>
-									<td className={cellLabel}>Until</td>
-									<td className={cellLabel}>Company Name</td>
-									<td className={cellLabel}>District / City</td>
-									<td className={cellLabel}>Post Code</td>
-									{showEmployeeId && <td className={cellLabel}>Employee ID No.</td>}
-									<td className={cellLabel}>Position</td>
-									<td className={cellLabel}>Phone</td>
-									<td className={cellLabel}>Actions</td>
-								</tr>
-								{data.rows.map((row, idx) => (
-									<tr key={row.id}>
-										<td className={cellValue}>{idx + 1}</td>
-										<td className={cellValue}>{formatPeriod(row.fromMonth, row.fromYear)}</td>
-										<td className={cellValue}>{formatPeriod(row.untilMonth, row.untilYear)}</td>
-										<td className={cellValue}>{row.company}</td>
-										<td className={cellValue}>{row.city}</td>
-										<td className={cellValue}>{row.postcode}</td>
-										{showEmployeeId && <td className={cellValue}>{row.employeeId}</td>}
-										<td className={cellValue}>{row.positionLabel} ({row.positionOther})</td>
-										<td className={cellValue}>{row.phone}</td>
-										<td className={cellValue}>
-											<div className="flex gap-3">
-												<button onClick={() => startEdit(row)} className="text-xs font-medium text-blue-600 hover:underline">
-													Edit
-												</button>
-												<button
-													onClick={() => handleDeleteRow(row.id)}
-													disabled={deletingId === row.id}
-													className="text-xs font-medium text-red-600 hover:underline disabled:text-[var(--app-muted)]"
-												>
-													{deletingId === row.id ? "Deleting…" : "Delete"}
-												</button>
-											</div>
-										</td>
-									</tr>
-								))}
-								{data.rows.length === 0 && (
-									<tr>
-										<td colSpan={showEmployeeId ? 10 : 9} className={cellValue + " text-center text-[var(--app-muted)]"}>
-											No entries yet.
-										</td>
-									</tr>
-								)}
-							</tbody>
-						</table>
+				{showEmployeeId && (
+					<Field label="Employee ID No." className="lg:col-span-2">
+						<input className={`${fieldBase} max-w-sm`} value={form.employeeId} onChange={e => setField("employeeId", e.target.value)} maxLength={25} />
+					</Field>
+				)}
+
+				<Field label="Company Name" required>
+					<input className={fieldBase} value={form.company} onChange={e => setField("company", e.target.value)} maxLength={100} />
+				</Field>
+				<Field label="Position" required>
+					<div className="flex flex-col gap-2">
+						<select className={fieldBase} value={form.position} onChange={e => setField("position", e.target.value)}>
+							<option value="">Select</option>
+							{data.positions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+						</select>
+						<input
+							className={fieldBase}
+							placeholder="Position Other *"
+							value={form.positionOther}
+							onChange={e => setField("positionOther", e.target.value)}
+							maxLength={100}
+						/>
 					</div>
-				</div>
+				</Field>
+
+				<Field label="Company Address" className="lg:col-span-2">
+					<textarea className={`${fieldBase} resize-y`} rows={2} value={form.companyAddress} onChange={e => setField("companyAddress", e.target.value)} maxLength={500} />
+				</Field>
+
+				<Field label="Area" required>
+					<select className={fieldBase} value={form.areaCd} onChange={e => handleAreaChange(e.target.value)}>
+						<option value="">Select</option>
+						{areas.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+					</select>
+				</Field>
+				<Field label="Province">
+					<input className={fieldRO} value={form.province} readOnly />
+				</Field>
+				<Field label="District / City" required>
+					<input className={fieldRO} value={form.city} readOnly />
+				</Field>
+				<Field label="Post Code" required>
+					<input
+						className={fieldBase}
+						value={form.postcode}
+						maxLength={5}
+						inputMode="numeric"
+						onChange={e => setField("postcode", e.target.value.replace(/\D/g, ""))}
+					/>
+				</Field>
+				<Field label="Phone">
+					<input
+						className={fieldBase}
+						value={form.phone}
+						maxLength={20}
+						inputMode="numeric"
+						onChange={e => setField("phone", e.target.value.replace(/\D/g, ""))}
+					/>
+				</Field>
+			</div>
+
+			<div className="flex justify-end gap-2 border-t border-[var(--app-border)] bg-[var(--app-surface)]/50 px-4 py-3 sm:px-6">
+				{editingId && (
+					<button
+						type="button"
+						onClick={resetForm}
+						className="rounded-lg border border-[var(--app-border)] bg-[var(--app-card)] px-5 py-2 text-[13px] font-medium text-[var(--app-muted)] transition hover:bg-[var(--app-surface)]"
+					>
+						Cancel
+					</button>
+				)}
+				<button
+					type="button"
+					onClick={handleSaveRow}
+					disabled={savingRow}
+					className="rounded-lg bg-blue-600 px-5 py-2 text-[13px] font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
+				>
+					{savingRow ? "Saving…" : editingId ? "Update Entry" : "Add Entry"}
+				</button>
+			</div>
+
+			<SectionTitle>Existing Entries</SectionTitle>
+			<div className="overflow-x-auto">
+				<table className="w-full min-w-[880px] border-collapse">
+					<thead>
+						<tr>
+							<th className={th} style={{ width: "84px" }}></th>
+							<th className={th}>No.</th>
+							<th className={th}>From</th>
+							<th className={th}>Until</th>
+							<th className={th}>Company Name</th>
+							<th className={th}>District / City</th>
+							<th className={th}>Post Code</th>
+							{showEmployeeId && <th className={th}>Employee ID No.</th>}
+							<th className={th}>Position</th>
+							<th className={th}>Phone</th>
+						</tr>
+					</thead>
+					<tbody>
+						{data.rows.map((row, idx) => (
+							<tr
+								key={row.id}
+								className={`${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]/60"} ${editingId === row.id ? "outline outline-2 -outline-offset-2 outline-blue-400" : ""}`}
+							>
+								<td className={td}>
+									<div className="flex items-center gap-1">
+										<button
+											type="button"
+											title="Edit"
+											aria-label="Edit"
+											onClick={() => startEdit(row)}
+											className="rounded p-1 text-blue-600 transition hover:bg-blue-500/10"
+										>
+											<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M13.6 2.6a2 2 0 012.8 0l1 1a2 2 0 010 2.8L7.5 16.3 3 17l.7-4.5 9.9-9.9z" /></svg>
+										</button>
+										<button
+											type="button"
+											title="Delete"
+											aria-label="Delete"
+											onClick={() => handleDeleteRow(row.id)}
+											disabled={deletingId === row.id}
+											className="rounded p-1 text-red-600 transition hover:bg-red-500/10 disabled:opacity-40"
+										>
+											<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 00-1 1v1H3.5a.75.75 0 000 1.5h.6l.8 10.2A2 2 0 006.9 17.5h6.2a2 2 0 002-1.8l.8-10.2h.6a.75.75 0 000-1.5H14V3a1 1 0 00-1-1H7zm1.5 2V3.5h3V4h-3zM8 8a.75.75 0 011.5 0v6a.75.75 0 01-1.5 0V8zm3.25-.75A.75.75 0 0112 8v6a.75.75 0 01-1.5 0V8a.75.75 0 01.75-.75z" /></svg>
+										</button>
+									</div>
+								</td>
+								<td className={td}>{idx + 1}</td>
+								<td className={`${td} whitespace-nowrap`}>{formatPeriod(row.fromMonth, row.fromYear)}</td>
+								<td className={`${td} whitespace-nowrap`}>{formatPeriod(row.untilMonth, row.untilYear)}</td>
+								<td className={`${td} break-words`}>{row.company}</td>
+								<td className={td}>{row.city}</td>
+								<td className={td}>{row.postcode}</td>
+								{showEmployeeId && <td className={td}>{row.employeeId}</td>}
+								<td className={td}>{row.positionLabel} ({row.positionOther})</td>
+								<td className={td}>{row.phone}</td>
+							</tr>
+						))}
+						{data.rows.length === 0 && (
+							<tr>
+								<td colSpan={showEmployeeId ? 10 : 9} className={`${td} py-6 text-center text-[var(--app-muted)]`}>
+									No entries yet.
+								</td>
+							</tr>
+						)}
+					</tbody>
+				</table>
 			</div>
 		</div>
 	);

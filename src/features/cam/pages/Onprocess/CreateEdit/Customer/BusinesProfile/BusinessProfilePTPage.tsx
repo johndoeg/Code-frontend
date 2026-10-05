@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
 import {
 	type Option,
 	fieldClsFor,
@@ -8,6 +9,8 @@ import {
 	FieldCountControl,
 	ClearButton,
 	isValidMonth,
+	parseDDMMYYYY,
+	formatDDMMYYYY,
 	currentYYYYMM,
 	ManagementDetailModal,
 	type ManagementDetailValue,
@@ -66,6 +69,8 @@ interface OrgStructureData {
 export interface BusinessProfilePTPageProps {
 	apless: string;
 	applNo: string;
+	finType?: string;
+	custName?: string;
 	onSaved: (result: { apless: string; applno: string }) => void;
 }
 
@@ -99,8 +104,24 @@ function validateNewPeriodFormat(period: string): string | null {
 	return null;
 }
 
+function CapitalField({ label, sub, hint, children }: { label: string; sub: string; hint?: string; children: React.ReactNode }) {
+	return (
+		<div className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)]/40 p-4">
+			<div className="flex items-baseline gap-1.5">
+				<span className="text-sm font-semibold text-[var(--app-text)]">{label}</span>
+				<span className="text-xs text-[var(--app-muted)]">/ {sub}</span>
+			</div>
+			<div className="mt-2 flex items-stretch">
+				<span className="inline-flex select-none items-center rounded-l-lg border border-r-0 border-[var(--app-border)] bg-[var(--app-surface-alt)] px-3 text-xs font-semibold text-[var(--app-muted)]">Rp</span>
+				{children}
+			</div>
+			{hint && <p className="mt-1.5 text-xs text-[var(--app-muted)]">{hint}</p>}
+		</div>
+	);
+}
+
 const BusinessProfilePTPage = forwardRef<CamTabHandle, BusinessProfilePTPageProps>(function BusinessProfilePTPage(
-	{ apless, applNo, onSaved }, ref
+	{ apless, applNo, finType, custName, onSaved }, ref
 ) {
 	const [saving, setSaving] = useState(false);
 	const [formMessages, setFormMessages] = useState<string[]>([]);
@@ -205,7 +226,7 @@ const BusinessProfilePTPage = forwardRef<CamTabHandle, BusinessProfilePTPageProp
 				alert("Period in Organization Structure cannot > Period Create CAM");
 				setNewPeriod("");
 			}
-		} catch {}
+		} catch { }
 	};
 
 	const setShareholderCount = (n: number) => {
@@ -390,369 +411,388 @@ const BusinessProfilePTPage = forwardRef<CamTabHandle, BusinessProfilePTPageProp
 		);
 	}
 
+	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
+
 	return (
-		<div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
-			<h2 className="text-xl font-bold text-[var(--app-text)]">Organization Structure</h2>
-			<p className="text-sm text-[var(--app-muted)]">Customer No. {apless || "(new)"}</p>
-
-			<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
-				<SectionHeader>Period (yyyymm)</SectionHeader>
-				<div className="flex flex-wrap items-end gap-3 px-6 py-4">
-					<select
-						className={fieldClsFor(true)}
-						style={{ width: "140px" }}
-						value={mode === "existing" ? existingPeriod : "__new__"}
-						onChange={e => {
-							if (e.target.value === "__new__") handleModeChange("new");
-							else { handleModeChange("existing"); handleExistingPeriodChange(e.target.value); }
-						}}
-					>
-						<option value="__new__">New</option>
-						{data.periodOptions.map(p => <option key={p} value={p}>{p}</option>)}
-					</select>
-					{mode === "new" && (
-						<NumericField value={newPeriod} onChange={setNewPeriod} onBlur={checkPeriodAgainstApplication}
-							maxLength={6} placeholder="yyyymm" className={`${fieldClsFor(true)} w-24`}
-						/>
-					)}
-					{mode === "existing" && data.hasAnyExistingPeriod && (
-						<label className="flex items-center gap-2 text-sm text-[var(--app-text)] ml-4">
-							<input type="checkbox" checked={editUnlocked} onChange={e => setEditUnlocked(e.target.checked)} />
-							Edit
-						</label>
-					)}
-					{loadingPeriod && <span className="text-xs text-[var(--app-muted)]">Loading…</span>}
+		<div className="overflow-hidden rounded-2xl bg-[var(--app-card)] shadow">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Organization Structure</h2>
 				</div>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
+			</div>
+			<div className="space-y-4 px-4 py-4 sm:px-6 sm:pb-6">
+				<p className="text-sm text-[var(--app-muted)]">Customer No. {apless || "(new)"}</p>
 
-				<SectionHeader>A. Capital / Modal</SectionHeader>
-				<div className="px-6 py-4 space-y-3">
-					<div className="flex items-center gap-2">
-						<label className="text-sm text-[var(--app-muted)] w-64">Authorized Capital / Modal Dasar (Rp)</label>
-						<NumericField value={capital.authorized} editable={editable}
-							onChange={v => setCapital(prev => ({ ...prev, authorized: v }))}
-							className={`${fieldClsFor(editable)} w-48 text-right`} />
+				<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
+					<div className="flex flex-wrap items-center gap-3 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-6 py-3">
+						<span className="text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">Period (yyyymm)</span>
+						<select
+							className={fieldClsFor(true)}
+							style={{ width: "140px" }}
+							value={mode === "existing" ? existingPeriod : "__new__"}
+							onChange={e => {
+								if (e.target.value === "__new__") handleModeChange("new");
+								else { handleModeChange("existing"); handleExistingPeriodChange(e.target.value); }
+							}}
+						>
+							<option value="__new__">New</option>
+							{data.periodOptions.map(p => <option key={p} value={p}>{p}</option>)}
+						</select>
+						{mode === "new" && (
+							<NumericField value={newPeriod} onChange={setNewPeriod} onBlur={checkPeriodAgainstApplication}
+								maxLength={6} placeholder="yyyymm" className={`${fieldClsFor(true)} w-24`}
+							/>
+						)}
+						{mode === "existing" && data.hasAnyExistingPeriod && (
+							<label className="ml-2 flex items-center gap-2 text-sm text-[var(--app-text)]">
+								<input type="checkbox" checked={editUnlocked} onChange={e => setEditUnlocked(e.target.checked)} />
+								Edit
+							</label>
+						)}
+						{loadingPeriod && <span className="text-xs text-[var(--app-muted)]">Loading…</span>}
 					</div>
-					<div className="flex items-center gap-2">
-						<label className="text-sm text-[var(--app-muted)] w-64">Paid-In Capital / Modal Disetor (Rp)</label>
-						<NumericField value={capital.paidIn} editable={false} onChange={() => { }}
-							className={`${fieldClsFor(false)} w-48 text-right`} />
-						<span className="text-xs text-[var(--app-muted)]">(sum of nominal shares below)</span>
+
+					<SectionHeader>A. Capital / Modal</SectionHeader>
+					<div className="flex max-w-xl flex-col gap-4 px-6 py-5">
+						<CapitalField label="Authorized Capital" sub="Modal Dasar">
+							<NumericField value={capital.authorized} editable={editable}
+								onChange={v => setCapital(prev => ({ ...prev, authorized: v }))}
+								className={`${fieldClsFor(editable)} !rounded-l-none w-full text-right text-base font-semibold`} />
+						</CapitalField>
+						<CapitalField label="Paid-In Capital" sub="Modal Disetor" hint="Automatically the sum of nominal shares in section B">
+							<NumericField value={capital.paidIn} editable={false} onChange={() => { }}
+								className={`${fieldClsFor(false)} !rounded-l-none w-full text-right text-base font-semibold`} />
+						</CapitalField>
 					</div>
-				</div>
 
-				<SectionHeader>B. Share Holder / Susunan Pemegang Saham</SectionHeader>
-				<div className="px-6 py-2">
-					<FieldCountControl count={shareholderCountDraft} editable={editable}
-						onCountChange={setShareholderCountDraft} onGo={() => setShareholderCount(shareholderCountDraft)} />
-				</div>
-				<div className="overflow-x-auto px-6 pb-4">
-					<table className="w-full min-w-[820px] border-collapse text-sm">
-						<thead>
-							<tr>
-								<td className={cellLabel}>No.</td>
-								<td className={cellLabel}>Name in ID Card / Akta</td>
-								<td className={cellLabel}>Status</td>
-								<td className={cellLabel}>Total of Shares (Pieces)</td>
-								<td className={cellLabel}>Nominal of Shares (Rp.)</td>
-								<td className={cellLabel}>Signer</td>
-								<td className={cellLabel}>Action</td>
-							</tr>
-						</thead>
-						<tbody>
-							{shareholders.map((row, i) => (
-								<tr key={i}>
-									<td className={cellValue}>{i + 1}</td>
-									<td className={cellValue}>
-										<select className={fieldClsFor(editable)} disabled={!editable} value={row.name}
-											onChange={e => updateShareholder(i, { name: e.target.value })}>
-											<option value="">Select</option>
-											{data.nameOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									</td>
-									<td className={cellValue}>
-										<select className={fieldClsFor(editable)} disabled={!editable} value={row.status}
-											onChange={e => updateShareholder(i, { status: e.target.value })}>
-											<option value="">Select</option>
-											{data.shareholderStatusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									</td>
-									<td className={cellValue}>
-										<NumericField value={row.totalShares} editable={editable}
-											onChange={v => updateShareholder(i, { totalShares: v })}
-											className={`${fieldClsFor(editable)} text-right`} />
-									</td>
-									<td className={cellValue}>
-										<NumericField value={row.nominalShares} editable={editable}
-											onChange={v => updateShareholder(i, { nominalShares: v })}
-											className={`${fieldClsFor(editable)} text-right`} />
-									</td>
-									<td className={cellValue + " text-center"}>
-										<input type="checkbox" checked={row.signer} disabled={!editable}
-											onChange={e => updateShareholder(i, { signer: e.target.checked })} />
-									</td>
-									<td className={cellValue + " text-center"}>
-										<ClearButton visible={editable && !!row.name} onClick={() => clearShareholder(i)} />
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-
-				<SectionHeader>C. Composition the Board of Directors (BOD) &amp; Board of Commissioners (BOC)</SectionHeader>
-				<div className="px-6 py-2">
-					<FieldCountControl count={directorCountDraft} editable={editable}
-						onCountChange={setDirectorCountDraft} onGo={() => setDirectorCount(directorCountDraft)} />
-				</div>
-				<div className="overflow-x-auto px-6 pb-4">
-					<table className="w-full min-w-[920px] border-collapse text-sm">
-						<thead>
-							<tr>
-								<td className={cellLabel}>No.</td>
-								<td className={cellLabel}>Name in ID Card</td>
-								<td className={cellLabel}>BOD</td>
-								<td className={cellLabel}>BOC</td>
-								<td className={cellLabel}>Other</td>
-								<td className={cellLabel}>Owner</td>
-								<td className={cellLabel}>Signer</td>
-								<td className={cellLabel}>Signer On E-Contract</td>
-								<td className={cellLabel}>Action</td>
-							</tr>
-						</thead>
-						<tbody>
-							{directors.map((row, i) => (
-								<tr key={i}>
-									<td className={cellValue}>{i + 1}</td>
-									<td className={cellValue}>
-										<select className={fieldClsFor(editable)} disabled={!editable} value={row.name}
-											onChange={e => updateDirector(i, { name: e.target.value })}>
-											<option value="">Select</option>
-											{data.nameOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									</td>
-									<td className={cellValue}>
-										<select className={fieldClsFor(editable && !row.boc)} disabled={!editable || !!row.boc} value={row.bod}
-											onChange={e => handleBodChange(i, e.target.value)}>
-											<option value="">Select</option>
-											{data.bodPositions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									</td>
-									<td className={cellValue}>
-										<select className={fieldClsFor(editable && !row.bod)} disabled={!editable || !!row.bod} value={row.boc}
-											onChange={e => handleBocChange(i, e.target.value)}>
-											<option value="">Select</option>
-											{data.bocPositions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-										</select>
-									</td>
-									<td className={cellValue}>
-										<input className={fieldClsFor(editable)} disabled={!editable} value={row.other}
-											onChange={e => updateDirector(i, { other: e.target.value })} />
-									</td>
-									<td className={cellValue + " text-center"}>
-										<input type="checkbox" checked={row.owner} disabled={!editable}
-											onChange={e => updateDirector(i, { owner: e.target.checked })} />
-									</td>
-									<td className={cellValue + " text-center"}>
-										<input type="checkbox" checked={row.signer} disabled={!editable}
-											onChange={e => updateDirector(i, { signer: e.target.checked })} />
-									</td>
-									<td className={cellValue + " text-center"}>
-										<input type="checkbox" checked={row.signerEcontract} disabled={!editable || !row.bod}
-											onChange={e => handleSignerEcontractChange(i, e.target.checked)} />
-									</td>
-									<td className={cellValue + " text-center"}>
-										<ClearButton visible={editable && !!row.name} onClick={() => clearDirector(i)} />
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-
-				<SectionHeader>D. Deed of Establishment / Akta Pendirian dan Perubahannya</SectionHeader>
-				<div className="px-6 py-2">
-					<FieldCountControl count={deedCountDraft} editable={editable}
-						onCountChange={setDeedCountDraft} onGo={() => setDeedCount(deedCountDraft)} />
-				</div>
-				<div className="overflow-x-auto px-6 pb-4">
-					<table className="w-full min-w-[920px] border-collapse text-sm">
-						<thead>
-							<tr>
-								<td className={cellLabel}>No.</td>
-								<td className={cellLabel}>State Gazette No</td>
-								<td className={cellLabel}>Deed No</td>
-								<td className={cellLabel}>Date of Deed / State Gazette</td>
-								<td className={cellLabel}>Notary Name</td>
-								<td className={cellLabel}>Certification of Ministry of Law &amp; Human Rights</td>
-							</tr>
-						</thead>
-						<tbody>
-							{deeds.map((row, i) => (
-								<tr key={i}>
-									<td className={cellValue}>{i + 1}</td>
-									<td className={cellValue}>
-										<NumericField value={row.stateNo} editable={editable && !row.deedNo}
-											onChange={v => handleStateNoChange(i, v)} className={fieldClsFor(editable && !row.deedNo)} />
-									</td>
-									<td className={cellValue}>
-										<input className={fieldClsFor(editable && !row.stateNo)} disabled={!editable || !!row.stateNo}
-											value={row.deedNo} onChange={e => handleDeedNoChange(i, e.target.value)} />
-									</td>
-									<td className={cellValue}>
-										<input className={fieldClsFor(editable)} disabled={!editable} placeholder="dd-mm-yyyy"
-											value={row.deedDate} onChange={e => updateDeed(i, { deedDate: e.target.value })} />
-									</td>
-									<td className={cellValue}>
-										<input className={fieldClsFor(editable)} disabled={!editable}
-											value={row.notaryName} onChange={e => updateDeed(i, { notaryName: e.target.value })} />
-									</td>
-									<td className={cellValue}>
-										{i >= 8 ? (
-											<textarea className={fieldClsFor(editable)} disabled={!editable}
-												value={row.certificate} onChange={e => updateDeed(i, { certificate: e.target.value })} />
-										) : (
-											<select className={fieldClsFor(editable)} disabled={!editable}
-												value={row.certificate} onChange={e => updateDeed(i, { certificate: e.target.value })}>
-												<option value="">Select</option>
-												{data.certificateOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-											</select>
-										)}
-									</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-
-				<SectionHeader>Description Table / Tabel Deskripsi</SectionHeader>
-				<div className="overflow-x-auto px-6 pb-4">
-					<table className="w-full min-w-[500px] border-collapse text-sm">
-						<thead>
-							<tr>
-								<td className={cellLabel + " text-center"}>Option</td>
-								<td className={cellLabel}>Certificate of Ministry of Law &amp; Human Rights</td>
-							</tr>
-						</thead>
-						<tbody>
-							{data.certificateOptions.map(o => (
-								<tr key={o.value}>
-									<td className={cellValue + " text-center"}>{o.value}</td>
-									<td className={cellValue}>{o.label}</td>
-								</tr>
-							))}
-						</tbody>
-					</table>
-				</div>
-
-				<SectionHeader>E. Contract Signer According Deed of Establishment: Board of Director's Roles and Authority</SectionHeader>
-				<div className="px-6 py-4 space-y-2">
-					{data.contractSignerOptions.map(o => (
-						<label key={o.value} className="flex items-center gap-2 text-sm">
-							<input type="radio" name="contractSigner" disabled={!editable} checked={contractSignerSelected === o.value}
-								onChange={() => setContractSignerSelected(o.value)} />
-							{o.label}
-						</label>
-					))}
-					<div>
-						<input className={fieldClsFor(editable)} disabled={!editable} value={contractSignerOther}
-							onChange={e => setContractSignerOther(e.target.value)} />
-						<p className="text-xs text-[var(--app-muted)] mt-1">Format : Must input in English</p>
+					<SectionHeader>B. Share Holder / Susunan Pemegang Saham</SectionHeader>
+					<div className="px-6 py-2">
+						<FieldCountControl count={shareholderCountDraft} editable={editable}
+							onCountChange={setShareholderCountDraft} onGo={() => setShareholderCount(shareholderCountDraft)} />
 					</div>
-				</div>
-
-				<SectionHeader>F. Person in Charge to Sign Contract</SectionHeader>
-				<div className="px-6 py-4 space-y-2">
-					<p className="text-sm text-[var(--app-muted)]">Apakah tanda tangan Kontrak sama antara butir E?</p>
-					<label className="flex items-center gap-2 text-sm">
-						<input type="radio" name="picSame" disabled={!editable} checked={picSameAsE}
-							onChange={() => setPicSameAsE(true)} />
-						Ya
-					</label>
-					<label className="flex items-center gap-2 text-sm">
-						<input type="radio" name="picSame" disabled={!editable} checked={!picSameAsE}
-							onChange={() => setPicSameAsE(false)} />
-						Tidak, Mohon Isi Pejabat yang Akan Tanda Tangan Kontrak:
-					</label>
-					<div>
-						<input className={fieldClsFor(editable && !picSameAsE)} disabled={!editable || picSameAsE}
-							value={picName} onChange={e => setPicName(e.target.value)} />
-						<p className="text-xs text-[var(--app-muted)] mt-1">Format : Must input in English</p>
-					</div>
-				</div>
-
-				<SectionHeader>G. Management Detail Information</SectionHeader>
-				<div className="overflow-x-auto px-6 pb-4">
-					<table className="w-full min-w-[720px] border-collapse text-sm">
-						<thead>
-							<tr>
-								<td className={cellLabel}>No.</td>
-								<td className={cellLabel}>Name in ID Card / Akta</td>
-								<td className={cellLabel}>ID Card</td>
-								<td className={cellLabel}>Address in ID Card / SK. Domisili</td>
-								<td className={cellLabel}>City</td>
-								<td className={cellLabel}>Detail</td>
-							</tr>
-						</thead>
-						<tbody>
-							{managementRows.map((row, i) => {
-								const detail = managementDetails[row.name];
-								const idCardSummary = row.shareStatus === "1" ? detail?.npwp : (detail?.idCard || detail?.passportNo);
-								return (
-									<tr key={row.name}>
+					<div className="overflow-x-auto px-6 pb-4">
+						<table className="w-full min-w-[820px] border-collapse text-sm">
+							<thead>
+								<tr>
+									<td className={cellLabel}>No.</td>
+									<td className={cellLabel}>Name in ID Card / Akta</td>
+									<td className={cellLabel}>Status</td>
+									<td className={cellLabel}>Total of Shares (Pieces)</td>
+									<td className={cellLabel}>Nominal of Shares (Rp.)</td>
+									<td className={cellLabel}>Signer</td>
+									<td className={cellLabel}>Action</td>
+								</tr>
+							</thead>
+							<tbody>
+								{shareholders.map((row, i) => (
+									<tr key={i}>
 										<td className={cellValue}>{i + 1}</td>
-										<td className={cellValue}>{row.name}</td>
-										<td className={cellValue}>{idCardSummary || <span className="text-slate-300">—</span>}</td>
-										<td className={cellValue}>{(row.shareStatus === "1" ? detail?.addressNpwp : detail?.address) || <span className="text-slate-300">—</span>}</td>
-										<td className={cellValue}>{(row.shareStatus === "1" ? detail?.cityNpwp : detail?.city) || <span className="text-slate-300">—</span>}</td>
 										<td className={cellValue}>
-											<button type="button" onClick={() => setOpenDetailFor(row.name)}
-												className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-medium">
-												Detail
-											</button>
+											<select className={fieldClsFor(editable)} disabled={!editable} value={row.name}
+												onChange={e => updateShareholder(i, { name: e.target.value })}>
+												<option value="">Select</option>
+												{data.nameOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+											</select>
+										</td>
+										<td className={cellValue}>
+											<select className={fieldClsFor(editable)} disabled={!editable} value={row.status}
+												onChange={e => updateShareholder(i, { status: e.target.value })}>
+												<option value="">Select</option>
+												{data.shareholderStatusOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+											</select>
+										</td>
+										<td className={cellValue}>
+											<NumericField value={row.totalShares} editable={editable}
+												onChange={v => updateShareholder(i, { totalShares: v })}
+												className={`${fieldClsFor(editable)} text-right`} />
+										</td>
+										<td className={cellValue}>
+											<NumericField value={row.nominalShares} editable={editable}
+												onChange={v => updateShareholder(i, { nominalShares: v })}
+												className={`${fieldClsFor(editable)} text-right`} />
+										</td>
+										<td className={cellValue + " text-center"}>
+											<input type="checkbox" checked={row.signer} disabled={!editable}
+												onChange={e => updateShareholder(i, { signer: e.target.checked })} />
+										</td>
+										<td className={cellValue + " text-center"}>
+											<ClearButton visible={editable && !!row.name} onClick={() => clearShareholder(i)} />
 										</td>
 									</tr>
-								);
-							})}
-							{managementRows.length === 0 && (
-								<tr><td colSpan={6} className={cellValue + " text-center text-[var(--app-muted)]"}>Add shareholders or directors above to populate this list.</td></tr>
-							)}
-						</tbody>
-					</table>
+								))}
+							</tbody>
+						</table>
+					</div>
+
+					<SectionHeader>C. Composition the Board of Directors (BOD) &amp; Board of Commissioners (BOC)</SectionHeader>
+					<div className="px-6 py-2">
+						<FieldCountControl count={directorCountDraft} editable={editable}
+							onCountChange={setDirectorCountDraft} onGo={() => setDirectorCount(directorCountDraft)} />
+					</div>
+					<div className="overflow-x-auto px-6 pb-4">
+						<table className="w-full min-w-[920px] border-collapse text-sm">
+							<thead>
+								<tr>
+									<td className={cellLabel}>No.</td>
+									<td className={cellLabel}>Name in ID Card</td>
+									<td className={cellLabel}>BOD</td>
+									<td className={cellLabel}>BOC</td>
+									<td className={cellLabel}>Other</td>
+									<td className={cellLabel}>Owner</td>
+									<td className={cellLabel}>Signer</td>
+									<td className={cellLabel}>Signer On E-Contract</td>
+									<td className={cellLabel}>Action</td>
+								</tr>
+							</thead>
+							<tbody>
+								{directors.map((row, i) => (
+									<tr key={i}>
+										<td className={cellValue}>{i + 1}</td>
+										<td className={cellValue}>
+											<select className={fieldClsFor(editable)} disabled={!editable} value={row.name}
+												onChange={e => updateDirector(i, { name: e.target.value })}>
+												<option value="">Select</option>
+												{data.nameOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+											</select>
+										</td>
+										<td className={cellValue}>
+											<select className={fieldClsFor(editable && !row.boc)} disabled={!editable || !!row.boc} value={row.bod}
+												onChange={e => handleBodChange(i, e.target.value)}>
+												<option value="">Select</option>
+												{data.bodPositions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+											</select>
+										</td>
+										<td className={cellValue}>
+											<select className={fieldClsFor(editable && !row.bod)} disabled={!editable || !!row.bod} value={row.boc}
+												onChange={e => handleBocChange(i, e.target.value)}>
+												<option value="">Select</option>
+												{data.bocPositions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+											</select>
+										</td>
+										<td className={cellValue}>
+											<input className={fieldClsFor(editable)} disabled={!editable} value={row.other}
+												onChange={e => updateDirector(i, { other: e.target.value })} />
+										</td>
+										<td className={cellValue + " text-center"}>
+											<input type="checkbox" checked={row.owner} disabled={!editable}
+												onChange={e => updateDirector(i, { owner: e.target.checked })} />
+										</td>
+										<td className={cellValue + " text-center"}>
+											<input type="checkbox" checked={row.signer} disabled={!editable}
+												onChange={e => updateDirector(i, { signer: e.target.checked })} />
+										</td>
+										<td className={cellValue + " text-center"}>
+											<input type="checkbox" checked={row.signerEcontract} disabled={!editable || !row.bod}
+												onChange={e => handleSignerEcontractChange(i, e.target.checked)} />
+										</td>
+										<td className={cellValue + " text-center"}>
+											<ClearButton visible={editable && !!row.name} onClick={() => clearDirector(i)} />
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+
+					<SectionHeader>D. Deed of Establishment / Akta Pendirian dan Perubahannya</SectionHeader>
+					<div className="px-6 py-2">
+						<FieldCountControl count={deedCountDraft} editable={editable}
+							onCountChange={setDeedCountDraft} onGo={() => setDeedCount(deedCountDraft)} />
+					</div>
+					<div className="overflow-x-auto px-6 pb-4">
+						<table className="w-full min-w-[920px] border-collapse text-sm">
+							<thead>
+								<tr>
+									<td className={cellLabel}>No.</td>
+									<td className={cellLabel}>State Gazette No</td>
+									<td className={cellLabel}>Deed No</td>
+									<td className={cellLabel}>Date of Deed / State Gazette</td>
+									<td className={cellLabel}>Notary Name</td>
+									<td className={cellLabel}>Certification of Ministry of Law &amp; Human Rights</td>
+								</tr>
+							</thead>
+							<tbody>
+								{deeds.map((row, i) => (
+									<tr key={i}>
+										<td className={cellValue}>{i + 1}</td>
+										<td className={cellValue}>
+											<NumericField value={row.stateNo} editable={editable && !row.deedNo}
+												onChange={v => handleStateNoChange(i, v)} className={fieldClsFor(editable && !row.deedNo)} />
+										</td>
+										<td className={cellValue}>
+											<input className={fieldClsFor(editable && !row.stateNo)} disabled={!editable || !!row.stateNo}
+												value={row.deedNo} onChange={e => handleDeedNoChange(i, e.target.value)} />
+										</td>
+										<td className={cellValue}>
+											<AsOfDatePickerComponent
+												label=""
+												format="dd-MM-yyyy"
+												placeholder="dd-mm-yyyy"
+												disabled={!editable}
+												value={parseDDMMYYYY(row.deedDate)}
+												onChange={date => updateDeed(i, { deedDate: formatDDMMYYYY(date) })}
+											/>
+										</td>
+										<td className={cellValue}>
+											<input className={fieldClsFor(editable)} disabled={!editable}
+												value={row.notaryName} onChange={e => updateDeed(i, { notaryName: e.target.value })} />
+										</td>
+										<td className={cellValue}>
+											{i >= 8 ? (
+												<textarea className={fieldClsFor(editable)} disabled={!editable}
+													value={row.certificate} onChange={e => updateDeed(i, { certificate: e.target.value })} />
+											) : (
+												<select className={fieldClsFor(editable)} disabled={!editable}
+													value={row.certificate} onChange={e => updateDeed(i, { certificate: e.target.value })}>
+													<option value="">Select</option>
+													{data.certificateOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+												</select>
+											)}
+										</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+
+					<SectionHeader>Description Table / Tabel Deskripsi</SectionHeader>
+					<div className="overflow-x-auto px-6 pb-4">
+						<table className="w-full min-w-[500px] border-collapse text-sm">
+							<thead>
+								<tr>
+									<td className={cellLabel + " text-center"}>Option</td>
+									<td className={cellLabel}>Certificate of Ministry of Law &amp; Human Rights</td>
+								</tr>
+							</thead>
+							<tbody>
+								{data.certificateOptions.map(o => (
+									<tr key={o.value}>
+										<td className={cellValue + " text-center"}>{o.value}</td>
+										<td className={cellValue}>{o.label}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+
+					<SectionHeader>E. Contract Signer According Deed of Establishment: Board of Director's Roles and Authority</SectionHeader>
+					<div className="px-6 py-4 space-y-2">
+						{data.contractSignerOptions.map(o => (
+							<label key={o.value} className="flex items-center gap-2 text-sm">
+								<input type="radio" name="contractSigner" disabled={!editable} checked={contractSignerSelected === o.value}
+									onChange={() => setContractSignerSelected(o.value)} />
+								{o.label}
+							</label>
+						))}
+						<div>
+							<input className={fieldClsFor(editable)} disabled={!editable} value={contractSignerOther}
+								onChange={e => setContractSignerOther(e.target.value)} />
+							<p className="text-xs text-[var(--app-muted)] mt-1">Format : Must input in English</p>
+						</div>
+					</div>
+
+					<SectionHeader>F. Person in Charge to Sign Contract</SectionHeader>
+					<div className="px-6 py-4 space-y-2">
+						<p className="text-sm text-[var(--app-muted)]">Apakah tanda tangan Kontrak sama antara butir E?</p>
+						<label className="flex items-center gap-2 text-sm">
+							<input type="radio" name="picSame" disabled={!editable} checked={picSameAsE}
+								onChange={() => setPicSameAsE(true)} />
+							Ya
+						</label>
+						<label className="flex items-center gap-2 text-sm">
+							<input type="radio" name="picSame" disabled={!editable} checked={!picSameAsE}
+								onChange={() => setPicSameAsE(false)} />
+							Tidak, Mohon Isi Pejabat yang Akan Tanda Tangan Kontrak:
+						</label>
+						<div>
+							<input className={fieldClsFor(editable && !picSameAsE)} disabled={!editable || picSameAsE}
+								value={picName} onChange={e => setPicName(e.target.value)} />
+							<p className="text-xs text-[var(--app-muted)] mt-1">Format : Must input in English</p>
+						</div>
+					</div>
+
+					<SectionHeader>G. Management Detail Information</SectionHeader>
+					<div className="overflow-x-auto px-6 pb-4">
+						<table className="w-full min-w-[720px] border-collapse text-sm">
+							<thead>
+								<tr>
+									<td className={cellLabel}>No.</td>
+									<td className={cellLabel}>Name in ID Card / Akta</td>
+									<td className={cellLabel}>ID Card</td>
+									<td className={cellLabel}>Address in ID Card / SK. Domisili</td>
+									<td className={cellLabel}>City</td>
+									<td className={cellLabel}>Detail</td>
+								</tr>
+							</thead>
+							<tbody>
+								{managementRows.map((row, i) => {
+									const detail = managementDetails[row.name];
+									const idCardSummary = row.shareStatus === "1" ? detail?.npwp : (detail?.idCard || detail?.passportNo);
+									return (
+										<tr key={row.name}>
+											<td className={cellValue}>{i + 1}</td>
+											<td className={cellValue}>{row.name}</td>
+											<td className={cellValue}>{idCardSummary || <span className="text-slate-300">—</span>}</td>
+											<td className={cellValue}>{(row.shareStatus === "1" ? detail?.addressNpwp : detail?.address) || <span className="text-slate-300">—</span>}</td>
+											<td className={cellValue}>{(row.shareStatus === "1" ? detail?.cityNpwp : detail?.city) || <span className="text-slate-300">—</span>}</td>
+											<td className={cellValue}>
+												<button type="button" onClick={() => setOpenDetailFor(row.name)}
+													className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-medium">
+													Detail
+												</button>
+											</td>
+										</tr>
+									);
+								})}
+								{managementRows.length === 0 && (
+									<tr><td colSpan={6} className={cellValue + " text-center text-[var(--app-muted)]"}>Add shareholders or directors above to populate this list.</td></tr>
+								)}
+							</tbody>
+						</table>
+					</div>
+
 				</div>
 
+				{openDetailFor && data && (() => {
+					const row = managementRows.find(r => r.name === openDetailFor);
+					if (!row) return null;
+					return (
+						<ManagementDetailModal
+							open={true}
+							onClose={() => setOpenDetailFor(null)}
+							name={row.name}
+							shareStatus={row.shareStatus}
+							value={managementDetails[row.name] ?? emptyManagementDetail}
+							onSave={v => saveManagementDetail(row.name, v)}
+							editable={editable}
+							areaOptions={data.areaOptions}
+							nationalityOptions={data.nationalityOptions}
+							fetchProvinceCity={fetchProvinceCity}
+							fetchKecamatan={fetchKecamatan}
+							fetchKelurahan={fetchKelurahan}
+							isSigner={row.isSigner}
+						/>
+					);
+				})()}
+
+				{saving && <p className="text-sm text-[var(--app-muted)] mt-3">Saving…</p>}
+
+				{formMessages.length > 0 && (
+					<div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+						<ul className="list-disc list-inside text-sm text-red-700 space-y-1">
+							{formMessages.map((msg, i) => <li key={i}>{msg}</li>)}
+						</ul>
+					</div>
+				)}
 			</div>
-
-			{openDetailFor && data && (() => {
-				const row = managementRows.find(r => r.name === openDetailFor);
-				if (!row) return null;
-				return (
-					<ManagementDetailModal
-						open={true}
-						onClose={() => setOpenDetailFor(null)}
-						name={row.name}
-						shareStatus={row.shareStatus}
-						value={managementDetails[row.name] ?? emptyManagementDetail}
-						onSave={v => saveManagementDetail(row.name, v)}
-						editable={editable}
-						areaOptions={data.areaOptions}
-						nationalityOptions={data.nationalityOptions}
-						fetchProvinceCity={fetchProvinceCity}
-						fetchKecamatan={fetchKecamatan}
-						fetchKelurahan={fetchKelurahan}
-						isSigner={row.isSigner}
-					/>
-				);
-			})()}
-
-			{saving && <p className="text-sm text-[var(--app-muted)] mt-3">Saving…</p>}
-
-			{formMessages.length > 0 && (
-				<div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
-					<ul className="list-disc list-inside text-sm text-red-700 space-y-1">
-						{formMessages.map((msg, i) => <li key={i}>{msg}</li>)}
-					</ul>
-				</div>
-			)}
 		</div>
 	);
 });

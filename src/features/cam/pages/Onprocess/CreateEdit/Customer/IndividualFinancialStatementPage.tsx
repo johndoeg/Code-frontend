@@ -47,92 +47,37 @@ export interface CamTabHandle {
 	save: () => void;
 }
 
-const cellLabel =
-	"border-b border-[var(--app-border)] bg-[var(--app-surface)]/70 px-4 py-2.5 align-top text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] whitespace-nowrap";
-const cellValue = "border-b border-[var(--app-border)] px-4 py-2.5 align-top text-sm text-[var(--app-text)]";
-const subheadCell =
-	"border-b border-[var(--app-border)] bg-indigo-50/70 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-600";
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-	return (
-		<div className="border-b border-t border-[var(--app-border)] bg-[var(--app-surface)] px-6 py-3 first:border-t-0">
-			<h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">{children}</h2>
-		</div>
-	);
-}
-
-const inputCls =
-	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full text-right focus:outline-none focus:ring-2 focus:ring-blue-400";
-const inputClsLeft = inputCls.replace("text-right", "text-left");
-const selectCls = (editable: boolean) =>
-	`border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 ${editable ? "bg-[var(--app-card)]" : "bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
-	}`;
-const fieldLabelCls = "text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] mb-1 block";
-
 const toNumber = (v: string) => {
 	const n = parseFloat((v || "0").replace(/,/g, ""));
 	return Number.isFinite(n) ? n : 0;
 };
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+const formatMoney = (v: string) => (v === "" || v == null ? "" : fmt(toNumber(v)));
+const cleanMoneyInput = (v: string) => v.replace(/[^\d.,-]/g, "");
 
 const padLiabilities = (rows: LiabilityRow[]): LiabilityRow[] => {
 	const next = [...rows];
 	while (next.length < 5) next.push({ id: 0, category: "", description: "", amount: "" });
-	return next.slice(0, 5);
+	return next.slice(0, Math.max(5, next.length));
 };
 const padAssets = (rows: AssetRow[]): AssetRow[] => {
 	const next = [...rows];
 	while (next.length < 6) next.push({ id: 0, description: "", amount: "", notes: "" });
-	return next.slice(0, 6);
+	return next.slice(0, Math.max(6, next.length));
 };
 
-const PeriodPicker: React.FC<{
-	label: string;
-	options: string[];
-	mode: "existing" | "new";
-	existingValue: string;
-	newYear: string;
-	onModeChange: (mode: "existing" | "new") => void;
-	onExistingChange: (v: string) => void;
-	onNewYearChange: (v: string) => void;
-	onDelete: () => void;
-	deleting: boolean;
-}> = ({ label, options, mode, existingValue, newYear, onModeChange, onExistingChange, onNewYearChange, onDelete, deleting }) => (
-	<div className="flex items-end gap-2">
-		<div>
-			<label className={fieldLabelCls}>{label}</label>
-			<div className="flex gap-2">
-				<select
-					className={selectCls(true)}
-					value={mode === "existing" ? existingValue : "__new__"}
-					onChange={e => {
-						if (e.target.value === "__new__") onModeChange("new");
-						else { onModeChange("existing"); onExistingChange(e.target.value); }
-					}}
-				>
-					<option value="__new__">New</option>
-					{options.map(p => <option key={p} value={p}>{p}</option>)}
-				</select>
-				{mode === "new" && (
-					<input
-						className={selectCls + " w-24"}
-						placeholder="yyyy"
-						maxLength={4}
-						value={newYear}
-						onChange={e => onNewYearChange(e.target.value.replace(/\D/g, ""))}
-					/>
-				)}
-			</div>
-		</div>
-		<button
-			onClick={onDelete}
-			disabled={deleting}
-			className="px-3 py-2 bg-red-700 hover:bg-red-800 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium"
-		>
-			{deleting ? "Deleting…" : "Delete"}
-		</button>
-	</div>
-);
+const cardCls = "mx-auto max-w-4xl overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm";
+const cell = "border border-[var(--app-border)] px-2.5 py-1.5 align-middle";
+const headCell = `${cell} bg-[var(--app-surface)] text-center text-[12px] font-semibold text-[var(--app-text)]`;
+const bandCell = `${cell} bg-[var(--app-surface)] text-[13px] font-bold text-[var(--app-text)]`;
+const labelCell = `${cell} text-[13px] text-[var(--app-text)]`;
+const grayInput =
+	"w-full rounded-md border border-[var(--app-border)] bg-[var(--app-surface-alt)] px-2 py-1 text-[13px] text-[var(--app-text)] transition-colors focus:border-blue-500 focus:bg-[var(--app-card)] focus:outline-none focus:ring-2 focus:ring-blue-500/25 disabled:cursor-not-allowed disabled:opacity-70";
+const grayInputR = `${grayInput} text-right`;
+const totalInput =
+	"w-full rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-2 py-1 text-[13px] font-bold text-right text-[var(--app-text)]";
+const selectCls =
+	"rounded-md border border-[var(--app-border)] bg-[var(--app-card)] px-2 py-1 text-[13px] text-[var(--app-text)] transition-colors focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25";
 
 const IndividualFinancialStatementPage = forwardRef<CamTabHandle, IndividualFinancialStatementPageProps>(function IndividualFinancialStatementPage({ apless, applNo, finType, custName, onSaved }, ref) {
 	const [saving, setSaving] = useState(false);
@@ -141,15 +86,18 @@ const IndividualFinancialStatementPage = forwardRef<CamTabHandle, IndividualFina
 	const [periodMode, setPeriodMode] = useState<"existing" | "new">("existing");
 	const [selectedExisting, setSelectedExisting] = useState("");
 	const [newYear, setNewYear] = useState("");
+	const [loadedPeriod, setLoadedPeriod] = useState("");
 	const [currency, setCurrency] = useState("IDR");
 	const [incomeValues, setIncomeValues] = useState<Record<string, string>>({});
 	const [liabilities, setLiabilities] = useState<LiabilityRow[]>(padLiabilities([]));
 	const [assets, setAssets] = useState<AssetRow[]>(padAssets([]));
 
 	const { data, isLoading, isError, refetch } = useQuery({
-		queryKey: ['cam-individual-financial', apless, applNo],
+		queryKey: ['cam-individual-financial', apless, applNo, loadedPeriod],
 		queryFn: async (): Promise<FinancialData> => {
-			const res = await api.get("/CAM/Customer/individual", { params: { apless, applno: applNo } });
+			const res = await api.get("/CAM/Customer/individual", {
+				params: { apless, applno: applNo, ...(loadedPeriod ? { period: loadedPeriod } : {}) },
+			});
 			return res.data;
 		},
 	});
@@ -170,7 +118,7 @@ const IndividualFinancialStatementPage = forwardRef<CamTabHandle, IndividualFina
 	}, [data]);
 
 	const setIncome = (code: string, value: string) =>
-		setIncomeValues(prev => ({ ...prev, [code]: value.replace(/[^\d.-]/g, "") }));
+		setIncomeValues(prev => ({ ...prev, [code]: value }));
 
 	const setLiabilityField = (idx: number, field: keyof LiabilityRow, value: string) =>
 		setLiabilities(prev => prev.map((row, i) => (i === idx ? { ...row, [field]: value } : row)));
@@ -187,10 +135,33 @@ const IndividualFinancialStatementPage = forwardRef<CamTabHandle, IndividualFina
 	const totalDeduction = (data?.incomeDeduction || []).reduce(
 		(sum, item) => sum + toNumber(incomeValues[item.code] || "0"), 0
 	);
-	const netIncomeBeforeLiabilities = totalIncome - totalDeduction;
 	const totalLiabilities = liabilities.reduce((sum, row) => sum + toNumber(row.amount), 0);
-	const netIncome = netIncomeBeforeLiabilities - totalLiabilities;
+	const netIncome = totalIncome - totalDeduction - totalLiabilities;
 	const totalAssets = assets.reduce((sum, row) => sum + toNumber(row.amount), 0);
+
+	const handlePeriodSelect = (value: string) => {
+		if (value === "__new__") {
+			setPeriodMode("new");
+			setNewYear("");
+			setIncomeValues({});
+			setLiabilities(padLiabilities([]));
+			setAssets(padAssets([]));
+		} else {
+			setPeriodMode("existing");
+			setSelectedExisting(value);
+			setLoadedPeriod(value);
+		}
+	};
+
+	const handleClear = () => {
+		setPeriodMode("new");
+		setSelectedExisting("");
+		setNewYear("");
+		setCurrency("IDR");
+		setIncomeValues({});
+		setLiabilities(padLiabilities([]));
+		setAssets(padAssets([]));
+	};
 
 	const handleSave = useCallback(async () => {
 		const period = periodMode === "new" ? newYear.trim() : selectedExisting;
@@ -199,8 +170,7 @@ const IndividualFinancialStatementPage = forwardRef<CamTabHandle, IndividualFina
 			alert("Period 1 not valid — must be a 4-digit year.");
 			return;
 		}
-		const currentYear = new Date().getFullYear();
-		if (Number(period) > currentYear) {
+		if (Number(period) > new Date().getFullYear()) {
 			alert("Period 1 not valid — year cannot be in the future.");
 			return;
 		}
@@ -243,6 +213,7 @@ const IndividualFinancialStatementPage = forwardRef<CamTabHandle, IndividualFina
 		setDeleting(true);
 		try {
 			await api.delete("/CAM/Customer/individual", { params: { apless, period } });
+			setLoadedPeriod("");
 			await refetch();
 		} catch {
 			alert("Delete failed. Please try again.");
@@ -268,155 +239,237 @@ const IndividualFinancialStatementPage = forwardRef<CamTabHandle, IndividualFina
 	}
 
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
+	const periodValue = periodMode === "new" ? "__new__" : selectedExisting;
 
 	return (
-		<div className="space-y-4 rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl overflow-hidden">
-			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
+		<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
+			<div className="flex items-stretch justify-between gap-3 border-b border-[var(--app-border)] bg-[var(--app-card)]">
+				<div className="flex items-stretch">
+					<h2 className="flex items-center px-4 py-3 text-[17px] font-bold text-[var(--app-text)] sm:px-6">Financial Information</h2>
+					<span
+						className="flex min-w-[220px] cursor-not-allowed items-center bg-[var(--app-surface-alt)] px-4 py-3 text-[17px] font-bold text-[var(--app-muted)]"
+						title="Not yet implemented — needs legacy source"
+					>
+						Bank Summary
+					</span>
 				</div>
-			)}
-			<div>
-				<h2 className="text-xl font-bold text-[var(--app-text)] mb-1">Financial Information</h2>
-				<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
-					<SectionHeader>Currency & Period</SectionHeader>
-					<div className="flex flex-wrap items-end gap-6 px-6 py-4">
-						<div>
-							<label className={fieldLabelCls}>Currency</label>
-							<select className={selectCls(true)} value={currency} onChange={e => setCurrency(e.target.value)}>
-								{data.currencies.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-							</select>
-						</div>
-						<PeriodPicker
-							label="Period" options={data.periodOptions}
-							mode={periodMode} existingValue={selectedExisting} newYear={newYear}
-							onModeChange={setPeriodMode} onExistingChange={setSelectedExisting} onNewYearChange={setNewYear}
-							onDelete={handleDelete} deleting={deleting}
-						/>
-					</div>
+				{judul && <span className="flex items-center px-4 text-xs font-bold text-blue-700 sm:px-6">{judul}</span>}
+			</div>
 
-					<SectionHeader>Liabilities</SectionHeader>
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[640px] border-collapse text-sm">
-							<tbody>
-								<tr>
-									<td className={cellLabel}>Category</td>
-									<td className={cellLabel}>Description</td>
-									<td className={cellLabel + " text-right"}>Amount</td>
+			<div className="space-y-6 px-4 py-5 sm:px-6">
+				<div className={cardCls}>
+					<table className="w-full border-collapse">
+						<colgroup>
+							<col style={{ width: "25%" }} />
+							<col style={{ width: "25%" }} />
+							<col style={{ width: "50%" }} />
+						</colgroup>
+						<tbody>
+							<tr>
+								<td className={`${cell}`} colSpan={2}>
+									<div className="flex items-center gap-2">
+										<span className="text-[13px] text-[var(--app-text)]">Currency :</span>
+										<select className={selectCls} style={{ minWidth: "15em" }} value={currency} onChange={e => setCurrency(e.target.value)}>
+											<option value="">Select</option>
+											{data.currencies.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+										</select>
+									</div>
+								</td>
+								<td className={cell}>
+									<div className="flex items-center justify-center gap-2">
+										<span className="whitespace-nowrap text-[13px] text-[var(--app-text)]" style={{ minWidth: "4.5rem" }}>Period :</span>
+										<select className={selectCls} style={{ minWidth: "7.5rem" }} value={periodValue} onChange={e => handlePeriodSelect(e.target.value)}>
+											<option value="__new__">New</option>
+											{data.periodOptions.map(p => <option key={p} value={p}>{p}</option>)}
+										</select>
+										<input
+											className={`${grayInput} w-20 text-center`}
+											maxLength={4}
+											placeholder="yyyy"
+											value={periodMode === "new" ? newYear : selectedExisting}
+											disabled={periodMode !== "new"}
+											onChange={e => setNewYear(e.target.value.replace(/\D/g, ""))}
+										/>
+										<span className="text-[12px] text-[var(--app-muted)]">(yyyy)</span>
+									</div>
+								</td>
+							</tr>
+							<tr><td className={bandCell} colSpan={3}>Liabilities</td></tr>
+							<tr><td className={`${cell} text-center text-[13px] text-[var(--app-text)]`} colSpan={3}>Estimated Liabilities</td></tr>
+							<tr>
+								<td className={headCell}>Category</td>
+								<td className={headCell}>Descriptions</td>
+								<td className={headCell}>Amount</td>
+							</tr>
+							{liabilities.map((row, idx) => (
+								<tr key={idx}>
+									<td className={cell}>
+										<input className={grayInput} value={row.category} onChange={e => setLiabilityField(idx, "category", e.target.value)} />
+									</td>
+									<td className={cell}>
+										<input className={grayInput} value={row.description} onChange={e => setLiabilityField(idx, "description", e.target.value)} />
+									</td>
+									<td className={cell}>
+										<input
+											className={grayInputR}
+											value={row.amount}
+											onChange={e => setLiabilityField(idx, "amount", cleanMoneyInput(e.target.value))}
+											onBlur={e => setLiabilityField(idx, "amount", formatMoney(e.target.value))}
+										/>
+									</td>
 								</tr>
-								{liabilities.map((row, idx) => (
-									<tr key={idx}>
-										<td className={cellValue}>
-											<input className={inputClsLeft} value={row.category} onChange={e => setLiabilityField(idx, "category", e.target.value)} />
-										</td>
-										<td className={cellValue}>
-											<input className={inputClsLeft} value={row.description} onChange={e => setLiabilityField(idx, "description", e.target.value)} />
-										</td>
-										<td className={cellValue}>
-											<input className={inputCls} value={row.amount} onChange={e => setLiabilityField(idx, "amount", e.target.value.replace(/[^\d.-]/g, ""))} />
-										</td>
-									</tr>
-								))}
-								<tr className="bg-[var(--app-surface)]">
-									<td colSpan={2} className="px-4 py-3 text-sm font-bold text-[var(--app-text)]">Total</td>
-									<td className="px-4 py-3 text-sm font-bold text-[var(--app-text)] text-right">{fmt(totalLiabilities)}</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
+							))}
+							<tr>
+								<td className={`${cell} text-right text-[13px] font-bold text-[var(--app-text)]`} colSpan={2}>Total</td>
+								<td className={cell}><input className={totalInput} value={fmt(totalLiabilities)} readOnly /></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 
-					<SectionHeader>Estimated Monthly Income</SectionHeader>
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[480px] border-collapse text-sm">
-							<tbody>
-								{data.incomeMain.map(item => {
-									const locked = spouseLocked && item.code === "310103";
-									return (
-										<tr key={item.code}>
-											<td className={cellValue}>{item.label}</td>
-											<td className={cellValue}>
-												<input
-													className={inputCls}
-													value={locked ? "0" : (incomeValues[item.code] || "")}
-													readOnly={locked}
-													onChange={e => setIncome(item.code, e.target.value)}
-												/>
-											</td>
-										</tr>
-									);
-								})}
-								<tr>
-									<td className={cellValue + " font-semibold"}>Total Income</td>
-									<td className={cellValue + " font-semibold text-right"}>{fmt(totalIncome)}</td>
-								</tr>
-								{data.incomeDeduction.map(item => (
+				<div className={cardCls}>
+					<table className="w-full border-collapse">
+						<colgroup>
+							<col style={{ width: "40%" }} />
+							<col style={{ width: "60%" }} />
+						</colgroup>
+						<tbody>
+							<tr><td className={bandCell} colSpan={2}>Estimated Monthly Income</td></tr>
+							{data.incomeMain.map(item => {
+								const locked = spouseLocked && item.code === "310103";
+								return (
 									<tr key={item.code}>
-										<td className={cellValue}>{item.label}</td>
-										<td className={cellValue}>
-											<input className={inputCls} value={incomeValues[item.code] || ""} onChange={e => setIncome(item.code, e.target.value)} />
+										<td className={labelCell}>{item.label}</td>
+										<td className={cell}>
+											<input
+												className={grayInputR}
+												value={locked ? "0" : (incomeValues[item.code] || "")}
+												readOnly={locked}
+												onChange={e => setIncome(item.code, cleanMoneyInput(e.target.value))}
+												onBlur={e => !locked && setIncome(item.code, formatMoney(e.target.value))}
+											/>
 										</td>
 									</tr>
-								))}
-								<tr>
-									<td className={cellValue}>Liabilities</td>
-									<td className={cellValue + " text-right"}>{fmt(totalLiabilities)}</td>
+								);
+							})}
+							<tr>
+								<td className={`${cell} text-right text-[13px] font-bold text-[var(--app-text)]`}>Total Income</td>
+								<td className={cell}><input className={totalInput} value={fmt(totalIncome)} readOnly /></td>
+							</tr>
+							{data.incomeDeduction.map(item => (
+								<tr key={item.code}>
+									<td className={labelCell}>{item.label}</td>
+									<td className={cell}>
+										<input
+											className={grayInputR}
+											value={incomeValues[item.code] || ""}
+											onChange={e => setIncome(item.code, cleanMoneyInput(e.target.value))}
+											onBlur={e => setIncome(item.code, formatMoney(e.target.value))}
+										/>
+									</td>
 								</tr>
-								<tr className="bg-[var(--app-surface)]">
-									<td className="px-4 py-3 text-sm font-bold text-[var(--app-text)]">Net Income</td>
-									<td className="px-4 py-3 text-sm font-bold text-[var(--app-text)] text-right">{fmt(netIncome)}</td>
-								</tr>
-								{data.incomeOther.length > 0 && (
-									<>
-										<tr>
-											<td colSpan={2} className={subheadCell}>Other Income</td>
-										</tr>
-										{data.incomeOther.map(item => (
-											<tr key={item.code}>
-												<td className={cellValue}>{item.label}</td>
-												<td className={cellValue}>
-													<input className={inputCls} value={incomeValues[item.code] || ""} onChange={e => setIncome(item.code, e.target.value)} />
-												</td>
-											</tr>
-										))}
-									</>
-								)}
-							</tbody>
-						</table>
-					</div>
-
-					<SectionHeader>Customer Asset Ownership</SectionHeader>
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[640px] border-collapse text-sm">
-							<tbody>
-								<tr>
-									<td className={cellLabel}>Description</td>
-									<td className={cellLabel + " text-right"}>Amount Estimated</td>
-									<td className={cellLabel}>Notes</td>
-								</tr>
-								{assets.map((row, idx) => (
-									<tr key={idx}>
-										<td className={cellValue}>
-											<input className={inputClsLeft} value={row.description} onChange={e => setAssetField(idx, "description", e.target.value)} />
-										</td>
-										<td className={cellValue}>
-											<input className={inputCls} value={row.amount} onChange={e => setAssetField(idx, "amount", e.target.value.replace(/[^\d.-]/g, ""))} />
-										</td>
-										<td className={cellValue}>
-											<input className={inputClsLeft} value={row.notes} onChange={e => setAssetField(idx, "notes", e.target.value)} />
-										</td>
-									</tr>
-								))}
-								<tr className="bg-[var(--app-surface)]">
-									<td className="px-4 py-3 text-sm font-bold text-[var(--app-text)]">Total Assets</td>
-									<td className="px-4 py-3 text-sm font-bold text-[var(--app-text)] text-right">{fmt(totalAssets)}</td>
-									<td className="px-4 py-3"></td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
+							))}
+							<tr>
+								<td className={labelCell}>Liabilities</td>
+								<td className={cell}><input className={grayInputR} value={fmt(totalLiabilities)} readOnly /></td>
+							</tr>
+							<tr>
+								<td className={`${cell} text-right text-[13px] font-bold text-[var(--app-text)]`}>Total Income</td>
+								<td className={cell}><input className={totalInput} value={fmt(netIncome)} readOnly /></td>
+							</tr>
+						</tbody>
+					</table>
 				</div>
 
-				{saving && <p className="text-sm text-[var(--app-muted)] mt-3">Saving…</p>}
+				{data.incomeOther.length > 0 && (
+					<div className={cardCls}>
+						<table className="w-full border-collapse">
+							<colgroup>
+								<col style={{ width: "40%" }} />
+								<col style={{ width: "60%" }} />
+							</colgroup>
+							<tbody>
+								{data.incomeOther.map(item => (
+									<tr key={item.code}>
+										<td className={labelCell}>{item.label}</td>
+										<td className={cell}><input className={grayInputR} value={incomeValues[item.code] || ""} readOnly /></td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				)}
+
+				<div className={cardCls}>
+					<table className="w-full border-collapse">
+						<colgroup>
+							<col style={{ width: "30%" }} />
+							<col style={{ width: "25%" }} />
+							<col style={{ width: "45%" }} />
+						</colgroup>
+						<tbody>
+							<tr><td className={bandCell} colSpan={3}>Customer Asset Ownership</td></tr>
+							<tr><td className={`${cell} text-center`} colSpan={3}>&nbsp;</td></tr>
+							<tr>
+								<td className={headCell}>Descriptions</td>
+								<td className={headCell}>Amount Estimated</td>
+								<td className={headCell}>Notes</td>
+							</tr>
+							{assets.map((row, idx) => (
+								<tr key={idx}>
+									<td className={cell}>
+										<input className={grayInput} value={row.description} onChange={e => setAssetField(idx, "description", e.target.value)} />
+									</td>
+									<td className={cell}>
+										<input
+											className={grayInputR}
+											value={row.amount}
+											onChange={e => setAssetField(idx, "amount", cleanMoneyInput(e.target.value))}
+											onBlur={e => setAssetField(idx, "amount", formatMoney(e.target.value))}
+										/>
+									</td>
+									<td className={cell}>
+										<input className={grayInput} value={row.notes} onChange={e => setAssetField(idx, "notes", e.target.value)} />
+									</td>
+								</tr>
+							))}
+							<tr>
+								<td className={`${cell} text-right text-[13px] font-bold text-[var(--app-text)]`}>Total Assets</td>
+								<td className={cell}><input className={totalInput} value={fmt(totalAssets)} readOnly /></td>
+								<td className={cell}></td>
+							</tr>
+							<tr>
+								<td className={`${cell} text-center`} colSpan={3}>
+									<div className="flex items-center justify-center gap-2 py-1">
+										<button
+											type="button"
+											onClick={handleClear}
+											className="rounded-md border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-1.5 text-[13px] font-medium text-[var(--app-text)] transition-colors hover:bg-[var(--app-surface-alt)]"
+										>
+											Clear
+										</button>
+										<button
+											type="button"
+											onClick={handleSave}
+											disabled={saving}
+											className="rounded-md bg-blue-600 px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-60"
+										>
+											{saving ? "Calculating…" : "Calculate"}
+										</button>
+										<button
+											type="button"
+											onClick={handleDelete}
+											disabled={deleting}
+											className="rounded-md bg-red-600 px-4 py-1.5 text-[13px] font-semibold text-white transition-colors hover:bg-red-700 disabled:opacity-60"
+										>
+											{deleting ? "Deleting…" : "Delete"}
+										</button>
+									</div>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 			</div>
 		</div>
 	);

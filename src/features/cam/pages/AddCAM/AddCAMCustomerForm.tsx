@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '@/shared/api/axiosInstance';
+import { useOverlay } from '@/shared/contexts/OverlayContext';
+import type { IncomingPrecheckState } from '@/features/cam/pages/Prechecking/Create/Individu/PrecheckingIndividuPage';
 
 interface CustomerTypeOption {
 	value: string;
 	label: string;
 }
 
-const MIN_ID_LENGTH = 11;
+const MAX_ID_LENGTH = 25;
+const MIN_CHECK_LENGTH = 11;
 
 const Spinner: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
 	<svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
@@ -19,12 +22,14 @@ const Spinner: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) =>
 const AddCAMCustomerForm: React.FC = () => {
 	const navigate = useNavigate();
 	const location = useLocation();
+	const { showPrechecking, closeAddCam } = useOverlay();
 
 	const [customerType, setCustomerType] = useState<string>('PR');
 	const [idCard, setIdCard] = useState<string>('');
 	const [idCardError, setIdCardError] = useState<string>('');
 	const [apless, setApless] = useState<string>('');
 	const [customerName, setCustomerName] = useState<string>('');
+	const [isRecentPrecheck, setIsRecentPrecheck] = useState<boolean>(false);
 	const [isPrechecking, setIsPrechecking] = useState<boolean>(false);
 	const [isCreating, setIsCreating] = useState<boolean>(false);
 
@@ -37,7 +42,7 @@ const AddCAMCustomerForm: React.FC = () => {
 
 	const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const raw = e.target.value;
-		const digitsOnly = sanitizeDigits(raw).slice(0, 16);
+		const digitsOnly = sanitizeDigits(raw).slice(0, MAX_ID_LENGTH);
 
 		setIdCard(digitsOnly);
 		setIdCardError(
@@ -47,12 +52,13 @@ const AddCAMCustomerForm: React.FC = () => {
 		);
 	};
 
-	const isIdCardValid = idCard.length >= MIN_ID_LENGTH;
+	const isIdCardValid = idCard.length >= MIN_CHECK_LENGTH;
 
 	useEffect(() => {
-		if (idCard.length < MIN_ID_LENGTH) {
+		if (idCard.length < MIN_CHECK_LENGTH) {
 			setCustomerName('');
 			setApless('');
+			setIsRecentPrecheck(false);
 			return;
 		}
 
@@ -68,11 +74,13 @@ const AddCAMCustomerForm: React.FC = () => {
 				);
 				setCustomerName(res.data?.customerName || '');
 				setApless(res.data?.APLESS || '');
+				setIsRecentPrecheck(!!res.data?.isRecentPrecheck);
 			} catch (err: any) {
 				if (err?.code === 'ERR_CANCELED') return;
 				console.error('Precheck error:', err.response?.data?.message ?? err);
 				setCustomerName('');
 				setApless('');
+				setIsRecentPrecheck(false);
 			} finally {
 				if (!controller.signal.aborted) setIsPrechecking(false);
 			}
@@ -93,28 +101,30 @@ const AddCAMCustomerForm: React.FC = () => {
 
 		setIsPrechecking(true);
 		try {
-			const res = await api.post('/CAM/get_data_customer', { idCard, customerType });
+			const res = await api.post('/CAM/get-data-customer', { idCard, customerType });
 			const data = res.data;
 
 			setCustomerName(data.customerName || '');
 			setApless(data.apless || '');
 
-			const route = customerType === 'PR'
-				? '/PrecheckingIndividuPage'
-				: '/PrecheckingCorporatePage';
+			const precheckState: IncomingPrecheckState = {
+				idCard,
+				customerType,
+				customerName: data.customerName,
+				apless: data.apless,
+				precheckingData: data.precheckingData,
+				meta: data.precheckingData?.meta,
+				documents: data.documents,
+				previousPrecheckingId: data.previous_prechecking_id,
+			};
 
-			navigate(route, {
-				state: {
-					idCard,
-					customerType,
-					customerName: data.customerName,
-					apless: data.apless,
-					precheckingData: data.precheckingData,
-					meta: data.precheckingData?.meta,
-					documents: data.documents,
-					previousPrecheckingId: data.previous_prechecking_id,
-				},
-			});
+			if (customerType === 'PR') {
+				showPrechecking(precheckState);
+				closeAddCam();
+			} else {
+				closeAddCam();
+				navigate('/PrecheckingCorporatePage', { state: precheckState });
+			}
 		} catch (err: any) {
 			alert(err.response?.data?.message ?? err.message ?? 'Precheck failed. Please try again.');
 		} finally {
@@ -123,16 +133,17 @@ const AddCAMCustomerForm: React.FC = () => {
 	};
 
 	const handleCreateCam = () => {
-		if (!customerName.trim()) return;
+		if (!customerName.trim() || !isRecentPrecheck) return;
 
 		setIsCreating(true);
+		closeAddCam();
 		navigate('/CAMForm', {
 			state: {
 				idCard,
 				apless,
 				lesseeTp: customerType,
 				customerName,
-				background: (location.state as { background?: Location })?.background || location,
+				background: location,
 			},
 		});
 	};
@@ -208,7 +219,7 @@ const AddCAMCustomerForm: React.FC = () => {
 									setIdCardError('Only numbers are allowed — letters and spaces are removed automatically.');
 								}
 							}}
-							maxLength={16}
+							maxLength={MAX_ID_LENGTH}
 							placeholder={`Enter ${idLabel} number`}
 							aria-invalid={!!idCardError}
 							className={`${inputBase} pl-10 pr-14 ${idCardError
@@ -216,9 +227,9 @@ const AddCAMCustomerForm: React.FC = () => {
 								: 'border-[var(--app-border)] focus:ring-orange-500/25 focus:border-orange-400'
 								}`}
 						/>
-						<span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums transition-colors pointer-events-none ${idCard.length === 16 ? 'text-orange-500 font-medium' : 'text-[var(--app-muted)]'
+						<span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums transition-colors pointer-events-none ${idCard.length === MAX_ID_LENGTH ? 'text-orange-500 font-medium' : 'text-[var(--app-muted)]'
 							}`}>
-							{idCard.length}/16
+							{idCard.length}/{MAX_ID_LENGTH}
 						</span>
 					</div>
 					{idCardError && (
@@ -291,8 +302,9 @@ const AddCAMCustomerForm: React.FC = () => {
 
 				<button
 					onClick={handleCreateCam}
-					disabled={!hasCustomerData || isCreating}
-					className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-150 ${!hasCustomerData || isCreating
+					disabled={!hasCustomerData || !isRecentPrecheck || isCreating}
+					title={hasCustomerData && !isRecentPrecheck ? 'Last prechecking is more than 30 days old — run Precheck again.' : undefined}
+					className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-150 ${!hasCustomerData || !isRecentPrecheck || isCreating
 						? 'bg-orange-300 cursor-not-allowed'
 						: 'bg-orange-500 hover:bg-orange-600 shadow-sm hover:shadow-md hover:shadow-orange-200 active:scale-[0.98]'
 						}`}

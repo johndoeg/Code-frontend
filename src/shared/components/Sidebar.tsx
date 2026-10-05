@@ -1,9 +1,10 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, forwardRef } from "react";
 import { Link, useLocation, useNavigate, type Location } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MODAL_ROUTES } from '@/shared/config/modalRoutes';
 import api from '@/shared/api/axiosInstance';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useOverlay } from '@/shared/contexts/OverlayContext';
 import "./Sidebar.css";
 
 interface MenuItem {
@@ -26,6 +27,11 @@ const MAX_WIDTH_CAP = 480;
 const DRAG_THRESHOLD = 4;
 const KEY_STEP = 16;
 const CLOSE_AT = 190;
+
+const CONTEXT_OVERLAY_URLS: Record<string, 'addCam' | 'addCamGuarantor'> = {
+	'/index': 'addCam',
+	'/index-guarantor': 'addCamGuarantor',
+};
 
 let _measureCanvas: HTMLCanvasElement | null = null;
 function measureTextWidth(text: string, font: string): number {
@@ -74,16 +80,7 @@ function computeMaxSidebarWidth(items: MenuItem[]): number {
 	return Math.ceil(max);
 }
 
-function SidebarLink({
-	to,
-	className,
-	dataTip,
-	title,
-	style,
-	onNavigate,
-	navState,
-	children,
-}: {
+const SidebarLink = forwardRef<HTMLAnchorElement, {
 	to: string;
 	className?: string;
 	dataTip?: string;
@@ -92,23 +89,40 @@ function SidebarLink({
 	onNavigate?: () => void;
 	navState?: { background: Location };
 	children: React.ReactNode;
-}) {
+}>(function SidebarLink(
+	{ to, className, dataTip, title, style, onNavigate, navState, children },
+	ref
+) {
 	const navigate = useNavigate();
+	const { openAddCam, openAddCamGuarantor } = useOverlay();
 
 	const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
 		if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 
 		e.preventDefault();
+
+		const overlay = CONTEXT_OVERLAY_URLS[to];
+		if (overlay === 'addCam') {
+			openAddCam();
+			onNavigate?.();
+			return;
+		}
+		if (overlay === 'addCamGuarantor') {
+			openAddCamGuarantor();
+			onNavigate?.();
+			return;
+		}
+
 		navigate(to, navState ? { state: navState } : undefined);
 		onNavigate?.();
 	};
 
 	return (
-		<a href="/" className={className} data-tip={dataTip} title={title} style={style} onClick={handleClick}>
+		<a ref={ref} href="/" className={className} data-tip={dataTip} title={title} style={style} onClick={handleClick}>
 			{children}
 		</a>
 	);
-}
+});
 
 function IconSidebar() {
 	return (
@@ -222,13 +236,13 @@ function MenuIcon({ label, size = 16 }: { label: string; size?: number }) {
 	);
 }
 
-function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigate, modalBackground }: {
-	item: MenuItem; collapsed: boolean; depth?: number; resetKey: number; currentPath: string; onNavigate?: () => void; modalBackground: Location;
+function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigate, modalBackground, activeRef }: {
+	item: MenuItem; collapsed: boolean; depth?: number; resetKey: number; currentPath: string; onNavigate?: () => void; modalBackground: Location; activeRef: React.RefObject<HTMLElement | null>;
 }) {
 	const normalizedUrl = item.url ? normalizeUrl(item.url) : null;
 	const isActive = !!normalizedUrl && currentPath === normalizedUrl;
 	const hasChildren = !!item.children?.length;
-	const hasActiveChild = hasChildren && item.children!.some(c => c.url && currentPath === normalizeUrl(c.url));
+	const hasActiveChild = hasChildren && subtreeHasActive(item, currentPath);
 	const [open, setOpen] = useState(hasActiveChild);
 
 	const icon = useMemo(
@@ -236,7 +250,8 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 		[item.menu_desc, depth]
 	);
 
-	useEffect(() => { if (resetKey > 0) setOpen(false); }, [resetKey]);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	useEffect(() => { if (resetKey > 0) setOpen(hasActiveChild); }, [resetKey]);
 	useEffect(() => { if (hasActiveChild) setOpen(true); }, [currentPath]);
 	const toggle = () => setOpen(p => !p);
 
@@ -262,10 +277,12 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 						onNavigate={onNavigate}
 						navState={normalizedUrl && MODAL_ROUTES.has(normalizedUrl) ? { background: modalBackground } : undefined}
 						style={{ textDecoration: "none" }}
+						ref={isActive ? (activeRef as React.RefObject<HTMLAnchorElement | null>) : undefined}
 					>{row}</SidebarLink>
 					: <div className={`sb-item${isActive ? " active" : ""}`}
 						data-tip={collapsed ? item.menu_desc : undefined}
 						onClick={hasChildren ? toggle : undefined}
+						ref={isActive ? (activeRef as React.RefObject<HTMLDivElement | null>) : undefined}
 						style={{ cursor: hasChildren ? "pointer" : "default" }}>{row}</div>
 				}
 				{hasChildren && open && !collapsed && (
@@ -281,6 +298,7 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 									currentPath={currentPath}
 									onNavigate={onNavigate}
 									modalBackground={modalBackground}
+									activeRef={activeRef}
 								/>
 							))}
 						</ul>
@@ -296,7 +314,12 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 		<li style={{ listStyle: "none" }}>
 			{hasChildren ? (
 				<>
-					<div className={`sb-child-item${childActive ? " active" : ""}`} onClick={toggle} title={item.menu_desc}>
+					<div
+						className={`sb-child-item${childActive ? " active" : ""}`}
+						onClick={toggle}
+						title={item.menu_desc}
+						ref={childActive ? (activeRef as React.RefObject<HTMLDivElement | null>) : undefined}
+					>
 						<span className="sb-child-icon">{icon}</span>
 						<span style={{ flex: 1 }}>{item.menu_desc}</span>
 						<svg style={{ width: 12, height: 12, opacity: .4, flexShrink: 0, transform: open ? "rotate(90deg)" : "none", transition: "transform .18s" }} viewBox="0 0 20 20" fill="currentColor">
@@ -316,6 +339,7 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 										currentPath={currentPath}
 										onNavigate={onNavigate}
 										modalBackground={modalBackground}
+										activeRef={activeRef}
 									/>
 								))}
 							</ul>
@@ -330,6 +354,7 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 					onNavigate={onNavigate}
 					navState={MODAL_ROUTES.has(childUrl) ? { background: modalBackground } : undefined}
 					style={{ textDecoration: "none" }}
+					ref={childActive ? (activeRef as React.RefObject<HTMLAnchorElement | null>) : undefined}
 				>
 					<span className="sb-child-icon">{icon}</span>
 					<span style={{ flex: 1 }}>{item.menu_desc}</span>
@@ -350,6 +375,7 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 	const [resetKey, setResetKey] = useState(0);
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
 	const sidebarRef = useRef<HTMLDivElement>(null);
+	const activeItemRef = useRef<HTMLElement | null>(null);
 
 	const { data: menuData } = useQuery({
 		queryKey: ["menus"],
@@ -548,6 +574,19 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 		if (isMobile) setMobileOpen(false);
 	}, [isMobile]);
 
+	const sidebarExpanded = isMobile ? mobileOpen : !collapsed;
+	const wasExpandedRef = useRef(sidebarExpanded);
+	useEffect(() => {
+		const wasExpanded = wasExpandedRef.current;
+		wasExpandedRef.current = sidebarExpanded;
+		if (!wasExpanded && sidebarExpanded) {
+			requestAnimationFrame(() => {
+				activeItemRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+				activeItemRef.current?.focus({ preventScroll: true });
+			});
+		}
+	}, [sidebarExpanded]);
+
 	const handleLogout = useCallback(async () => {
 		if (isLoggingOut) return;
 		if (!confirm("Are you sure you want to log out?")) return;
@@ -661,6 +700,7 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 								currentPath={currentPath}
 								onNavigate={handleMobileNavigate}
 								modalBackground={location}
+								activeRef={activeItemRef}
 							/>
 						))}
 					</ul>
@@ -718,6 +758,13 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 				<div style={{ width: currentW, flexShrink: 0, transition: isResizing ? "none" : `width 220ms cubic-bezier(.4,0,.2,1)` }} />
 			)}
 		</>
+	);
+}
+
+function subtreeHasActive(item: MenuItem, currentPath: string): boolean {
+	if (!item.children?.length) return false;
+	return item.children.some(
+		c => (c.url && currentPath === normalizeUrl(c.url)) || subtreeHasActive(c, currentPath)
 	);
 }
 

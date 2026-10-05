@@ -1,460 +1,97 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
-import OCRUploadSection from '@/features/cam/contexts/OCRUploadSection';
+import OCRUploadSection, { type InitialOcrData } from '@/features/cam/contexts/OCRUploadSection';
 import { MAX_FILE_LIMIT } from '@/shared/constants/DefaultValue';
+import { useLocation } from "react-router-dom";
+import {
+	type CustomerData, type ConfidenceMap, type VerifiedMap, type DukcapilVerification,
+	type MaritalOption, type UploadedDoc, type IdType, type OcrRecord, type PreviewState,
+	ver_UNCHECKED, WNA_ID_TYPES, EMPTY_CUSTOMER, IMAGE_EXTS, PREVIEW_CLOSED,
+	mapOcrToCustomer, matchToBit, useInjectStyles,
+	Spinner, FileInput, DocList, LookupResultPanel, DocPreviewModal,
+} from '@/features/cam/components/PrecheckingShared';
 
-interface GuarantorData {
-	idCardNo: string; name: string; placeOfBirth: string; dateOfBirth: string;
-	gender: string; bloodType: string; address: string; rt: string; rw: string;
-	subdistrict: string; district: string; city: string; province: string;
-	religion: string; job: string; citizen: string; photo: string; signature: string;
+interface IncomingMeta {
+	maritalStatus?: string;
+	wnaMaritalStatus?: string;
+	nationalityType?: string;
+	idType?: string;
+	spouseIdType?: string;
+	isCarro?: boolean;
+	notes?: string;
 }
-type ConfidenceMap = Partial<Record<keyof GuarantorData, string>>;
-interface MaritalOption { value: string; label: string; }
-interface ModalState {
-	open: boolean; type: "reject" | "inprogress" | "valid" | "expired" | "";
-	message: string; apless: string; precheckingId: string;
-}
-interface UploadedDoc { id: number; name: string; type: string; key: string; previewUrl?: string; view_url?: string | null; }
-
-const EMPTY_GUARANTOR = (): GuarantorData => ({
-	idCardNo: "", name: "", placeOfBirth: "", dateOfBirth: "",
-	gender: "", bloodType: "", address: "", rt: "", rw: "",
-	subdistrict: "", district: "", city: "", province: "",
-	religion: "", job: "", citizen: "", photo: "", signature: "",
-});
-
-type IdType = "KTP" | "KITAS" | "KITAP";
-const WNA_ID_TYPES: IdType[] = ["KITAS", "KITAP"];
-
-const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "heic", "heif", "tiff", "tif", "webp"]);
 
 const OCR_DOC_TYPES = new Set(["guarantor-ktp", "guarantor-spouse-ktp", "guarantor-wna-spouse-ktp"]);
 
-const CSS = `
-  :root {
-    --navy:   #1B3A7A;
-    --blue:   #2D5BE3;
-    --sky:    #EBF1FF;
-    --mint:   #10B981;
-    --amber:  #F59E0B;
-    --rose:   #EF4444;
-    --ink:    #0F1D3C;
-    --muted:  #64748B;
-    --border: #DDE3F0;
-    --card:   #FFFFFF;
-    --bg:     #F2F5FB;
-    --font:   'Plus Jakarta Sans', sans-serif;
-    --mono:   'JetBrains Mono', monospace;
-  }
-  * { box-sizing: border-box; }
-  body { font-family: var(--font); background: var(--bg); }
+const NOTES_MAX_LENGTH = 1000;
 
-  .page-wrap { margin: 0 auto; padding: 10px; }
+interface IncomingDocEntry {
+	customerDocumentId: number;
+	fileName: string;
+	fileExt: string;
+	awsKey: string;
+	readonly?: boolean;
+}
 
-  .hdr {
-    background: linear-gradient(135deg, #0F1D3C 0%, #1B3A7A 55%, #2D5BE3 100%);
-    border-radius: 16px; padding: 20px 28px;
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 24px; box-shadow: 0 8px 32px rgba(27,58,122,.35);
-    position: relative; overflow: hidden;
-  }
-  .hdr::after {
-    content: ''; position: absolute; right: -40px; top: -40px;
-    width: 160px; height: 160px; border-radius: 50%;
-    background: rgba(255,255,255,.06); pointer-events: none;
-  }
-  .hdr-title { color: #fff; font-size: 1.125rem; font-weight: 800; letter-spacing: -.01em; }
-  .hdr-sub { color: rgba(255,255,255,.65); font-size: .75rem; margin-top: 2px; }
-  .hdr-badge {
-    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
-    border-radius: 10px; padding: 8px 16px; display: flex; flex-direction: column; align-items: flex-end;
-  }
-  .hdr-badge-label { color: rgba(255,255,255,.6); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
-  .hdr-badge-value { color: #fff; font-size: .875rem; font-family: var(--mono); font-weight: 500; }
+export interface IncomingGuarantorPrecheckState {
+	idCard?: string;
+	customerType?: string;
+	customerName?: string;
+	apless?: string;
+	precheckingData?: {
+		customer?: OcrRecord;
+		spouse?: OcrRecord;
+	};
+	meta?: IncomingMeta;
+	documents?: Record<string, IncomingDocEntry[]>;
+	previousPrecheckingId?: string;
+}
 
-  .card {
-    background: var(--card); border-radius: 16px;
-    border: 1px solid var(--border); padding: 28px;
-    box-shadow: 0 2px 12px rgba(15,29,60,.06); margin-bottom: 20px;
-  }
-  .section-label {
-    display: flex; align-items: center; gap: 10px;
-    font-size: .8rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: .1em; color: var(--navy); margin-bottom: 20px;
-  }
-  .section-label span.dot {
-    width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex-shrink: 0;
-  }
-  .section-label hr { flex: 1; border: none; border-top: 1.5px solid var(--border); }
+interface SeedDoc { id: number; name: string; key: string; }
 
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; }
-  @media (max-width: 700px) { .form-grid { grid-template-columns: 1fr; } }
-  .form-field { display: flex; flex-direction: column; gap: 6px; }
-  .form-field.full { grid-column: 1 / -1; }
-  .form-label { font-size: .78rem; font-weight: 600; color: var(--ink); letter-spacing: .01em; }
-  .form-label .req { color: var(--rose); margin-left: 2px; }
-  .form-input, .form-select, .form-textarea {
-    width: 100%; padding: 9px 14px; font-size: .875rem; font-family: var(--font);
-    border: 1.5px solid var(--border); border-radius: 10px; color: var(--ink);
-    background: #fff; transition: border-color .18s, box-shadow .18s; outline: none;
-  }
-  .form-input:focus, .form-select:focus, .form-textarea:focus {
-    border-color: var(--blue); box-shadow: 0 0 0 3px rgba(45,91,227,.1);
-  }
-  .form-input.err, .form-select.err { border-color: var(--rose); }
-  .form-textarea { resize: vertical; min-height: 72px; }
-  .field-err { font-size: .72rem; color: var(--rose); margin-top: 2px; }
+const mapIncomingDocs = (list?: IncomingDocEntry[]): SeedDoc[] =>
+	(list || []).map((d) => ({ id: d.customerDocumentId, name: d.fileName, key: d.awsKey }));
 
-  .upload-zone {
-    border: 2px dashed var(--border); border-radius: 12px;
-    padding: 16px 20px; cursor: pointer;
-    transition: border-color .2s, background .2s; background: #F8FAFF;
-    display: flex; align-items: center; gap: 12px;
-  }
-  .upload-zone:hover { border-color: var(--blue); background: var(--sky); }
-  .upload-zone-icon {
-    width: 38px; height: 38px; border-radius: 10px;
-    background: var(--sky); border: 1.5px solid var(--border);
-    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    color: var(--blue);
-  }
-  .upload-zone-text { text-align: left; }
-  .upload-zone-title { font-size: .82rem; font-weight: 600; color: var(--navy); }
-  .upload-zone-sub { font-size: .72rem; color: var(--muted); margin-top: 1px; }
+interface PrecheckingGuarantorIndividuPageProps {
+	incomingState?: IncomingGuarantorPrecheckState | null;
+	onBack?: () => void;
+}
 
-  .doc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .doc-chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--sky); border: 1px solid #C7D7F8;
-    border-radius: 6px; padding: 3px 8px;
-    font-size: .72rem; font-weight: 500; color: var(--navy);
-  }
-  .doc-chip-btn {
-    background: none; border: none; cursor: pointer; padding: 0 1px;
-    color: var(--muted); display: flex; align-items: center; transition: color .15s; line-height: 1;
-  }
-  .doc-chip-btn:hover { color: var(--blue); }
-  .doc-chip-del {
-    background: none; border: none; cursor: pointer;
-    color: var(--muted); font-size: .9rem; line-height: 1; padding: 0 1px; transition: color .15s;
-  }
-  .doc-chip-del:hover { color: var(--rose); }
+const PrecheckingGuarantorIndividuPage: React.FC<PrecheckingGuarantorIndividuPageProps> = ({ incomingState, onBack }) => {
+	useInjectStyles();
 
-  .sub-section { border-radius: 12px; padding: 20px; border: 1.5px solid; }
-  .sub-section.blue   { border-color: #BFDBFE; background: #EFF6FF; }
-  .sub-section.orange { border-color: #FED7AA; background: #FFF7ED; }
-  .sub-section.purple { border-color: #DDD6FE; background: #F5F3FF; }
-  .sub-section-title { font-size: .82rem; font-weight: 700; margin-bottom: 16px; }
-  .sub-section.blue   .sub-section-title { color: #1E3A8A; }
-  .sub-section.orange .sub-section-title { color: #9A3412; }
-  .sub-section.purple .sub-section-title { color: #4C1D95; }
+	const location = useLocation();
+	const incoming = incomingState ?? (location.state as IncomingGuarantorPrecheckState | null);
 
-  .spin {
-    display: inline-block; width: 18px; height: 18px; border-radius: 50%;
-    border: 3px solid rgba(255,255,255,.3); border-top-color: #fff;
-    animation: spin .7s linear infinite; flex-shrink: 0;
-  }
-  .spin.dark { border-color: rgba(27,58,122,.15); border-top-color: var(--navy); }
-  @keyframes spin { to { transform: rotate(360deg); } }
+	const guarantorInitialData = useMemo<InitialOcrData>(() => ({
+		data: mapOcrToCustomer(incoming?.precheckingData?.customer),
+		conf: incoming?.precheckingData?.customer?.confidence,
+		ver: incoming?.precheckingData?.customer?.verified,
+		verification: incoming?.precheckingData?.customer?.dukcapil,
+	}), [incoming]);
 
-  .modal-overlay {
-    position: fixed; inset: 0; background: rgba(15,29,60,.5);
-    display: flex; align-items: center; justify-content: center; z-index: 50;
-    padding: 16px; backdrop-filter: blur(3px);
-  }
-  .modal-card {
-    background: #fff; border-radius: 20px; width: 100%; max-width: 480px;
-    overflow: hidden; box-shadow: 0 24px 80px rgba(15,29,60,.25);
-    animation: modal-in .22s ease;
-  }
-  @keyframes modal-in { from { opacity:0; transform: scale(.94) translateY(8px); } }
-  .modal-hdr {
-    background: linear-gradient(135deg, #0F1D3C, #2D5BE3);
-    padding: 18px 24px; display: flex; align-items: center; gap: 10px;
-  }
-  .modal-icon {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .modal-title { color: #fff; font-size: .95rem; font-weight: 700; }
-  .modal-body { padding: 24px; font-size: .875rem; color: #334155; line-height: 1.6; }
-  .modal-footer {
-    padding: 16px 24px; border-top: 1px solid var(--border);
-    display: flex; justify-content: flex-end; gap: 10px;
-  }
-  .btn-modal-primary {
-    background: var(--navy); color: #fff; border: none; border-radius: 10px;
-    padding: 9px 20px; font-size: .82rem; font-weight: 700; font-family: var(--font);
-    cursor: pointer; transition: opacity .2s;
-  }
-  .btn-modal-primary:hover { opacity: .85; }
-  .btn-modal-ghost {
-    background: none; border: 1.5px solid var(--border); border-radius: 10px;
-    padding: 9px 20px; font-size: .82rem; font-weight: 600; font-family: var(--font);
-    cursor: pointer; color: var(--ink); transition: background .2s;
-  }
-  .btn-modal-ghost:hover { background: #F4F7FF; }
+	const spouseInitialData = useMemo<InitialOcrData>(() => ({
+		data: mapOcrToCustomer(incoming?.precheckingData?.spouse),
+		conf: incoming?.precheckingData?.spouse?.confidence,
+		ver: incoming?.precheckingData?.spouse?.verified,
+		verification: incoming?.precheckingData?.spouse?.dukcapil,
+	}), [incoming]);
 
-  .btn-primary {
-    background: linear-gradient(135deg, var(--navy), var(--blue));
-    color: #fff; border: none; border-radius: 12px;
-    padding: 11px 28px; font-size: .875rem; font-weight: 700;
-    font-family: var(--font); cursor: pointer;
-    transition: opacity .2s, transform .15s;
-    display: inline-flex; align-items: center; gap: 8px;
-    box-shadow: 0 4px 16px rgba(45,91,227,.3);
-  }
-  .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: .55; cursor: not-allowed; transform: none; }
-  .btn-ghost {
-    background: #fff; color: var(--ink); border: 1.5px solid var(--border);
-    border-radius: 12px; padding: 11px 24px; font-size: .875rem; font-weight: 600;
-    font-family: var(--font); cursor: pointer; transition: background .2s;
-  }
-  .btn-ghost:hover { background: #F4F7FF; }
-
-  .select-wrap { position: relative; }
-  .select-wrap select { appearance: none; padding-right: 36px; }
-  .select-wrap::after {
-    content: ''; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-    width: 0; height: 0;
-    border-left: 5px solid transparent; border-right: 5px solid transparent;
-    border-top: 6px solid var(--muted); pointer-events: none;
-  }
-  .select-wrap:focus-within::after { border-top-color: var(--blue); }
-
-  .form-select.nat-active {
-    border-color: var(--blue); background: var(--sky); color: var(--navy); font-weight: 700;
-  }
-  .form-input.is-readonly {
-    background: #F4F7FF; color: var(--muted); cursor: default; border-color: #E8EEF8;
-  }
-  .form-select.is-disabled {
-    background: #F4F7FF; color: var(--muted); cursor: default; border-color: #E8EEF8;
-  }
-`;
-
-const styleTag = document.createElement("style");
-styleTag.textContent = CSS;
-document.head.appendChild(styleTag);
-
-const Spinner: React.FC<{ dark?: boolean; size?: number }> = ({ dark, size = 18 }) => (
-	<span className={`spin${dark ? " dark" : ""}`} style={{ width: size, height: size }} />
-);
-
-const FileInput: React.FC<{
-	multiple?: boolean; onFileChange: (f: File) => void;
-	label?: string; uploading?: boolean;
-}> = ({ multiple, onFileChange, label = "Upload Document", uploading = false }) => {
-	const ref = React.useRef<HTMLInputElement>(null);
-	return (
-		<label
-			className="upload-zone"
-			onClick={() => !uploading && ref.current?.click()}
-			style={{ cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.7 : 1 }}
-		>
-			<div className="upload-zone-icon">
-				{uploading
-					? <span className="spin dark" style={{ width: 18, height: 18 }} />
-					: (
-						<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-								d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-						</svg>
-					)
-				}
-			</div>
-			<div className="upload-zone-text">
-				<div className="upload-zone-title">{uploading ? "Mengupload…" : label}</div>
-				<div className="upload-zone-sub">
-					{uploading ? "Sedang upload ke server, harap tunggu" : "PNG, JPG, PDF, TIFF · max 2 MB"}
-				</div>
-			</div>
-			<input
-				ref={ref} type="file" multiple={multiple}
-				accept=".png,.jpg,.jpeg,.pdf,.tiff"
-				style={{ display: "none" }}
-				disabled={uploading}
-				onChange={(e) => {
-					const f = e.target.files?.[0];
-					if (f) { onFileChange(f); e.target.value = ""; }
-				}}
-			/>
-		</label>
+	const guarantorInitialDocs = useMemo(
+		() => mapIncomingDocs(incoming?.documents?.["guarantor-ktp"]),
+		[incoming],
 	);
-};
-
-const DocChip: React.FC<{
-	doc: UploadedDoc;
-	onPreview: (doc: UploadedDoc) => void;
-	onDelete: (id: number) => void;
-	isDeleting: boolean;
-	isPreviewLoading: boolean;
-	canPreview: boolean;
-}> = ({ doc, onPreview, onDelete, isDeleting, isPreviewLoading, canPreview }) => {
-	const [hovered, setHovered] = useState(false);
-
-	return (
-		<div style={{ display: "inline-flex", alignItems: "center", gap: 8, opacity: isDeleting ? 0.6 : 1 }}>
-			{canPreview && (
-				<button
-					onClick={() => onPreview(doc)}
-					onMouseEnter={() => setHovered(true)}
-					onMouseLeave={() => setHovered(false)}
-					disabled={isPreviewLoading}
-					style={{
-						display: "inline-flex",
-						alignItems: "center",
-						gap: 6,
-						border: `1px solid ${hovered ? "#ea580c" : "#f97316"}`,
-						background: hovered ? "#f97316" : "#fff7ed",
-						color: hovered ? "#fff" : "#c2410c",
-						borderRadius: 6,
-						padding: "5px 12px",
-						fontSize: 13,
-						fontWeight: 500,
-						cursor: isPreviewLoading ? "not-allowed" : "pointer",
-						transition: "background 0.15s, color 0.15s, border-color 0.15s",
-					}}
-				>
-					{isPreviewLoading ? (
-						<span style={{ width: 13, height: 13, display: "inline-block", borderRadius: "50%", border: "2px solid rgba(194,65,12,.3)", borderTopColor: "#c2410c", animation: "spin .7s linear infinite" }} />
-					) : (
-						<svg
-							width="15" height="15"
-							viewBox="0 0 24 24" fill="none"
-							stroke="currentColor" strokeWidth="2"
-							strokeLinecap="round" strokeLinejoin="round"
-							aria-hidden="true"
-						>
-							<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-							<circle cx="12" cy="12" r="3" />
-						</svg>
-					)}
-					View
-				</button>
-			)}
-			<span style={{ fontSize: 13, color: "#374151" }}>{doc.name}</span>
-			{isDeleting
-				? <span className="spin dark" style={{ width: 12, height: 12 }} />
-				: <button className="doc-chip-del" title="Hapus" onClick={() => onDelete(doc.id)}>×</button>
-			}
-		</div>
+	const spouseInitialDocs = useMemo(
+		() => mapIncomingDocs(incoming?.documents?.["guarantor-spouse-ktp"]),
+		[incoming],
 	);
-};
-
-const DocList: React.FC<{
-	docs: UploadedDoc[];
-	onDelete: (id: number) => void;
-	deletingDocs?: Set<number>;
-	onPreview: (doc: UploadedDoc) => void;
-	previewLoadingId?: number | null;
-}> = ({ docs, onDelete, deletingDocs = new Set(), onPreview, previewLoadingId = null }) =>
-		docs.length ? (
-			<div className="doc-chips" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
-				{docs.map((d) => {
-					const ext = d.name.split(".").pop()?.toLowerCase() ?? "";
-					const canPreview = IMAGE_EXTS.has(ext) || ext === "pdf";
-					return (
-						<DocChip
-							key={d.id}
-							doc={d}
-							onPreview={onPreview}
-							onDelete={onDelete}
-							isDeleting={deletingDocs.has(d.id)}
-							isPreviewLoading={previewLoadingId === d.id}
-							canPreview={canPreview}
-						/>
-					);
-				})}
-			</div>
-		) : null;
-
-interface PreviewState { open: boolean; name: string; previewUrl?: string; }
-const PREVIEW_CLOSED: PreviewState = { open: false, name: "", previewUrl: undefined };
-
-const DocPreviewModal: React.FC<{ state: PreviewState; onClose: () => void }> = ({ state, onClose }) => {
-	if (!state.open) return null;
-	const ext = state.name.split(".").pop()?.toLowerCase() ?? "";
-	const isImage = IMAGE_EXTS.has(ext);
-	const isPdf = ext === "pdf";
-
-	React.useEffect(() => {
-		const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-		window.addEventListener("keydown", handler);
-		return () => window.removeEventListener("keydown", handler);
-	}, [onClose]);
-
-	return (
-		<div className="preview-overlay" onClick={onClose}
-			style={{ position: "fixed", inset: 0, background: "rgba(10,18,40,.8)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24, backdropFilter: "blur(6px)" }}>
-			<div onClick={(e) => e.stopPropagation()}
-				style={{ background: "#fff", borderRadius: 20, overflow: "hidden", boxShadow: "0 32px 96px rgba(10,18,40,.4)", display: "flex", flexDirection: "column", width: "min(90vw,800px)", maxHeight: "90vh" }}>
-				<div style={{ background: "linear-gradient(135deg,#0F1D3C,#2D5BE3)", padding: "14px 20px", display: "flex", alignItems: "center", gap: 10 }}>
-					<span style={{ color: "#fff", fontSize: ".875rem", fontWeight: 700, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{state.name}</span>
-					<button onClick={onClose} style={{ background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.25)", borderRadius: 8, width: 32, height: 32, cursor: "pointer", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>×</button>
-				</div>
-				<div style={{ overflow: "auto", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, background: "#F2F5FB", flex: 1, minHeight: 0 }}>
-					{isImage && state.previewUrl
-						? <img src={state.previewUrl} alt={state.name} style={{ maxWidth: "100%", maxHeight: "65vh", objectFit: "contain", borderRadius: 10, boxShadow: "0 4px 24px rgba(10,18,40,.18)" }} />
-						: isPdf && state.previewUrl
-							? <iframe src={state.previewUrl} title={state.name} style={{ width: "100%", height: "60vh", border: "none", borderRadius: 10 }} />
-							: <p style={{ color: "#64748B" }}>Preview tidak tersedia untuk tipe file ini</p>
-					}
-				</div>
-				<div style={{ padding: "12px 20px", borderTop: "1px solid #DDE3F0", display: "flex", justifyContent: "flex-end", background: "#fff" }}>
-					<button onClick={onClose} className="btn-modal-ghost">Tutup</button>
-				</div>
-			</div>
-		</div>
+	const wnaSpouseInitialDocs = useMemo(
+		() => mapIncomingDocs(incoming?.documents?.["guarantor-wna-spouse-ktp"]),
+		[incoming],
 	);
-};
 
-const HistoryModal: React.FC<{
-	modal: ModalState; setModal: React.Dispatch<React.SetStateAction<ModalState>>;
-}> = ({ modal, setModal }) => {
-	const close = () => setModal((m) => ({ ...m, open: false }));
-	return (
-		<div className="modal-overlay">
-			<div className="modal-card">
-				<div className="modal-hdr">
-					<div className="modal-icon">
-						<svg width="16" height="16" fill="none" stroke="#fff" viewBox="0 0 24 24">
-							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-						</svg>
-					</div>
-					<span className="modal-title">Notification</span>
-				</div>
-				<div className="modal-body">{modal.message}</div>
-				<div className="modal-footer">
-					{modal.type === "reject" && (
-						<>
-							<button className="btn-modal-ghost" onClick={() => window.history.back()}>NO</button>
-							<button className="btn-modal-primary" onClick={close}>YES – Continue</button>
-						</>
-					)}
-					{modal.type === "valid" && (
-						<>
-							<button className="btn-modal-ghost" onClick={() => window.location.href = `/repeat-order-guarantor?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&types=G`}>Prechecking</button>
-							<button className="btn-modal-primary" onClick={() => window.location.href = `/create-cam?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&lessee_tp=PR`}>Create New CAM</button>
-						</>
-					)}
-					{(modal.type === "inprogress" || modal.type === "expired") && (
-						<button className="btn-modal-primary" onClick={() => {
-							close();
-							if (modal.type === "expired") window.location.href = `/repeat-order-guarantor?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&types=G`;
-						}}>Close</button>
-					)}
-				</div>
-			</div>
-		</div>
-	);
-};
+	const isRepeatOrder = !!incoming?.customerName?.trim();
 
-const PrecheckingGuarantorIndividuPage: React.FC = () => {
 	const [precheckingId, setPrecheckingId] = useState("");
 	const [apless, setApless] = useState("");
 	const [nationality, setNationality] = useState<"WNI" | "WNA">("WNI");
@@ -469,9 +106,9 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 	const [wnaIdType, setWnaIdType] = useState<IdType>("KITAS");
 	const [wnaSpIdType, setWnaSpIdType] = useState<IdType>("KITAS");
 
-	const [guarantor, setGuarantor] = useState<GuarantorData>(EMPTY_GUARANTOR());
-	const [spouse, setSpouse] = useState<GuarantorData>(EMPTY_GUARANTOR());
-	const [wnaSpouse, setWnaSpouse] = useState<GuarantorData>(EMPTY_GUARANTOR());
+	const [guarantor, setGuarantor] = useState<CustomerData>(EMPTY_CUSTOMER());
+	const [spouse, setSpouse] = useState<CustomerData>(EMPTY_CUSTOMER());
+	const [wnaSpouse, setWnaSpouse] = useState<CustomerData>(EMPTY_CUSTOMER());
 	const [wnaName, setWnaName] = useState("");
 	const [wnaIdCard, setWnaIdCard] = useState("");
 	const [wnaSpName, setWnaSpName] = useState("");
@@ -481,6 +118,21 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 	const [spouseConf, setSpouseConf] = useState<ConfidenceMap>({});
 	const [wnaSpConf, setWnaSpConf] = useState<ConfidenceMap>({});
 
+	const [guarantorVer, setGuarantorVer] = useState<VerifiedMap>({});
+	const [spouseVer, setSpouseVer] = useState<VerifiedMap>({});
+	const [wnaSpVer, setWnaSpVer] = useState<VerifiedMap>({});
+	const [guarantorDukcapil, setGuarantorDukcapil] = useState<DukcapilVerification>(ver_UNCHECKED);
+	const [spouseDukcapil, setSpouseDukcapil] = useState<DukcapilVerification>(ver_UNCHECKED);
+	const [wnaSpDukcapil, setWnaSpDukcapil] = useState<DukcapilVerification>(ver_UNCHECKED);
+
+	const [spouseNikSearch, setSpouseNikSearch] = useState("");
+	const [spouseLookupLoading, setSpouseLookupLoading] = useState(false);
+	const [spouseLookupMsg, setSpouseLookupMsg] = useState<{ tone: "ok" | "warn"; text: string } | null>(null);
+	const [spouseSeed, setSpouseSeed] = useState<InitialOcrData | null>(null);
+	const [spouseSeedKey, setSpouseSeedKey] = useState(0);
+	const [spouseSeedMeta, setSpouseSeedMeta] = useState<{ precheckingId: string; lastOCROn: string } | null>(null);
+	const [spouseLookupDocs, setSpouseLookupDocs] = useState<UploadedDoc[]>([]);
+
 	const [docs, setDocs] = useState<UploadedDoc[]>([]);
 	const [uploadingDocs, setUploadingDocs] = useState<Set<string>>(new Set());
 	const [deletingDocs, setDeletingDocs] = useState<Set<number>>(new Set());
@@ -489,25 +141,117 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 
 	const [loading, setLoading] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
-	const [modal, setModal] = useState<ModalState>({ open: false, type: "", message: "", apless: "", precheckingId: "" });
+
+	const handleGuarantorData = useCallback(
+		(data: CustomerData, conf: ConfidenceMap, verified: VerifiedMap, verification: DukcapilVerification) => {
+			setGuarantor(data);
+			setGuarantorConf(conf);
+			setGuarantorVer(verified);
+			setGuarantorDukcapil(verification);
+		},
+		[],
+	);
+
+	const handleSpouseData = useCallback(
+		(data: CustomerData, conf: ConfidenceMap, verified: VerifiedMap, verification: DukcapilVerification) => {
+			setSpouse(data);
+			setSpouseConf(conf);
+			setSpouseVer(verified);
+			setSpouseDukcapil(verification);
+		},
+		[],
+	);
+
+	const handleWnaSpouseData = useCallback(
+		(data: CustomerData, conf: ConfidenceMap, verified: VerifiedMap, verification: DukcapilVerification) => {
+			setWnaSpouse(data);
+			setWnaSpConf(conf);
+			setWnaSpVer(verified);
+			setWnaSpDukcapil(verification);
+		},
+		[],
+	);
+
+	const closePreview = useCallback(() => setPreview(PREVIEW_CLOSED), []);
+
+	const _refreshDocs = useCallback(async (newPreviewUrl?: string, newDocName?: string) => {
+		if (!apless || !precheckingId) return;
+		try {
+			const res = await api.get('/CAM/Prechecking/documents-guarantor', {
+				params: { apless, prechecking_id: precheckingId, previous_prechecking_id: incoming?.previousPrecheckingId || "" },
+			});
+			const fetched: UploadedDoc[] = res.data ?? [];
+			setDocs((prev) => {
+				const previewMap = new Map(prev.map((d) => [d.id, d.previewUrl]));
+				const readonlyIds = new Set(prev.filter((d) => d.readonly).map((d) => d.id));
+				return fetched.map((d: any) => ({
+					...d,
+					readonly: readonlyIds.has(d.id) || (d.prechecking_id != null && d.prechecking_id !== precheckingId),
+					previewUrl:
+						(newDocName && d.name === newDocName)
+							? newPreviewUrl
+							: previewMap.get(d.id),
+				}));
+			});
+		} catch (e) {
+			console.error("Failed to refresh docs", e);
+		}
+	}, [apless, precheckingId, incoming?.previousPrecheckingId]);
 
 	useEffect(() => {
 		const init = async () => {
 			setLoading(true);
 			try {
-				const [aplessR, pidR, maritalR] = await Promise.all([
-					api.post('/CAM/Prechecking/generate-apless', { customer_type: "G" }),
-					api.post('/CAM/Prechecking/generate-prechecking-id', {}),
-					api.get('/CAM/Prechecking/marital-statuses'),
-				]);
-				setApless(aplessR.data);
-				setPrecheckingId(pidR.data);
+				const maritalPromise = api.get('/CAM/Prechecking/marital-statuses');
+				const pidPromise = api.post('/CAM/Prechecking/generate-prechecking-id', {});
+
+				const aplessPromise = incoming?.apless
+					? Promise.resolve({ data: incoming.apless })
+					: api.post('/CAM/Prechecking/generate-apless', { customer_type: "G" });
+
+				const [maritalR, pidR, aplessR] = await Promise.all([maritalPromise, pidPromise, aplessPromise]);
+
 				setMaritalOptions(maritalR.data);
+				setPrecheckingId(pidR.data);
+				setApless(aplessR.data);
+
+				if (incoming?.meta) {
+					setMarital(incoming.meta.maritalStatus || "");
+					setWnaMarital(incoming.meta.wnaMaritalStatus || "");
+					setNationality((incoming.meta.nationalityType as "WNI" | "WNA") || "WNI");
+					if (WNA_ID_TYPES.includes((incoming.meta.idType || "") as IdType)) {
+						setWnaIdType(incoming.meta.idType as IdType);
+					}
+					if (WNA_ID_TYPES.includes((incoming.meta.spouseIdType || "") as IdType)) {
+						setWnaSpIdType(incoming.meta.spouseIdType as IdType);
+					}
+					if (typeof incoming.meta.isCarro === "boolean") setIsCarro(incoming.meta.isCarro);
+				}
+
+				const flatDocs: UploadedDoc[] = [];
+				Object.entries(incoming?.documents || {}).forEach(([docType, list]) => {
+					(list || []).forEach((d) => {
+						flatDocs.push({
+							id: d.customerDocumentId,
+							name: d.fileName,
+							type: docType,
+							key: d.awsKey,
+							readonly: true,
+						});
+					});
+				});
+				if (flatDocs.length) setDocs(flatDocs);
 			} catch (e) { console.error("Init error", e); }
 			finally { setLoading(false); }
 		};
 		init();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	useEffect(() => {
+		if (!apless || !precheckingId) return;
+		_refreshDocs();
+	}, [apless, precheckingId, _refreshDocs]);
 
 	const _uploadDoc = async (file: File, docType: string) => {
 		const MAX_MB = MAX_FILE_LIMIT;
@@ -540,11 +284,7 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 			fd.append("cust_type", "PR");
 			fd.append("organization_type", "GUARNPR");
 
-			const res = await api.post(
-				'/CAM/Prechecking/upload-document-guarantor',
-				fd,
-				{ headers: { "Content-Type": "multipart/form-data" } },
-			);
+			const res = await api.post('/CAM/Prechecking/upload-document-guarantor', fd);
 
 			if (!res.data?.success) {
 				alert(res.data?.message ?? "Upload gagal. Silakan coba lagi.");
@@ -565,28 +305,6 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 		}
 	};
 
-	const _refreshDocs = async (newPreviewUrl?: string, newDocName?: string) => {
-		if (!apless || !precheckingId) return;
-		try {
-			const res = await api.get('/CAM/Prechecking/documents-guarantor', {
-				params: { apless, prechecking_id: precheckingId },
-			});
-			const fetched: UploadedDoc[] = res.data ?? [];
-			setDocs((prev) => {
-				const previewMap = new Map(prev.map((d) => [d.id, d.previewUrl]));
-				return fetched.map((d) => ({
-					...d,
-					previewUrl:
-						(newDocName && d.name === newDocName)
-							? newPreviewUrl
-							: previewMap.get(d.id),
-				}));
-			});
-		} catch (e) {
-			console.error("Failed to refresh docs", e);
-		}
-	};
-
 	const _nikForDocType = (docType: string): string => {
 		if (docType === "guarantor-ktp") return guarantor.idCardNo;
 		if (docType === "guarantor-spouse-ktp") return spouse.idCardNo;
@@ -597,18 +315,116 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 
 	const _clearDataForDocType = (docType: string) => {
 		if (docType === "guarantor-ktp") {
-			setGuarantor(EMPTY_GUARANTOR());
+			setGuarantor(EMPTY_CUSTOMER());
 			setGuarantorConf({});
+			setGuarantorVer({});
+			setGuarantorDukcapil(ver_UNCHECKED);
 		} else if (docType === "guarantor-spouse-ktp") {
-			setSpouse(EMPTY_GUARANTOR());
+			setSpouse(EMPTY_CUSTOMER());
 			setSpouseConf({});
+			setSpouseVer({});
+			setSpouseDukcapil(ver_UNCHECKED);
+			setSpouseSeed(null);
+			setSpouseSeedMeta(null);
+			setSpouseLookupDocs([]);
+			setSpouseLookupMsg(null);
 		} else if (docType === "guarantor-wna-spouse-ktp") {
-			setWnaSpouse(EMPTY_GUARANTOR());
+			setWnaSpouse(EMPTY_CUSTOMER());
 			setWnaSpConf({});
+			setWnaSpVer({});
+			setWnaSpDukcapil(ver_UNCHECKED);
 		}
 	};
 
+	const handleSpouseNikLookup = async () => {
+		const nik = spouseNikSearch.replace(/\D/g, "");
+
+		if (nik.length !== 16) {
+			setSpouseLookupMsg({ tone: "warn", text: "NIK harus 16 digit." });
+			return;
+		}
+		if (nik === guarantor.idCardNo) {
+			setSpouseLookupMsg({ tone: "warn", text: "NIK pasangan tidak boleh sama dengan NIK penjamin." });
+			return;
+		}
+
+		setSpouseLookupLoading(true);
+		setSpouseLookupMsg(null);
+		try {
+			const res = await api.post('/CAM/lookup-ocr-by-nik', {
+				nik,
+				exclude_prechecking_id: precheckingId,
+			});
+
+			if (!res.data?.found) {
+				setSpouseSeed(null);
+				setSpouseSeedMeta(null);
+				setSpouseLookupDocs([]);
+				setSpouseLookupMsg({
+					tone: "warn",
+					text: res.data?.message ?? "Data tidak ditemukan. Silakan upload KTP pasangan untuk OCR.",
+				});
+				return;
+			}
+
+			const rec = res.data.ocr as OcrRecord;
+			const data = mapOcrToCustomer(rec);
+
+			setSpouse(data);
+			setSpouseConf(rec.confidence ?? {});
+			setSpouseVer(rec.verified ?? {});
+			setSpouseDukcapil(rec.dukcapil ?? ver_UNCHECKED);
+			setSpouseSeed({
+				data,
+				conf: rec.confidence,
+				ver: rec.verified,
+				verification: rec.dukcapil,
+			});
+			setSpouseSeedMeta({
+				precheckingId: res.data.sourcePrecheckingId || "",
+				lastOCROn: res.data.lastOCROn || "",
+			});
+			setSpouseLookupDocs(
+				((res.data.documents ?? []) as UploadedDoc[]).map((d) => ({ ...d, readonly: true })),
+			);
+			setSpouseSeedKey((k) => k + 1);
+			setSpouseLookupMsg({
+				tone: "ok",
+				text: "Data pasangan ditemukan. Periksa kembali sebelum submit.",
+			});
+		} catch (e: any) {
+			setSpouseLookupMsg({
+				tone: "warn",
+				text: e.response?.data?.message ?? "Gagal mencari data pasangan.",
+			});
+		} finally {
+			setSpouseLookupLoading(false);
+		}
+	};
+
+	const resetSpouseLookup = () => {
+		const removeIds = new Set(spouseLookupDocs.map((d) => d.id));
+		if (removeIds.size) {
+			setDocs((prev) => prev.filter((d) => !(d.readonly && removeIds.has(d.id))));
+		}
+		setSpouse(EMPTY_CUSTOMER());
+		setSpouseConf({});
+		setSpouseVer({});
+		setSpouseDukcapil(ver_UNCHECKED);
+		setSpouseSeed(null);
+		setSpouseSeedMeta(null);
+		setSpouseLookupDocs([]);
+		setSpouseLookupMsg(null);
+		setSpouseNikSearch("");
+		setSpouseSeedKey((k) => k + 1);
+		setErrors((prev) =>
+			Object.fromEntries(Object.entries(prev).filter(([k]) => !k.startsWith("spouse_")))
+		);
+	};
+
 	const handleDeleteDoc = async (docId: number) => {
+		const target = docs.find((d) => d.id === docId);
+		if (target?.readonly) return;
 		if (!window.confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
 		setDeletingDocs((prev) => new Set(prev).add(docId));
 		try {
@@ -622,6 +438,7 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 				prechecking_id: precheckingId,
 				nik,
 			});
+
 			if (!res.data?.success) {
 				alert(res.data?.message ?? "Hapus dokumen gagal. Silakan coba lagi.");
 				return;
@@ -653,6 +470,7 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 			setPreview({ open: true, name: doc.name, previewUrl: doc.view_url });
 			return;
 		}
+
 		setPreviewLoadingId(doc.id);
 		try {
 			const res = await api.get('/CAM/Prechecking/view-document-guarantor', {
@@ -671,21 +489,9 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 		}
 	};
 
-	const handleWnaIdBlur = async () => {
-		if (wnaIdCard.length < 6) return;
-		try {
-			const res = await api.post('/CAM/Prechecking/check-customer-history', {
-				idNo: wnaIdCard, prechecking_id: precheckingId, lesseeType: "PR", checking_for: "G",
-			});
-			const [msg, al, type, pid] = res.data;
-
-			if (msg) setModal({ open: true, type, message: msg, apless: al, precheckingId: pid });
-		} catch (e) { console.error(e); }
-	};
-
 	const handleCancel = async () => {
 		try { await api.post('/CAM/Prechecking/cancel-guarantor', { prechecking_id: precheckingId }); }
-		finally { window.history.back(); }
+		finally { onBack ? onBack() : window.history.back(); }
 	};
 
 	const isMarried = ["M", "O"].includes(marital);
@@ -698,7 +504,7 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 	const showWnaSpOCR = showWnaSpNat && wnaSpouseNat === "WNI";
 	const showWnaSpWna = showWnaSpNat && wnaSpouseNat === "WNA";
 
-	const custIdType: IdType = nationality === "WNI" ? "KTP" : wnaIdType;
+	const guarantorIdType: IdType = nationality === "WNI" ? "KTP" : wnaIdType;
 	const spouseIdType: IdType | "" =
 		showSpouseOCR || showWnaSpOCR ? "KTP"
 			: (showWnaSpInfo || showWnaSpWna) ? wnaSpIdType
@@ -706,6 +512,21 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 
 	const wnaDocType = wnaIdType === "KITAP" ? "guarantor-kitap" : "guarantor-kitas";
 	const wnaSpDocType = wnaSpIdType === "KITAP" ? "guarantor-spouse-kitap" : "guarantor-spouse-kitas";
+
+	const guarantorDukcapilRequired = nationality === "WNI";
+	const spouseDukcapilRequired = showSpouseOCR;
+	const wnaSpDukcapilRequired = showWnaSpOCR;
+
+	const dukcapilPending =
+		(guarantorDukcapilRequired && !guarantorDukcapil.checked) ||
+		(spouseDukcapilRequired && !spouseDukcapil.checked) ||
+		(wnaSpDukcapilRequired && !wnaSpDukcapil.checked);
+
+	const spouseExpectedNik =
+		spouseSeed?.data.idCardNo
+		|| (spouseNikSearch.length === 16 ? spouseNikSearch : "")
+		|| spouseInitialData.data.idCardNo
+		|| undefined;
 
 	const handleSubmit = async () => {
 		const e: Record<string, string> = {};
@@ -762,16 +583,57 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 			}
 		}
 
+		if (guarantorDukcapilRequired && !guarantorDukcapil.checked) {
+			e.guarantor_dukcapil = "Please verify the Guarantor's KTP data with Dukcapil before submitting";
+		}
+		if (spouseDukcapilRequired && !spouseDukcapil.checked) {
+			e.spouse_dukcapil = "Please verify the Spouse's KTP data with Dukcapil before submitting";
+		}
+		if (wnaSpDukcapilRequired && !wnaSpDukcapil.checked) {
+			e.wna_spouse_dukcapil = "Please verify the WNA's Spouse KTP data with Dukcapil before submitting";
+		}
+
+		if (notes.length > NOTES_MAX_LENGTH) {
+			e.notes = `Note for Prechecking must be ${NOTES_MAX_LENGTH} characters or fewer`;
+		}
+
 		setErrors(e);
-		if (Object.keys(e).length) return;
+		if (Object.keys(e).length) {
+			const summary = Object.values(e).filter(Boolean);
+			alert(
+				summary.length > 1
+					? `Please complete all required fields:\n\n• ${summary.join("\n• ")}`
+					: summary[0] ?? "Please complete all required fields.",
+			);
+			return;
+		}
 
 		setLoading(true);
 		try {
+			const carriedMap = new Map<number, { customer_document_id: number; document_type: string }>();
+			docs.filter((d) => d.readonly).forEach((d) => {
+				carriedMap.set(d.id, { customer_document_id: d.id, document_type: d.type });
+			});
+			if (showSpouseOCR) {
+				spouseLookupDocs.forEach((d) => {
+					carriedMap.set(d.id, { customer_document_id: d.id, document_type: "guarantor-spouse-ktp" });
+				});
+			}
+			const uploadedTypes = new Set(docs.filter((d) => !d.readonly).map((d) => d.type));
+			const carriedDocuments = Array.from(carriedMap.values())
+				.filter((d) => !uploadedTypes.has(d.document_type));
+
 			const payload = {
 				prechecking_id: precheckingId, apless, cust_type: "PR", lessee_type: "PR",
-				check_for: "G", cust_new_ro: "New", guarantor_nationality_type: nationality,
+				carried_documents: carriedDocuments,
+				check_for: "G", cust_new_ro: isRepeatOrder ? "Repeat Order" : "New", guarantor_nationality_type: nationality,
 				marital_status: marital, wna_marital_status: wnaMarital,
 				is_carro_type: isCarro ? 1 : 0, note_prechecking_pr: notes,
+
+				guarantor_id_type: guarantorIdType,
+				guarantor_spouse_id_type: spouseIdType,
+				guarantor_spouse_nationality_type: spouseNat,
+				wna_spouse_nationality_type: wnaSpouseNat,
 
 				guarantor_id_card_no: guarantor.idCardNo, guarantor_name: guarantor.name,
 				guarantor_pob: guarantor.placeOfBirth, guarantor_dob: guarantor.dateOfBirth,
@@ -787,9 +649,21 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 				val_guarantor_pob: guarantorConf.placeOfBirth ?? "", val_guarantor_dob: guarantorConf.dateOfBirth ?? "",
 				val_guarantor_gender: guarantorConf.gender ?? "", val_guarantor_blood_type: guarantorConf.bloodType ?? "",
 				val_guarantor_address: guarantorConf.address ?? "", val_guarantor_rt: guarantorConf.rt ?? "",
+				val_guarantor_rw: guarantorConf.rw ?? "",
 				val_guarantor_subdistrict: guarantorConf.subdistrict ?? "", val_guarantor_district: guarantorConf.district ?? "",
 				val_guarantor_city: guarantorConf.city ?? "", val_guarantor_province: guarantorConf.province ?? "",
 				val_guarantor_religion: guarantorConf.religion ?? "", val_guarantor_job: guarantorConf.job ?? "",
+
+				guarantor_ver_verified: guarantorDukcapil.checked ? 1 : 0,
+				guarantor_ver_status: guarantorDukcapil.status === null ? "" : (guarantorDukcapil.status ? 1 : 0),
+				guarantor_ver_reason: guarantorDukcapil.reason ?? "",
+				ver_guarantor_id_card_no: matchToBit(guarantorVer.idCardNo), ver_guarantor_name: matchToBit(guarantorVer.name),
+				ver_guarantor_pob: matchToBit(guarantorVer.placeOfBirth), ver_guarantor_dob: matchToBit(guarantorVer.dateOfBirth),
+				ver_guarantor_gender: matchToBit(guarantorVer.gender), ver_guarantor_address: matchToBit(guarantorVer.address),
+				ver_guarantor_rt: matchToBit(guarantorVer.rt), ver_guarantor_rw: matchToBit(guarantorVer.rw),
+				ver_guarantor_subdistrict: matchToBit(guarantorVer.subdistrict), ver_guarantor_district: matchToBit(guarantorVer.district),
+				ver_guarantor_city: matchToBit(guarantorVer.city), ver_guarantor_province: matchToBit(guarantorVer.province),
+				ver_guarantor_job: matchToBit(guarantorVer.job),
 
 				guarantor_spouse_id_card_no: spouse.idCardNo, guarantor_spouse_name: spouse.name,
 				guarantor_spouse_pob: spouse.placeOfBirth, guarantor_spouse_dob: spouse.dateOfBirth,
@@ -804,11 +678,21 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 				val_guarantor_spouse_id_card_no: spouseConf.idCardNo ?? "", val_guarantor_spouse_name: spouseConf.name ?? "",
 				val_guarantor_spouse_pob: spouseConf.placeOfBirth ?? "", val_guarantor_spouse_dob: spouseConf.dateOfBirth ?? "",
 				val_guarantor_spouse_gender: spouseConf.gender ?? "", val_guarantor_spouse_address: spouseConf.address ?? "",
-				val_guarantor_spouse_rt: spouseConf.rt ?? "", val_guarantor_spouse_subdistrict: spouseConf.subdistrict ?? "",
+				val_guarantor_spouse_rt: spouseConf.rt ?? "", val_guarantor_spouse_rw: spouseConf.rw ?? "",
+				val_guarantor_spouse_subdistrict: spouseConf.subdistrict ?? "",
 				val_guarantor_spouse_district: spouseConf.district ?? "", val_guarantor_spouse_city: spouseConf.city ?? "",
 				val_guarantor_spouse_province: spouseConf.province ?? "", val_guarantor_spouse_job: spouseConf.job ?? "",
 
-				guarantor_id_type: custIdType, guarantor_spouse_id_type: spouseIdType,
+				guarantor_spouse_ver_verified: spouseDukcapil.checked ? 1 : 0,
+				guarantor_spouse_ver_status: spouseDukcapil.status === null ? "" : (spouseDukcapil.status ? 1 : 0),
+				guarantor_spouse_ver_reason: spouseDukcapil.reason ?? "",
+				ver_guarantor_spouse_id_card_no: matchToBit(spouseVer.idCardNo), ver_guarantor_spouse_name: matchToBit(spouseVer.name),
+				ver_guarantor_spouse_pob: matchToBit(spouseVer.placeOfBirth), ver_guarantor_spouse_dob: matchToBit(spouseVer.dateOfBirth),
+				ver_guarantor_spouse_gender: matchToBit(spouseVer.gender), ver_guarantor_spouse_address: matchToBit(spouseVer.address),
+				ver_guarantor_spouse_rt: matchToBit(spouseVer.rt), ver_guarantor_spouse_rw: matchToBit(spouseVer.rw),
+				ver_guarantor_spouse_subdistrict: matchToBit(spouseVer.subdistrict), ver_guarantor_spouse_district: matchToBit(spouseVer.district),
+				ver_guarantor_spouse_city: matchToBit(spouseVer.city), ver_guarantor_spouse_province: matchToBit(spouseVer.province),
+				ver_guarantor_spouse_job: matchToBit(spouseVer.job),
 
 				guarantor_wna_name: wnaName, guarantor_wna_idcard_no: wnaIdCard,
 				guarantor_spouse_wna_name: wnaSpName, guarantor_spouse_wna_id_card_no: wnaSpId,
@@ -826,13 +710,43 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 				val_guarantor_wna_spouse_id_card_no: wnaSpConf.idCardNo ?? "", val_guarantor_wna_spouse_name: wnaSpConf.name ?? "",
 				val_guarantor_wna_spouse_pob: wnaSpConf.placeOfBirth ?? "", val_guarantor_wna_spouse_dob: wnaSpConf.dateOfBirth ?? "",
 				val_guarantor_wna_spouse_gender: wnaSpConf.gender ?? "", val_guarantor_wna_spouse_address: wnaSpConf.address ?? "",
-				val_guarantor_wna_spouse_rt: wnaSpConf.rt ?? "", val_guarantor_wna_spouse_subdistrict: wnaSpConf.subdistrict ?? "",
+				val_guarantor_wna_spouse_rt: wnaSpConf.rt ?? "", val_guarantor_wna_spouse_rw: wnaSpConf.rw ?? "",
+				val_guarantor_wna_spouse_subdistrict: wnaSpConf.subdistrict ?? "",
 				val_guarantor_wna_spouse_district: wnaSpConf.district ?? "", val_guarantor_wna_spouse_city: wnaSpConf.city ?? "",
 				val_guarantor_wna_spouse_province: wnaSpConf.province ?? "", val_guarantor_wna_spouse_job: wnaSpConf.job ?? "",
+
+				guarantor_wna_spouse_ver_verified: wnaSpDukcapil.checked ? 1 : 0,
+				guarantor_wna_spouse_ver_status: wnaSpDukcapil.status === null ? "" : (wnaSpDukcapil.status ? 1 : 0),
+				guarantor_wna_spouse_ver_reason: wnaSpDukcapil.reason ?? "",
+				ver_guarantor_wna_spouse_id_card_no: matchToBit(wnaSpVer.idCardNo), ver_guarantor_wna_spouse_name: matchToBit(wnaSpVer.name),
+				ver_guarantor_wna_spouse_pob: matchToBit(wnaSpVer.placeOfBirth), ver_guarantor_wna_spouse_dob: matchToBit(wnaSpVer.dateOfBirth),
+				ver_guarantor_wna_spouse_gender: matchToBit(wnaSpVer.gender), ver_guarantor_wna_spouse_address: matchToBit(wnaSpVer.address),
+				ver_guarantor_wna_spouse_rt: matchToBit(wnaSpVer.rt), ver_guarantor_wna_spouse_rw: matchToBit(wnaSpVer.rw),
+				ver_guarantor_wna_spouse_subdistrict: matchToBit(wnaSpVer.subdistrict), ver_guarantor_wna_spouse_district: matchToBit(wnaSpVer.district),
+				ver_guarantor_wna_spouse_city: matchToBit(wnaSpVer.city), ver_guarantor_wna_spouse_province: matchToBit(wnaSpVer.province),
+				ver_guarantor_wna_spouse_job: matchToBit(wnaSpVer.job),
 			};
+
 			const res = await api.post('/CAM/Prechecking/submit-guarantor', payload);
-			if (res.data?.success) { alert("Guarantor prechecking submitted successfully!"); window.history.back(); }
-			else alert(res.data?.message ?? "Submission failed");
+			if (res.data?.success) {
+				const failedDocs: string[] = res.data?.documents_failed ?? [];
+				const missingDocs: string[] = res.data?.documents_missing ?? [];
+				const warnings: string[] = [];
+				if (failedDocs.length) warnings.push(`Dokumen gagal disalin: ${failedDocs.join(", ")}.`);
+				if (missingDocs.length) warnings.push(`File belum tersimpan: ${missingDocs.join(", ")}.`);
+				const carryDebug: string[] = res.data?.carry_debug ?? [];
+				const debugBlock = carryDebug.length
+					? `\n\n--- carry_debug ---\n${carryDebug.join("\n")}`
+					: "\n\n--- carry_debug: (field absent — backend not deployed/restarted) ---";
+				alert(
+					warnings.length
+						? `Guarantor prechecking submitted.\n${warnings.join("\n")}\nSilakan upload ulang file tersebut.${debugBlock}`
+						: "Guarantor prechecking submitted successfully!",
+				);
+				if (onBack) onBack(); else window.history.back();
+			} else {
+				alert(res.data?.message ?? "Submission failed");
+			}
 		} catch (err: any) { alert(err.response?.data?.message ?? "Submission failed"); }
 		finally { setLoading(false); }
 	};
@@ -851,13 +765,11 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 	return (
 		<div style={{ minHeight: "100vh", background: "var(--bg)", fontFamily: "var(--font)" }}>
 
-			<DocPreviewModal state={preview} onClose={() => setPreview(PREVIEW_CLOSED)} />
-
-			{modal.open && <HistoryModal modal={modal} setModal={setModal} />}
+			<DocPreviewModal state={preview} onClose={closePreview} />
 
 			<div className="page-wrap">
 				<div className="hdr">
-					<div>
+					<div style={{ flex: 1, minWidth: 0 }}>
 						<div className="hdr-title">Add Guarantor Data</div>
 						<div className="hdr-sub">Individual Guarantor · KYC Verification</div>
 					</div>
@@ -865,10 +777,68 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 						<span className="hdr-badge-label">Prechecking ID</span>
 						<span className="hdr-badge-value">{precheckingId || "—"}</span>
 					</div>
+					<button
+						type="button"
+						onClick={handleCancel}
+						disabled={loading}
+						aria-label="Back"
+						style={{
+							display: "inline-flex", alignItems: "center", gap: 7,
+							padding: "9px 16px 9px 12px",
+							borderRadius: 999,
+							border: "1px solid rgba(15, 29, 60, .1)",
+							background: "linear-gradient(180deg, #ffffff, #F6F9FE)",
+							color: "#0F1D3C",
+							fontSize: ".82rem",
+							fontWeight: 600,
+							fontFamily: "inherit",
+							letterSpacing: ".01em",
+							cursor: loading ? "not-allowed" : "pointer",
+							marginLeft: 12,
+							flexShrink: 0,
+							opacity: loading ? 0.55 : 1,
+							boxShadow: "0 1px 2px rgba(15, 29, 60, .04), 0 1px 1px rgba(15, 29, 60, .02)",
+							transition: "transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s cubic-bezier(.4,0,.2,1), border-color .18s, background .18s",
+						}}
+						onMouseEnter={(e) => {
+							if (loading) return;
+							e.currentTarget.style.background = "linear-gradient(180deg, #F6F9FE, #EBF1FB)";
+							e.currentTarget.style.borderColor = "rgba(15, 29, 60, .18)";
+							e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 29, 60, .09), 0 1px 2px rgba(15, 29, 60, .04)";
+							const arrow = e.currentTarget.querySelector<SVGElement>("svg");
+							if (arrow) arrow.style.transform = "translateX(-2px)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "linear-gradient(180deg, #ffffff, #F6F9FE)";
+							e.currentTarget.style.borderColor = "rgba(15, 29, 60, .1)";
+							e.currentTarget.style.boxShadow = "0 1px 2px rgba(15, 29, 60, .04), 0 1px 1px rgba(15, 29, 60, .02)";
+							const arrow = e.currentTarget.querySelector<SVGElement>("svg");
+							if (arrow) arrow.style.transform = "translateX(0)";
+						}}
+						onMouseDown={(e) => {
+							if (loading) return;
+							e.currentTarget.style.transform = "scale(.97)";
+						}}
+						onMouseUp={(e) => {
+							e.currentTarget.style.transform = "scale(1)";
+						}}
+					>
+						<svg
+							width="15" height="15"
+							viewBox="0 0 24 24" fill="none"
+							stroke="currentColor" strokeWidth="2.2"
+							strokeLinecap="round" strokeLinejoin="round"
+							style={{ transition: "transform .18s cubic-bezier(.4,0,.2,1)" }}
+							aria-hidden="true"
+						>
+							<path d="M19 12H5" />
+							<path d="M12 19l-7-7 7-7" />
+						</svg>
+						<span>Back</span>
+					</button>
 				</div>
 
 				<div className="card">
-
 					<div className="section-label"><span className="dot" />General Information<hr /></div>
 					<div style={{ marginBottom: 24 }}>
 						<div className="form-grid" style={{ marginBottom: 14 }}>
@@ -878,13 +848,17 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 							</div>
 							<div className="form-field">
 								<label className="form-label">Type <span className="req">*</span></label>
-								<div className="select-wrap"><select disabled value="G" className="form-select is-disabled"><option value="G">Individu</option></select></div>
+								<div className="select-wrap"><select disabled value="PR" className="form-select is-disabled"><option value="PR">Individu</option></select></div>
 							</div>
 						</div>
 						<div className="form-grid" style={{ marginBottom: 14 }}>
 							<div className="form-field">
 								<label className="form-label">New / Repeat Order</label>
-								<div className="select-wrap"><select disabled value="New" className="form-select is-disabled"><option value="New">New</option></select></div>
+								<div className="select-wrap">
+									<select disabled value={isRepeatOrder ? "Repeat Order" : "New"} className="form-select is-disabled">
+										<option value={isRepeatOrder ? "Repeat Order" : "New"}>{isRepeatOrder ? "Repeat Order" : "New"}</option>
+									</select>
+								</div>
 							</div>
 							<div className="form-field">
 								<label className="form-label">Temp. Customer No.</label>
@@ -931,10 +905,13 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 								docType="guarantor-ktp"
 								title="Guarantor · WNI"
 								nationality="WNI"
-								onDataChange={(data, conf) => { setGuarantor(data); setGuarantorConf(conf); }}
-								onHistoryModal={(msg, al, type, pid) =>
-									setModal({ open: true, type: type as any, message: msg, apless: al, precheckingId: pid })
-								}
+								maritalStatus={maritalOptions.find((o) => o.value === marital)?.label}
+								initialData={guarantorInitialData}
+								expectedNik={incoming?.idCard}
+								previousPrecheckingId={incoming?.previousPrecheckingId}
+								initialDocs={guarantorInitialDocs}
+								onDataChange={handleGuarantorData}
+								onUpload={_refreshDocs}
 							/>
 						</>
 					)}
@@ -965,7 +942,7 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 									</div>
 									<div className="form-field">
 										<label className="form-label">ID Card No. ({wnaIdType}) <span className="req">*</span></label>
-										<input value={wnaIdCard} onChange={(e) => setWnaIdCard(e.target.value)} onBlur={handleWnaIdBlur} className={`form-input${errors.wna_idcard ? " err" : ""}`} />
+										<input value={wnaIdCard} onChange={(e) => setWnaIdCard(e.target.value)} className={`form-input${errors.wna_idcard ? " err" : ""}`} />
 										{errors.wna_idcard && <p className="field-err">{errors.wna_idcard}</p>}
 									</div>
 									<div className="form-field full">
@@ -1043,14 +1020,93 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 					{showSpouseOCR && (
 						<>
 							<div className="section-label"><span className="dot" />Spouse KTP (OCR)<hr /></div>
+
+							<div className="sub-section blue" style={{ marginBottom: 16 }}>
+								<div className="sub-section-title">Cari Data Pasangan berdasarkan NIK</div>
+								<div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+									<div className="form-field" style={{ flex: "1 1 280px" }}>
+										<label className="form-label">NIK Pasangan · KTP</label>
+										<div style={{ position: "relative" }}>
+											<input
+												className="form-input"
+												inputMode="numeric"
+												maxLength={16}
+												placeholder="16 digit NIK"
+												value={spouseNikSearch}
+												onChange={(e) => setSpouseNikSearch(e.target.value.replace(/\D/g, "").slice(0, 16))}
+												onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSpouseNikLookup(); } }}
+												style={{ paddingRight: (spouseNikSearch || spouseSeed) ? 34 : undefined }}
+											/>
+											{(spouseNikSearch || spouseSeed) && (
+												<button
+													type="button"
+													aria-label="Hapus & reset data pasangan"
+													title="Hapus & reset data pasangan"
+													onClick={resetSpouseLookup}
+													style={{
+														position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+														width: 22, height: 22, borderRadius: "50%", border: "none", cursor: "pointer",
+														background: "#e2e8f0", color: "#475569", fontSize: 14, lineHeight: "22px",
+														display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+													}}
+												>×</button>
+											)}
+										</div>
+									</div>
+									<button
+										className="btn-primary"
+										onClick={handleSpouseNikLookup}
+										disabled={spouseLookupLoading || spouseNikSearch.length !== 16}
+									>
+										{spouseLookupLoading && <Spinner size={14} />}
+										Cari Data
+									</button>
+								</div>
+
+								{spouseLookupMsg && (
+									<p className={`lookup-note ${spouseLookupMsg.tone}`}>{spouseLookupMsg.text}</p>
+								)}
+
+								{spouseSeed && (
+									<LookupResultPanel
+										dukcapil={spouseSeed.verification ?? ver_UNCHECKED}
+										sourcePrecheckingId={spouseSeedMeta?.precheckingId}
+										lastOCROn={spouseSeedMeta?.lastOCROn}
+										photo={spouseSeed.data.photo}
+										documents={spouseLookupDocs}
+										onPreview={handlePreview}
+										onPreviewPhoto={(src) => setPreview({ open: true, name: "Pas Foto KTP.jpg", previewUrl: src })}
+										previewLoadingId={previewLoadingId}
+										onCancel={resetSpouseLookup}
+									/>
+								)}
+							</div>
+
 							<OCRUploadSection
+								key={`spouse-ocr-${spouseSeedKey}`}
 								apless={apless}
 								precheckingId={precheckingId}
 								ocrFor="guarantor_spouse"
 								docType="guarantor-spouse-ktp"
 								title="Spouse · WNI"
-								onDataChange={(data, conf) => { setSpouse(data); setSpouseConf(conf); }}
+								initialData={spouseSeed ?? spouseInitialData}
+								expectedNik={spouseExpectedNik}
+								previousPrecheckingId={incoming?.previousPrecheckingId}
+								initialDocs={spouseInitialDocs}
+								onDataChange={handleSpouseData}
+								onUpload={_refreshDocs}
 							/>
+							<div className="form-field full" style={{ marginTop: 12, marginBottom: 20 }}>
+								<label className="form-label">File KTP Pasangan</label>
+								{!docsOf("guarantor-spouse-ktp").length && (
+									<FileInput
+										label="Upload File KTP Pasangan"
+										onFileChange={(f) => _uploadDoc(f, "guarantor-spouse-ktp")}
+										uploading={uploadingDocs.has("guarantor-spouse-ktp")}
+									/>
+								)}
+								<DocList docs={docsOf("guarantor-spouse-ktp")} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
+							</div>
 						</>
 					)}
 
@@ -1102,8 +1158,22 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 								ocrFor="guarantor_wna_spouse"
 								docType="guarantor-wna-spouse-ktp"
 								title="Spouse of WNA · WNI KTP"
-								onDataChange={(data, conf) => { setWnaSpouse(data); setWnaSpConf(conf); }}
+								previousPrecheckingId={incoming?.previousPrecheckingId}
+								initialDocs={wnaSpouseInitialDocs}
+								onDataChange={handleWnaSpouseData}
+								onUpload={_refreshDocs}
 							/>
+							<div className="form-field full" style={{ marginTop: 12, marginBottom: 20 }}>
+								<label className="form-label">File KTP Pasangan (WNI)</label>
+								{!docsOf("guarantor-wna-spouse-ktp").length && (
+									<FileInput
+										label="Upload File KTP Pasangan"
+										onFileChange={(f) => _uploadDoc(f, "guarantor-wna-spouse-ktp")}
+										uploading={uploadingDocs.has("guarantor-wna-spouse-ktp")}
+									/>
+								)}
+								<DocList docs={docsOf("guarantor-wna-spouse-ktp")} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
+							</div>
 						</>
 					)}
 
@@ -1174,15 +1244,36 @@ const PrecheckingGuarantorIndividuPage: React.FC = () => {
 						</div>
 						<div className="form-field">
 							<label className="form-label">Note for Prechecking</label>
-							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea" placeholder="Optional notes…" style={{ textTransform: "uppercase" }} />
+							<textarea
+								rows={4}
+								value={notes}
+								onChange={(e) => setNotes(e.target.value.toUpperCase().slice(0, NOTES_MAX_LENGTH))}
+								maxLength={NOTES_MAX_LENGTH}
+								className={`form-textarea${errors.notes ? " err" : ""}`}
+								placeholder=""
+								style={{ textTransform: "uppercase" }}
+							/>
+							<div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+								{errors.notes ? <p className="field-err" style={{ margin: 0 }}>{errors.notes}</p> : <span />}
+								<span style={{ fontSize: 12, color: "#888" }}>{notes.length}/{NOTES_MAX_LENGTH}</span>
+							</div>
 						</div>
 					</div>
 
 				</div>
 
+				{dukcapilPending && (
+					<div className="dukcapil-gate pending">
+						<svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v4m0 4h.01M10.29 3.86l-8.18 14.18A2 2 0 004.02 21h15.96a2 2 0 001.91-2.96L13.71 3.86a2 2 0 00-3.42 0z" />
+						</svg>
+						Submit is locked until every KTP shown above has been checked with "Verify Dukcapil" and a result is displayed.
+					</div>
+				)}
+
 				<div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 4 }}>
 					<button className="btn-ghost" onClick={handleCancel} disabled={loading}>Cancel</button>
-					<button className="btn-primary" onClick={handleSubmit} disabled={loading}>
+					<button className="btn-primary" onClick={handleSubmit} disabled={loading || dukcapilPending} title={dukcapilPending ? "Complete Dukcapil verification for all KTP sections first" : undefined}>
 						{loading && <Spinner />}
 						Submit Guarantor Prechecking
 					</button>

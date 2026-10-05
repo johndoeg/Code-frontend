@@ -52,36 +52,23 @@ export interface CamTabHandle {
 	save: () => void;
 }
 
-const cellLabel =
-	"border-b border-[var(--app-border)] bg-[var(--app-surface)]/70 px-4 py-2.5 align-top text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] whitespace-nowrap";
-const cellValue = "border-b border-[var(--app-border)] px-4 py-2.5 align-top text-sm text-[var(--app-text)]";
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
+function SectionTitle({ children }: { children: React.ReactNode }) {
 	return (
-		<div className="border-b border-t border-[var(--app-border)] bg-[var(--app-surface)] px-6 py-3 first:border-t-0">
-			<h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">{children}</h2>
+		<div className="flex items-center gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2.5 sm:px-6">
+			<span className="h-4 w-1 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
+			<h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--app-text)]">{children}</h3>
 		</div>
 	);
 }
 
-function Row({
-	left,
-	right,
-}: {
-	left: [string, React.ReactNode];
-	right: [string, React.ReactNode];
-}) {
+function Info({ label, value, className = "" }: { label: string; value: React.ReactNode; className?: string }) {
 	return (
-		<tr>
-			<td className={cellLabel}>{left[0]}</td>
-			<td className={cellValue}>{left[1]}</td>
-			<td className={cellLabel}>{right[0]}</td>
-			<td className={cellValue}>{right[1]}</td>
-		</tr>
+		<div className={`grid grid-cols-[130px_minmax(0,1fr)] gap-x-3 ${className}`}>
+			<dt className="text-[13px] font-medium text-[var(--app-muted)]">{label}</dt>
+			<dd className="break-words text-[13px] font-medium text-[var(--app-text)]">{value || <span className="text-[var(--app-muted)]">-</span>}</dd>
+		</div>
 	);
 }
-
-const fieldLabelCls = "text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] mb-1 block";
 
 type SurveyType = "home" | "office" | "other";
 
@@ -190,48 +177,44 @@ function FileChip({
 	onDelete: (id: number) => void;
 	deleting: boolean;
 }) {
-	const [viewHovered, setViewHovered] = useState(false);
-	const [deleteHovered, setDeleteHovered] = useState(false);
-
 	return (
-		<div className="inline-flex items-center gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-card)] px-2 py-1.5">
-			<span className="max-w-[220px] truncate text-xs text-[var(--app-muted)]" title={file.documentName}>
+		<div className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)]/60 py-1 pl-3 pr-1.5 transition hover:border-blue-400/60 hover:bg-[var(--app-card)]">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-[var(--app-muted)]" aria-hidden="true">
+				<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+				<path d="M14 3v5h5" />
+			</svg>
+			<span className="max-w-[220px] truncate text-xs text-[var(--app-text)]" title={file.documentName}>
 				{file.documentName}
 			</span>
 			<button
 				type="button"
 				onClick={() => onPreview(file)}
-				onMouseEnter={() => setViewHovered(true)}
-				onMouseLeave={() => setViewHovered(false)}
-				className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-medium transition ${viewHovered
-					? "border-orange-600 bg-orange-500 text-white"
-					: "border-orange-600 bg-orange-100 text-orange-800"
-					}`}
+				title="View"
+				aria-label="View"
+				className="rounded-md p-1.5 text-orange-600 transition hover:bg-orange-500/10"
 			>
-				<svg
-					width="14" height="14"
-					viewBox="0 0 24 24" fill="none"
-					stroke="currentColor" strokeWidth="2"
-					strokeLinecap="round" strokeLinejoin="round"
-					aria-hidden="true"
-				>
+				<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
 					<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
 					<circle cx="12" cy="12" r="3" />
 				</svg>
-				View
 			</button>
 			<button
 				type="button"
 				onClick={() => onDelete(file.id)}
-				onMouseEnter={() => setDeleteHovered(true)}
-				onMouseLeave={() => setDeleteHovered(false)}
 				disabled={deleting}
-				className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${deleteHovered
-					? "border-red-600 bg-red-500 text-white"
-					: "border-red-600 bg-red-100 text-red-800"
-					}`}
+				title="Delete"
+				aria-label="Delete"
+				className="rounded-md p-1.5 text-red-600 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
 			>
-				{deleting ? "Deleting…" : "Delete"}
+				{deleting ? (
+					<span className="block h-3.5 w-3.5 animate-spin rounded-full border-2 border-red-500 border-b-transparent" />
+				) : (
+					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+						<path d="M3 6h18" />
+						<path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+						<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+					</svg>
+				)}
 			</button>
 		</div>
 	);
@@ -259,26 +242,34 @@ function SurveySection({
 	onPreview: (file: SurveyFileItem) => void;
 }) {
 	return (
-		<>
-			<SectionHeader>{title}</SectionHeader>
-			<div className="px-6 py-4 space-y-4">
+		<section className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-card)]">
+			<SectionTitle>{title}</SectionTitle>
+			<div className="space-y-4 px-4 py-4 sm:px-6">
 				<div>
-					<input
-						type="file"
-						multiple
-						disabled={uploading}
-						onChange={e => {
-							onUpload(e.target.files);
-							e.target.value = "";
-						}}
-						className="text-sm text-[var(--app-muted)] file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white file:cursor-pointer hover:file:bg-blue-700 disabled:opacity-50"
-					/>
-					{uploading && <p className="text-xs text-[var(--app-muted)] mt-1">Uploading…</p>}
-					{uploadError && <p className="text-xs text-red-600 mt-1">{uploadError}</p>}
+					<label
+						className={`flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[var(--app-border)] bg-[var(--app-surface)]/50 px-4 py-4 text-[13px] font-medium text-[var(--app-muted)] transition hover:border-blue-400 hover:bg-blue-500/5 hover:text-blue-600 ${uploading ? "pointer-events-none opacity-60" : ""}`}
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+							<path d="M12 16V4m0 0-4 4m4-4 4 4" />
+							<path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+						</svg>
+						{uploading ? "Uploading…" : "Click to upload files"}
+						<input
+							type="file"
+							multiple
+							disabled={uploading}
+							onChange={e => {
+								onUpload(e.target.files);
+								e.target.value = "";
+							}}
+							className="hidden"
+						/>
+					</label>
+					{uploadError && <p className="mt-1 text-xs text-red-600">{uploadError}</p>}
 				</div>
 
 				{section.files.length > 0 && (
-					<div className="flex flex-wrap gap-3">
+					<div className="flex flex-wrap gap-2">
 						{section.files.map(f => (
 							<FileChip
 								key={f.id}
@@ -292,11 +283,11 @@ function SurveySection({
 				)}
 
 				<div>
-					<label className={fieldLabelCls}>Notes</label>
+					<label className="mb-1 block text-[13px] font-medium text-[var(--app-muted)]">Notes</label>
 					<CKEditorNotes value={section.notes} onChange={onNotesChange} minHeight={250} />
 				</div>
 			</div>
-		</>
+		</section>
 	);
 }
 
@@ -417,81 +408,80 @@ const CAMSurveyFilePage = forwardRef<CamTabHandle, CAMSurveyFilePageProps>(funct
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
 
 	return (
-		<div className="space-y-4 rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl overflow-hidden">
+		<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
 			<DocPreviewModal state={preview} onClose={() => setPreview(PREVIEW_CLOSED)} />
 
-			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Survey Files</h2>
 				</div>
-			)}
-			<div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
-				<h2 className="text-xl font-bold text-[var(--app-text)] mb-1">Survey Files</h2>
-				<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
-					<SectionHeader>Contract Summary</SectionHeader>
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[820px] border-collapse text-sm">
-							<colgroup>
-								<col style={{ width: "15%" }} />
-								<col style={{ width: "40%" }} />
-								<col style={{ width: "12%" }} />
-								<col style={{ width: "33%" }} />
-							</colgroup>
-							<tbody>
-								<Row
-									left={["Contract Status", contract.status]}
-									right={["Brand / Model / Type", `${contract.brand}/${contract.model}/${contract.modelType}`]}
-								/>
-								<Row left={["Customer Name", contract.customerName]} right={["Chassis", contract.chassis]} />
-								<Row left={["BPKB Name", contract.bpkbName]} right={["Engine", contract.engine]} />
-								<Row
-									left={["BPKB Address", contract.bpkbAddress]}
-									right={["Year / Condition", `${contract.year}/${contract.condition}`]}
-								/>
-								<Row
-									left={["Supplier", contract.supplier]}
-									right={["Color / Police No.", `${contract.color}/${contract.policeNo}`]}
-								/>
-							</tbody>
-						</table>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
+			</div>
+
+			<div className="space-y-4 px-4 py-5 sm:px-6">
+				<section className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-card)]">
+					<SectionTitle>Contract Summary</SectionTitle>
+					<dl className="grid grid-cols-1 gap-x-10 gap-y-3 px-4 py-4 sm:px-6 lg:grid-cols-2">
+						<Info label="Contract Status" value={contract.status} />
+						<Info label="Brand / Model / Type" value={`${contract.brand}/${contract.model}/${contract.modelType}`} />
+						<Info label="Customer Name" value={contract.customerName} />
+						<Info label="Chassis" value={contract.chassis} />
+						<Info label="BPKB Name" value={contract.bpkbName} />
+						<Info label="Engine" value={contract.engine} />
+						<Info label="BPKB Address" value={contract.bpkbAddress} />
+						<Info label="Year / Condition" value={`${contract.year}/${contract.condition}`} />
+						<Info label="Supplier" value={contract.supplier} />
+						<Info label="Color / Police No." value={`${contract.color}/${contract.policeNo}`} />
+					</dl>
+				</section>
+
+				<SurveySection
+					title="Home Survey Report"
+					section={sections.home}
+					uploading={uploadingType === "home"}
+					uploadError={uploadErrors.home}
+					deletingFileId={deletingFileId}
+					onNotesChange={v => setNotes("home", v)}
+					onUpload={fl => handleUpload("home", fl)}
+					onDelete={id => handleDeleteFile("home", id)}
+					onPreview={handlePreview}
+				/>
+				<SurveySection
+					title="Office Survey Report"
+					section={sections.office}
+					uploading={uploadingType === "office"}
+					uploadError={uploadErrors.office}
+					deletingFileId={deletingFileId}
+					onNotesChange={v => setNotes("office", v)}
+					onUpload={fl => handleUpload("office", fl)}
+					onDelete={id => handleDeleteFile("office", id)}
+					onPreview={handlePreview}
+				/>
+				<SurveySection
+					title="Other Survey Report"
+					section={sections.other}
+					uploading={uploadingType === "other"}
+					uploadError={uploadErrors.other}
+					deletingFileId={deletingFileId}
+					onNotesChange={v => setNotes("other", v)}
+					onUpload={fl => handleUpload("other", fl)}
+					onDelete={id => handleDeleteFile("other", id)}
+					onPreview={handlePreview}
+				/>
+
+				{savingNext && (
+					<div className="flex items-center gap-2 text-[13px] font-medium text-[var(--app-muted)]">
+						<span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-500 border-b-transparent" />
+						Saving…
 					</div>
-
-					<SurveySection
-						title="Home Survey Report"
-						section={sections.home}
-						uploading={uploadingType === "home"}
-						uploadError={uploadErrors.home}
-						deletingFileId={deletingFileId}
-						onNotesChange={v => setNotes("home", v)}
-						onUpload={fl => handleUpload("home", fl)}
-						onDelete={id => handleDeleteFile("home", id)}
-						onPreview={handlePreview}
-					/>
-					<SurveySection
-						title="Office Survey Report"
-						section={sections.office}
-						uploading={uploadingType === "office"}
-						uploadError={uploadErrors.office}
-						deletingFileId={deletingFileId}
-						onNotesChange={v => setNotes("office", v)}
-						onUpload={fl => handleUpload("office", fl)}
-						onDelete={id => handleDeleteFile("office", id)}
-						onPreview={handlePreview}
-					/>
-					<SurveySection
-						title="Other Survey Report"
-						section={sections.other}
-						uploading={uploadingType === "other"}
-						uploadError={uploadErrors.other}
-						deletingFileId={deletingFileId}
-						onNotesChange={v => setNotes("other", v)}
-						onUpload={fl => handleUpload("other", fl)}
-						onDelete={id => handleDeleteFile("other", id)}
-						onPreview={handlePreview}
-					/>
-				</div>
-
-				{savingNext && <p className="text-sm text-[var(--app-muted)] mt-3">Saving…</p>}
+				)}
 			</div>
 		</div>
 	);

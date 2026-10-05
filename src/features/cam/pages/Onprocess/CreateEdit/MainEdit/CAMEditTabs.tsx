@@ -533,7 +533,6 @@ export default function CamEditTabs({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [menu]);
 
-
 	const { data: headerData } = useQuery({
 		queryKey: ['cam-edit-header', ctx.apless, ctx.applno],
 		queryFn: async () => {

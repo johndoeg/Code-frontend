@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import OCRUploadSection, { type InitialOcrData } from '@/features/cam/contexts/OCRUploadSection';
 import { MAX_FILE_LIMIT } from '@/shared/constants/DefaultValue';
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
 	type CustomerData, type ConfidenceMap, type VerifiedMap, type DukcapilVerification,
 	type MaritalOption, type UploadedDoc, type IdType, type OcrRecord, type PreviewState,
@@ -23,6 +23,8 @@ interface IncomingMeta {
 
 const OCR_DOC_TYPES = new Set(["cust-ktp", "cust-spouse-ktp", "cust-wna-spouse-ktp"]);
 
+const NOTES_MAX_LENGTH = 1000;
+
 interface IncomingDocEntry {
 	customerDocumentId: number;
 	fileName: string;
@@ -31,7 +33,7 @@ interface IncomingDocEntry {
 	readonly?: boolean;
 }
 
-interface IncomingPrecheckState {
+export interface IncomingPrecheckState {
 	idCard?: string;
 	customerType?: string;
 	customerName?: string;
@@ -50,11 +52,17 @@ interface SeedDoc { id: number; name: string; key: string; }
 const mapIncomingDocs = (list?: IncomingDocEntry[]): SeedDoc[] =>
 	(list || []).map((d) => ({ id: d.customerDocumentId, name: d.fileName, key: d.awsKey }));
 
-const PrecheckingIndividuPage: React.FC = () => {
+interface PrecheckingIndividuPageProps {
+	incomingState?: IncomingPrecheckState | null;
+	onBack?: () => void;
+}
+
+const PrecheckingIndividuPage: React.FC<PrecheckingIndividuPageProps> = ({ incomingState, onBack }) => {
 	useInjectStyles();
 
 	const location = useLocation();
-	const incoming = location.state as IncomingPrecheckState | null;
+	const navigate = useNavigate();
+	const incoming = incomingState ?? (location.state as IncomingPrecheckState | null);
 
 	const custInitialData = useMemo<InitialOcrData>(() => ({
 		data: mapOcrToCustomer(incoming?.precheckingData?.customer),
@@ -82,6 +90,8 @@ const PrecheckingIndividuPage: React.FC = () => {
 		() => mapIncomingDocs(incoming?.documents?.["cust-wna-spouse-ktp"]),
 		[incoming],
 	);
+
+	const isRepeatOrder = !!incoming?.customerName?.trim();
 
 	const [precheckingId, setPrecheckingId] = useState("");
 	const [apless, setApless] = useState("");
@@ -174,15 +184,15 @@ const PrecheckingIndividuPage: React.FC = () => {
 			const fetched: UploadedDoc[] = res.data ?? [];
 			setDocs((prev) => {
 				const previewMap = new Map(prev.map((d) => [d.id, d.previewUrl]));
-				const readonlyDocs = prev.filter((d) => d.readonly);
-				const freshDocs = fetched.map((d) => ({
+				const readonlyIds = new Set(prev.filter((d) => d.readonly).map((d) => d.id));
+				return fetched.map((d: any) => ({
 					...d,
+					readonly: readonlyIds.has(d.id) || (d.prechecking_id != null && d.prechecking_id !== precheckingId),
 					previewUrl:
 						(newDocName && d.name === newDocName)
 							? newPreviewUrl
 							: previewMap.get(d.id),
 				}));
-				return [...readonlyDocs, ...freshDocs];
 			});
 		} catch (e) {
 			console.error("Failed to refresh docs", e);
@@ -393,6 +403,26 @@ const PrecheckingIndividuPage: React.FC = () => {
 		}
 	};
 
+	const resetSpouseLookup = () => {
+		const removeIds = new Set(spouseLookupDocs.map((d) => d.id));
+		if (removeIds.size) {
+			setDocs((prev) => prev.filter((d) => !(d.readonly && removeIds.has(d.id))));
+		}
+		setSpouse(EMPTY_CUSTOMER());
+		setSpouseConf({});
+		setSpouseVer({});
+		setSpouseDukcapil(ver_UNCHECKED);
+		setSpouseSeed(null);
+		setSpouseSeedMeta(null);
+		setSpouseLookupDocs([]);
+		setSpouseLookupMsg(null);
+		setSpouseNikSearch("");
+		setSpouseSeedKey((k) => k + 1);
+		setErrors((prev) =>
+			Object.fromEntries(Object.entries(prev).filter(([k]) => !k.startsWith("spouse_")))
+		);
+	};
+
 	const handleDeleteDoc = async (docId: number) => {
 		const target = docs.find((d) => d.id === docId);
 		if (target?.readonly) return;
@@ -462,7 +492,7 @@ const PrecheckingIndividuPage: React.FC = () => {
 
 	const handleCancel = async () => {
 		try { await api.post('/CAM/Prechecking/cancel', { prechecking_id: precheckingId }); }
-		finally { window.location.reload(); }
+		finally { onBack ? onBack() : window.location.reload(); }
 	};
 
 	const isMarried = ["M", "O"].includes(marital);
@@ -564,12 +594,18 @@ const PrecheckingIndividuPage: React.FC = () => {
 			e.wna_spouse_dukcapil = "Please verify the WNA's Spouse KTP data with Dukcapil before submitting";
 		}
 
+		if (notes.length > NOTES_MAX_LENGTH) {
+			e.notes = `Note for Prechecking must be ${NOTES_MAX_LENGTH} characters or fewer`;
+		}
+
 		setErrors(e);
 		if (Object.keys(e).length) {
-			const dukcapilMsgs = [e.cust_dukcapil, e.spouse_dukcapil, e.wna_spouse_dukcapil].filter(Boolean) as string[];
-			if (dukcapilMsgs.length) {
-				alert(dukcapilMsgs.join("\n"));
-			}
+			const summary = Object.values(e).filter(Boolean);
+			alert(
+				summary.length > 1
+					? `Please complete all required fields:\n\n• ${summary.join("\n• ")}`
+					: summary[0] ?? "Please complete all required fields.",
+			);
 			return;
 		}
 
@@ -591,7 +627,7 @@ const PrecheckingIndividuPage: React.FC = () => {
 			const payload = {
 				prechecking_id: precheckingId, apless, cust_type: "PR", lessee_type: "PR",
 				carried_documents: carriedDocuments,
-				check_for: "C", cust_new_ro: "New", cust_nationality_type: nationality,
+				check_for: "C", cust_new_ro: isRepeatOrder ? "Repeat Order" : "New", cust_nationality_type: nationality,
 				marital_status: marital, wna_marital_status: wnaMarital,
 				is_carro_type: isCarro ? 1 : 0, note_prechecking_pr: notes,
 
@@ -699,12 +735,17 @@ const PrecheckingIndividuPage: React.FC = () => {
 				const warnings: string[] = [];
 				if (failedDocs.length) warnings.push(`Dokumen gagal disalin: ${failedDocs.join(", ")}.`);
 				if (missingDocs.length) warnings.push(`File belum tersimpan: ${missingDocs.join(", ")}.`);
+				const carryDebug: string[] = res.data?.carry_debug ?? [];
+				const debugBlock = carryDebug.length
+					? `\n\n--- carry_debug ---\n${carryDebug.join("\n")}`
+					: "\n\n--- carry_debug: (field absent — backend not deployed/restarted) ---";
 				alert(
 					warnings.length
-						? `Prechecking submitted.\n${warnings.join("\n")}\nSilakan upload ulang file tersebut.`
+						? `Prechecking submitted.\n${warnings.join("\n")}\nSilakan upload ulang file tersebut.${debugBlock}`
 						: "Prechecking submitted successfully!",
 				);
-				window.location.reload();
+				onBack?.();
+				navigate('/cam-request-onhand');
 			} else {
 				alert(res.data?.message ?? "Submission failed");
 			}
@@ -730,7 +771,7 @@ const PrecheckingIndividuPage: React.FC = () => {
 
 			<div className="page-wrap">
 				<div className="hdr">
-					<div>
+					<div style={{ flex: 1, minWidth: 0 }}>
 						<div className="hdr-title">Add Prechecking Data</div>
 						<div className="hdr-sub">Individual Customer · KYC Verification</div>
 					</div>
@@ -738,6 +779,65 @@ const PrecheckingIndividuPage: React.FC = () => {
 						<span className="hdr-badge-label">Prechecking ID</span>
 						<span className="hdr-badge-value">{precheckingId || "—"}</span>
 					</div>
+					<button
+						type="button"
+						onClick={handleCancel}
+						disabled={loading}
+						aria-label="Back"
+						style={{
+							display: "inline-flex", alignItems: "center", gap: 7,
+							padding: "9px 16px 9px 12px",
+							borderRadius: 999,
+							border: "1px solid rgba(15, 29, 60, .1)",
+							background: "linear-gradient(180deg, #ffffff, #F6F9FE)",
+							color: "#0F1D3C",
+							fontSize: ".82rem",
+							fontWeight: 600,
+							fontFamily: "inherit",
+							letterSpacing: ".01em",
+							cursor: loading ? "not-allowed" : "pointer",
+							marginLeft: 12,
+							flexShrink: 0,
+							opacity: loading ? 0.55 : 1,
+							boxShadow: "0 1px 2px rgba(15, 29, 60, .04), 0 1px 1px rgba(15, 29, 60, .02)",
+							transition: "transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s cubic-bezier(.4,0,.2,1), border-color .18s, background .18s",
+						}}
+						onMouseEnter={(e) => {
+							if (loading) return;
+							e.currentTarget.style.background = "linear-gradient(180deg, #F6F9FE, #EBF1FB)";
+							e.currentTarget.style.borderColor = "rgba(15, 29, 60, .18)";
+							e.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 29, 60, .09), 0 1px 2px rgba(15, 29, 60, .04)";
+							const arrow = e.currentTarget.querySelector<SVGElement>("svg");
+							if (arrow) arrow.style.transform = "translateX(-2px)";
+						}}
+						onMouseLeave={(e) => {
+							e.currentTarget.style.background = "linear-gradient(180deg, #ffffff, #F6F9FE)";
+							e.currentTarget.style.borderColor = "rgba(15, 29, 60, .1)";
+							e.currentTarget.style.boxShadow = "0 1px 2px rgba(15, 29, 60, .04), 0 1px 1px rgba(15, 29, 60, .02)";
+							const arrow = e.currentTarget.querySelector<SVGElement>("svg");
+							if (arrow) arrow.style.transform = "translateX(0)";
+						}}
+						onMouseDown={(e) => {
+							if (loading) return;
+							e.currentTarget.style.transform = "scale(.97)";
+						}}
+						onMouseUp={(e) => {
+							e.currentTarget.style.transform = "scale(1)";
+						}}
+					>
+						<svg
+							width="15" height="15"
+							viewBox="0 0 24 24" fill="none"
+							stroke="currentColor" strokeWidth="2.2"
+							strokeLinecap="round" strokeLinejoin="round"
+							style={{ transition: "transform .18s cubic-bezier(.4,0,.2,1)" }}
+							aria-hidden="true"
+						>
+							<path d="M19 12H5" />
+							<path d="M12 19l-7-7 7-7" />
+						</svg>
+						<span>Back</span>
+					</button>
 				</div>
 
 				<div className="card">
@@ -756,7 +856,11 @@ const PrecheckingIndividuPage: React.FC = () => {
 						<div className="form-grid" style={{ marginBottom: 14 }}>
 							<div className="form-field">
 								<label className="form-label">New / Repeat Order</label>
-								<div className="select-wrap"><select disabled value="New" className="form-select is-disabled"><option value="New">New</option></select></div>
+								<div className="select-wrap">
+									<select disabled value={isRepeatOrder ? "Repeat Order" : "New"} className="form-select is-disabled">
+										<option value={isRepeatOrder ? "Repeat Order" : "New"}>{isRepeatOrder ? "Repeat Order" : "New"}</option>
+									</select>
+								</div>
 							</div>
 							<div className="form-field">
 								<label className="form-label">Temp. Customer No.</label>
@@ -809,18 +913,8 @@ const PrecheckingIndividuPage: React.FC = () => {
 								previousPrecheckingId={incoming?.previousPrecheckingId}
 								initialDocs={custInitialDocs}
 								onDataChange={handleCustomerData}
+								onUpload={_refreshDocs}
 							/>
-							<div className="form-field full" style={{ marginTop: 12, marginBottom: 20 }}>
-								<label className="form-label">File KTP Debitur</label>
-								{!docsOf("cust-ktp").length && (
-									<FileInput
-										label="Upload File KTP"
-										onFileChange={(f) => _uploadDoc(f, "cust-ktp")}
-										uploading={uploadingDocs.has("cust-ktp")}
-									/>
-								)}
-								<DocList docs={docsOf("cust-ktp")} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
-							</div>
 						</>
 					)}
 
@@ -934,15 +1028,32 @@ const PrecheckingIndividuPage: React.FC = () => {
 								<div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
 									<div className="form-field" style={{ flex: "1 1 280px" }}>
 										<label className="form-label">NIK Pasangan · KTP</label>
-										<input
-											className="form-input"
-											inputMode="numeric"
-											maxLength={16}
-											placeholder="16 digit NIK"
-											value={spouseNikSearch}
-											onChange={(e) => setSpouseNikSearch(e.target.value.replace(/\D/g, "").slice(0, 16))}
-											onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSpouseNikLookup(); } }}
-										/>
+										<div style={{ position: "relative" }}>
+											<input
+												className="form-input"
+												inputMode="numeric"
+												maxLength={16}
+												placeholder="16 digit NIK"
+												value={spouseNikSearch}
+												onChange={(e) => setSpouseNikSearch(e.target.value.replace(/\D/g, "").slice(0, 16))}
+												onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSpouseNikLookup(); } }}
+												style={{ paddingRight: (spouseNikSearch || spouseSeed) ? 34 : undefined }}
+											/>
+											{(spouseNikSearch || spouseSeed) && (
+												<button
+													type="button"
+													aria-label="Hapus & reset data pasangan"
+													title="Hapus & reset data pasangan"
+													onClick={resetSpouseLookup}
+													style={{
+														position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+														width: 22, height: 22, borderRadius: "50%", border: "none", cursor: "pointer",
+														background: "#e2e8f0", color: "#475569", fontSize: 14, lineHeight: "22px",
+														display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+													}}
+												>×</button>
+											)}
+										</div>
 									</div>
 									<button
 										className="btn-primary"
@@ -968,6 +1079,7 @@ const PrecheckingIndividuPage: React.FC = () => {
 										onPreview={handlePreview}
 										onPreviewPhoto={(src) => setPreview({ open: true, name: "Pas Foto KTP.jpg", previewUrl: src })}
 										previewLoadingId={previewLoadingId}
+										onCancel={resetSpouseLookup}
 									/>
 								)}
 							</div>
@@ -984,6 +1096,7 @@ const PrecheckingIndividuPage: React.FC = () => {
 								previousPrecheckingId={incoming?.previousPrecheckingId}
 								initialDocs={spouseInitialDocs}
 								onDataChange={handleSpouseData}
+								onUpload={_refreshDocs}
 							/>
 							<div className="form-field full" style={{ marginTop: 12, marginBottom: 20 }}>
 								<label className="form-label">File KTP Pasangan</label>
@@ -1050,6 +1163,7 @@ const PrecheckingIndividuPage: React.FC = () => {
 								previousPrecheckingId={incoming?.previousPrecheckingId}
 								initialDocs={wnaSpouseInitialDocs}
 								onDataChange={handleWnaSpouseData}
+								onUpload={_refreshDocs}
 							/>
 							<div className="form-field full" style={{ marginTop: 12, marginBottom: 20 }}>
 								<label className="form-label">File KTP Pasangan (WNI)</label>
@@ -1132,7 +1246,19 @@ const PrecheckingIndividuPage: React.FC = () => {
 						</div>
 						<div className="form-field">
 							<label className="form-label">Note for Prechecking</label>
-							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea" placeholder="Optional notes…" style={{ textTransform: "uppercase" }} />
+							<textarea
+								rows={4}
+								value={notes}
+								onChange={(e) => setNotes(e.target.value.toUpperCase().slice(0, NOTES_MAX_LENGTH))}
+								maxLength={NOTES_MAX_LENGTH}
+								className={`form-textarea${errors.notes ? " err" : ""}`}
+								placeholder=""
+								style={{ textTransform: "uppercase" }}
+							/>
+							<div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+								{errors.notes ? <p className="field-err" style={{ margin: 0 }}>{errors.notes}</p> : <span />}
+								<span style={{ fontSize: 12, color: "#888" }}>{notes.length}/{NOTES_MAX_LENGTH}</span>
+							</div>
 						</div>
 					</div>
 

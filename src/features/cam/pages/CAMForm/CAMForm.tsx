@@ -197,7 +197,6 @@ export default function CamForm() {
 		if (!guarantor) next.guarantor = 'Guarantor availability must not be empty';
 		if (!newCar) next.newCar = 'Vehicle condition must not be empty';
 		if (showPublic && !publicStatus) next.publicStatus = 'Go Public must not be empty';
-		if (!boa) next.boa = 'Beneficial Owner Availability must not be empty';
 		if (showBot && !bot) next.bot = 'Beneficial Owner Type must not be empty';
 		setErrors(next);
 		return Object.keys(next).length === 0;
@@ -443,6 +442,7 @@ export default function CamForm() {
 							</div>
 						)}
 
+						{showPublic && publicStatus !== '' && (
 						<div>
 							<label className={labelCls}>Beneficial Owner Availability</label>
 							<div className="flex gap-6">
@@ -495,6 +495,7 @@ export default function CamForm() {
 								</div>
 							)}
 						</div>
+						)}
 					</div>
 				)}
 			</div>

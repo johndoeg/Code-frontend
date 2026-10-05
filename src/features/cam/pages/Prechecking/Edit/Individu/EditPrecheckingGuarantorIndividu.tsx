@@ -3,8 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '@/shared/api/axiosInstance';
 import OCRUploadSection, { type InitialOcrData } from '@/features/cam/contexts/OCRUploadSection';
 import { MAX_FILE_LIMIT } from '@/shared/constants/DefaultValue';
-import { fetchCamEditPrData, submitCamEditPr } from '@/features/cam/api/editPR';
-import type { CamEditPrSubmitPayload } from '@/features/cam/types/prechecking';
 import { extractErrorMessage } from '@/features/cam/utils/prechecking/errorMessage';
 import {
 	type CustomerData, type ConfidenceMap, type VerifiedMap, type DukcapilVerification,
@@ -15,6 +13,8 @@ import {
 } from '@/features/cam/components/PrecheckingShared';
 
 const CANCEL_PATH = '/cam-request-onhand';
+const EDIT_API = '/Prechecking/EditGuarantor';
+const DOC_API = '/CAM/Prechecking';
 
 type Nat = 'WNI' | 'WNA';
 
@@ -142,6 +142,9 @@ interface FormSnapshot {
 	spouseCarryIds: number[];
 }
 
+const docsSignature = (list: UploadedDoc[]): string =>
+	list.map((d) => `${d.id}:${d.type}`).sort().join('|');
+
 const pickFields = (p: CustomerData) => COMPARE_FIELDS.map((k) => (p[k] || '').trim());
 
 const buildComparable = (s: FormSnapshot): string => {
@@ -198,7 +201,7 @@ const ErrorList: React.FC<{ errors: Record<string, string>; prefix: string }> = 
 	);
 };
 
-const EditPrecheckingIndividuPage: React.FC = () => {
+const EditPrecheckingGuarantorIndividuPage: React.FC = () => {
 	useInjectStyles();
 
 	const [searchParams] = useSearchParams();
@@ -211,6 +214,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [baseline, setBaseline] = useState('');
+	const [docsBaseline, setDocsBaseline] = useState('');
 	const [maritalOptions, setMaritalOptions] = useState<MaritalOption[]>([]);
 
 	const [marital, setMarital] = useState('');
@@ -251,8 +255,8 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 	const [errors, setErrors] = useState<Record<string, string>>({});
 
 	const nationality: Nat = data?.nationality ?? 'WNI';
-	const docPrefix = data?.check_for === 'G' ? 'guarantor' : 'cust';
-	const organizationType = data?.check_for === 'G' ? 'GUARNPR' : 'PR';
+	const docPrefix = 'guarantor';
+	const organizationType = 'GUARNPR';
 	const custKtpType = `${docPrefix}-ktp`;
 	const custWnaDocType = `${docPrefix}-${custIdType === 'KITAP' ? 'kitap' : 'kitas'}`;
 	const spouseKtpType = nationality === 'WNA' ? `${docPrefix}-wna-spouse-ktp` : `${docPrefix}-spouse-ktp`;
@@ -309,7 +313,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 	const closePreview = useCallback(() => setPreview(PREVIEW_CLOSED), []);
 
 	const fetchDocs = useCallback(async (): Promise<UploadedDoc[]> => {
-		const res = await api.get('/CAM/Prechecking/documents', {
+		const res = await api.get(`${DOC_API}/documents-guarantor`, {
 			params: { apless, prechecking_id: precheckingId },
 		});
 		return (res.data ?? []) as UploadedDoc[];
@@ -341,7 +345,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 			setLoadError(null);
 			try {
 				const [raw, maritalR, docList] = await Promise.all([
-					fetchCamEditPrData(apless, precheckingId),
+					api.get(`${EDIT_API}/get-data`, { params: { apless, prechecking_id: precheckingId } }).then((r) => r.data),
 					api.get('/CAM/Prechecking/marital-statuses'),
 					fetchDocs().catch(() => [] as UploadedDoc[]),
 				]);
@@ -357,6 +361,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 
 				setMaritalOptions(maritalR.data ?? []);
 				setDocs(docList);
+				setDocsBaseline(docsSignature(docList));
 
 				setMarital(res.marital_status || '');
 				setIsCarro(seedCarro);
@@ -445,7 +450,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 			fd.append('cust_type', 'PR');
 			fd.append('organization_type', organizationType);
 
-			const res = await api.post('/CAM/Prechecking/upload-document', fd);
+			const res = await api.post(`${DOC_API}/upload-document-guarantor`, fd);
 			if (!res.data?.success) {
 				alert(res.data?.message ?? 'Upload gagal. Silakan coba lagi.');
 				if (localPreviewUrl) URL.revokeObjectURL(localPreviewUrl);
@@ -489,7 +494,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 		setDeletingDocs((prev) => new Set(prev).add(docId));
 		try {
 			if (doc.previewUrl?.startsWith('blob:')) URL.revokeObjectURL(doc.previewUrl);
-			const res = await api.post('/CAM/Prechecking/delete-document', {
+			const res = await api.post(`${DOC_API}/delete-document-guarantor`, {
 				customer_document_id: docId,
 				prechecking_id: precheckingId,
 				nik: '',
@@ -519,7 +524,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 		}
 		setPreviewLoadingId(doc.id);
 		try {
-			const res = await api.get('/CAM/Prechecking/view-document', { params: { customer_document_id: doc.id } });
+			const res = await api.get(`${DOC_API}/view-document-guarantor`, { params: { customer_document_id: doc.id } });
 			if (res.data?.success && res.data?.view_url) {
 				setPreview({ open: true, name: doc.name, previewUrl: res.data.view_url });
 			} else {
@@ -602,12 +607,12 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 		if (!marital) e.marital_status = 'Marital Status is required';
 
 		if (nationality === 'WNI') {
-			validatePerson('customer', 'Customer', customer, e);
+			validatePerson('customer', 'Guarantor', customer, e);
 			if (data && customer.idCardNo && customer.idCardNo !== data.customer.nik) {
-				e['customer.idCardNo'] = 'Customer NIK cannot be changed on edit';
+				e['customer.idCardNo'] = 'Guarantor NIK cannot be changed on edit';
 			}
-			if (!docsOf(custKtpType).length) e['customer.document'] = 'Customer KTP file is required';
-			if (!custDukcapil.checked) e['customer.dukcapil'] = "Please verify the Customer's KTP data with Dukcapil before saving";
+			if (!docsOf(custKtpType).length) e['customer.document'] = 'Guarantor KTP file is required';
+			if (!custDukcapil.checked) e['customer.dukcapil'] = "Please verify the Guarantor's KTP data with Dukcapil before saving";
 		} else {
 			if (!wnaName.trim()) e['customer.name'] = 'Nama is required';
 			if (!wnaIdCard.trim()) e['customer.idCardNo'] = `${custIdType} number is required`;
@@ -684,15 +689,22 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 			return;
 		}
 
-		if (buildComparable(snapshot()) === baseline) {
+		const formUnchanged = buildComparable(snapshot()) === baseline;
+		const docsChanged = docsSignature(docs) !== docsBaseline;
+		if (formUnchanged && !docsChanged) {
 			alert('No data changes.');
 			return;
 		}
 
 		setSaving(true);
 		try {
-			const res = (await submitCamEditPr(buildPayload() as unknown as CamEditPrSubmitPayload)) as unknown as EditPrSubmitResult;
+			const res = (await api.post(`${EDIT_API}/submit`, buildPayload())).data as EditPrSubmitResult;
 			if (res.success && res.no_changes) {
+				if (docsChanged) {
+					alert('Data updated successfully.');
+					navigate(CANCEL_PATH);
+					return;
+				}
 				alert('No data changes.');
 				return;
 			}
@@ -756,8 +768,8 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 			<div className="page-wrap">
 				<div className="hdr">
 					<div>
-						<div className="hdr-title">Edit Prechecking Data</div>
-						<div className="hdr-sub">Individual {data.check_for === 'G' ? 'Guarantor' : 'Customer'} · {data.apless}</div>
+						<div className="hdr-title">Edit Guarantor Prechecking Data</div>
+						<div className="hdr-sub">Individual Guarantor · {data.apless}</div>
 					</div>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1 }}>
 						<div className="hdr-badge">
@@ -793,7 +805,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 						<div className="form-grid" style={{ marginBottom: 14 }}>
 							<div className="form-field">
 								<label className="form-label">Checking For</label>
-								<input readOnly value={data.check_for === 'G' ? 'Guarantor' : 'Customer'} className="form-input is-readonly" />
+								<input readOnly value="Guarantor" className="form-input is-readonly" />
 							</div>
 							<div className="form-field">
 								<label className="form-label">Type</label>
@@ -827,9 +839,9 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 
 					{nationality === 'WNI' && (
 						<>
-							<div className="section-label"><span className="dot" />Customer KTP (OCR)<hr /></div>
+							<div className="section-label"><span className="dot" />Guarantor KTP (OCR)<hr /></div>
 							<div className="form-field full" style={{ marginBottom: 16 }}>
-								<label className="form-label">File KTP Debitur <span className="req">*</span></label>
+								<label className="form-label">File KTP Penjamin <span className="req">*</span></label>
 								{!docsOf(custKtpType).length && (
 									<FileInput
 										label="Upload File KTP"
@@ -842,9 +854,9 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 							<OCRUploadSection
 								apless={apless}
 								precheckingId={precheckingId}
-								ocrFor="customer"
+								ocrFor="guarantor"
 								docType={custKtpType}
-								title="Customer · WNI"
+								title="Guarantor · WNI"
 								nationality="WNI"
 								maritalStatus={maritalOptions.find((o) => o.value === marital)?.label}
 								initialData={custInitialData}
@@ -858,10 +870,10 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 
 					{nationality === 'WNA' && (
 						<>
-							<div className="section-label"><span className="dot" />Customer WNA Information<hr /></div>
+							<div className="section-label"><span className="dot" />Guarantor WNA Information<hr /></div>
 							<div className="epc-wna-card" style={{ marginBottom: 20 }}>
 								<div className="epc-wna-head">
-									<span className="epc-wna-title">🌐 Customer WNA · {custIdType}</span>
+									<span className="epc-wna-title">🌐 Guarantor WNA · {custIdType}</span>
 								</div>
 								<div className="epc-wna-row">
 									<FieldPair label={<>Nama <span className="req">*</span></>}>
@@ -917,7 +929,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 
 					{showSpouseOCR && (
 						<>
-							<div className="section-label"><span className="dot" />{nationality === 'WNA' ? 'Spouse of WNA Customer (WNI KTP)' : 'Spouse KTP (OCR)'}<hr /></div>
+							<div className="section-label"><span className="dot" />{nationality === 'WNA' ? 'Spouse of WNA Guarantor (WNI KTP)' : 'Spouse KTP (OCR)'}<hr /></div>
 							<div className="form-field full" style={{ marginBottom: 16 }}>
 								<label className="form-label">File KTP Pasangan <span className="req">*</span></label>
 								{!spouseKtpDocs.length && (
@@ -988,7 +1000,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 								key={`spouse-ocr-${spouseSeedKey}`}
 								apless={apless}
 								precheckingId={precheckingId}
-								ocrFor={nationality === 'WNA' ? 'wna_spouse' : 'spouse'}
+								ocrFor={nationality === 'WNA' ? 'guarantor_wna_spouse' : 'guarantor_spouse'}
 								docType={spouseKtpType}
 								title={nationality === 'WNA' ? 'Spouse of WNA · WNI KTP' : 'Spouse · WNI'}
 								initialData={spouseSeed ?? spouseInitialData}
@@ -1059,7 +1071,7 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 						</div>
 						<div className="form-field">
 							<label className="form-label">Note for Prechecking</label>
-							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea" placeholder="Optional notes…" style={{ textTransform: 'uppercase' }} />
+							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea" placeholder="" style={{ textTransform: 'uppercase' }} />
 						</div>
 					</div>
 
@@ -1118,4 +1130,4 @@ const EditPrecheckingIndividuPage: React.FC = () => {
 	);
 };
 
-export default EditPrecheckingIndividuPage;
+export default EditPrecheckingGuarantorIndividuPage;

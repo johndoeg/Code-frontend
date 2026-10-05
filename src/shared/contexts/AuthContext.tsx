@@ -33,12 +33,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(() => getCachedUser());
     const [loading, setLoading] = useState(() => getCachedUser() === null);
     const hasFetched = useRef(false);
+    const isChecking = useRef(false);
     const queryClient = useQueryClient();
 
     useEffect(() => {
         if (hasFetched.current) return;
         hasFetched.current = true;
         refreshUser();
+    }, []);
+
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            if (isChecking.current) return;
+            isChecking.current = true;
+            refreshUser().finally(() => {
+                isChecking.current = false;
+            });
+        };
+        window.addEventListener("app:unauthorized", handleUnauthorized);
+        return () => window.removeEventListener("app:unauthorized", handleUnauthorized);
     }, []);
 
     const refreshUser = async () => {

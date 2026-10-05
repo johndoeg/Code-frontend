@@ -716,247 +716,255 @@ const CAMFinancingCommissionPage = forwardRef<CamTabHandle, CAMFinancingCommissi
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
 
 	return (
-		<div className="rounded-2xl bg-[var(--app-card)] p-4 shadow sm:p-6">
-			<div className="judul mb-2 border-b border-[var(--app-border)] pb-1">
-				<div className="flex items-end justify-between">
-					<strong className="text-sm font-bold text-[var(--app-text)]">Commission</strong>
-					{judul && <span className="judul1 text-xs font-semibold text-blue-500">{judul}</span>}
+		<div className="overflow-hidden rounded-2xl bg-[var(--app-card)] shadow">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Commission</h2>
 				</div>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
 			</div>
-
-			<table className="w-full border-collapse">
-				<tbody>
-					<tr>
-						<td className={gridLabel}>Commission Type *</td>
-						<td className={gridValue} colSpan={3}>
-							<label className="inline-flex items-center gap-1 text-sm text-[var(--app-text)]">
-								<input type="radio" name="com_type" checked readOnly />
-								{view.commissionTypeLabel}
-							</label>
-						</td>
-					</tr>
-					<tr>
-						<td className={gridLabel}>Commission To *</td>
-						<td className={gridValue} colSpan={3}>
-							<Dropdown
-								value={sdType}
-								onChange={handleSdTypeChange}
-								options={view.sdTypeOptions}
-								className={wide}
-							/>
-						</td>
-					</tr>
-					<tr>
-						<td className={`${gridLabel} w-[15%]`}>Commission Receiver Name *</td>
-						<td className={`${gridValue} w-[25%]`}>
-							<Box value={name} onChange={setName} align="left" className={plain} />
-						</td>
-						<td className={`${gridLabel} w-[10%]`}>&nbsp;</td>
-						<td className={`${gridValue} w-[50%]`}>&nbsp;</td>
-					</tr>
-					<tr>
-						<td className={gridLabel}>Address</td>
-						<td className={gridValue}>
-							<textarea
-								value={address}
-								readOnly
-								className={`${plain} h-16 rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-sm text-[var(--app-muted)]`}
-							/>
-						</td>
-						<td className={gridLabel}>Sisa Incentive</td>
-						<td className={gridValue}>
-							<Box kind="money" value={view.sisaIncentive} readOnly className={wide} />
-						</td>
-					</tr>
-					<tr>
-						<td className={gridLabel}>&nbsp;</td>
-						<td className={gridValue}>&nbsp;</td>
-						<td className={gridLabel}>Commission To be Paid</td>
-						<td className={gridValue}>
-							<Box kind="money" value={maxFee} readOnly className={wide} />
-						</td>
-					</tr>
-
-					<tr>
-						<td colSpan={4} className="pt-3 text-sm text-[var(--app-text)]">Payment To</td>
-					</tr>
-					<tr>
-						<td colSpan={4}>
-							<div className="overflow-x-auto">
-								<table className="w-full border-collapse border border-[var(--app-border)]">
-									<thead>
-										<tr>
-											<th className={`${headCell} w-[5%]`}>No</th>
-											<th className={`${headCell} w-[15%]`}>Bank Name *</th>
-											<th className={`${headCell} w-[20%]`}>Bank Branch *</th>
-											<th className={`${headCell} w-[20%]`}>Account Name *</th>
-											<th className={`${headCell} w-[15%]`}>Account Number *</th>
-											<th className={`${headCell} w-[25%]`}>Gross Commission *</th>
-											<th className={`${headCell} w-[5%]`}>Preference *</th>
-										</tr>
-									</thead>
-									<tbody>
-										{accountRows.map((row, index) => (
-											<tr key={`${row.accNo}-${index}`}>
-												<td className={`${labelCell} text-center`}>{index + 1}.</td>
-												<td className={`${labelCell} text-center`}>{row.bankDesc}</td>
-												<td className={`${labelCell} text-center`}>{row.bankBranch}</td>
-												<td className={`${labelCell} text-center`}>{row.accName}</td>
-												<td className={`${labelCell} text-center`}>{row.accNo}</td>
-												<td className={`${labelCell} text-center`}>
-													<Box
-														kind="money"
-														value={row.amount}
-														onChange={(v) => updateAccountRow(row.accNo, { amount: v })}
-														disabled={row.amountDisabled || view.accountBlocked}
-														className="w-[140px]"
-													/>
-												</td>
-												<td className={`${labelCell} text-center`}>
-													<input
-														type="checkbox"
-														checked={row.checked}
-														disabled={row.checkboxDisabled || view.accountBlocked}
-														onChange={(e) => updateAccountRow(row.accNo, { checked: e.target.checked })}
-													/>
-												</td>
-											</tr>
-										))}
-										{accountRows.length === 0 && (
-											<tr>
-												<td className={labelCell} colSpan={7}>&nbsp;</td>
-											</tr>
-										)}
-									</tbody>
-								</table>
-							</div>
-						</td>
-					</tr>
-
-					{!view.accountBlocked && (
+			<div className="p-4 sm:p-6">
+				<table className="w-full border-collapse">
+					<tbody>
 						<tr>
-							<td colSpan={4} className="pt-4 text-center">
-								<button
-									type="button"
-									onClick={handleSave}
-									disabled={saving}
-									className={`mr-2 ${buttonClass}`}
-								>
-									{saving ? "Saving…" : "Save"}
-								</button>
-								<button type="button" onClick={resetForm} className={buttonClass}>
-									Clear
-								</button>
+							<td className={gridLabel}>Commission Type *</td>
+							<td className={gridValue} colSpan={3}>
+								<label className="inline-flex items-center gap-1 text-sm text-[var(--app-text)]">
+									<input type="radio" name="com_type" checked readOnly />
+									{view.commissionTypeLabel}
+								</label>
 							</td>
 						</tr>
-					)}
+						<tr>
+							<td className={gridLabel}>Commission To *</td>
+							<td className={gridValue} colSpan={3}>
+								<Dropdown
+									value={sdType}
+									onChange={handleSdTypeChange}
+									options={view.sdTypeOptions}
+									className={wide}
+								/>
+							</td>
+						</tr>
+						<tr>
+							<td className={`${gridLabel} w-[15%]`}>Commission Receiver Name *</td>
+							<td className={`${gridValue} w-[25%]`}>
+								<Box value={name} onChange={setName} align="left" className={plain} />
+							</td>
+							<td className={`${gridLabel} w-[10%]`}>&nbsp;</td>
+							<td className={`${gridValue} w-[50%]`}>&nbsp;</td>
+						</tr>
+						<tr>
+							<td className={gridLabel}>Address</td>
+							<td className={gridValue}>
+								<textarea
+									value={address}
+									readOnly
+									className={`${plain} h-16 rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-1.5 py-1 text-sm text-[var(--app-muted)]`}
+								/>
+							</td>
+							<td className={gridLabel}>Sisa Incentive</td>
+							<td className={gridValue}>
+								<Box kind="money" value={view.sisaIncentive} readOnly className={wide} />
+							</td>
+						</tr>
+						<tr>
+							<td className={gridLabel}>&nbsp;</td>
+							<td className={gridValue}>&nbsp;</td>
+							<td className={gridLabel}>Commission To be Paid</td>
+							<td className={gridValue}>
+								<Box kind="money" value={maxFee} readOnly className={wide} />
+							</td>
+						</tr>
 
-					{messages.length > 0 && (
+						<tr>
+							<td colSpan={4} className="pt-3 text-sm text-[var(--app-text)]">Payment To</td>
+						</tr>
 						<tr>
 							<td colSpan={4}>
-								<div className="message mt-2 space-y-1">
-									{messages.map((line, i) => (
-										<p key={i} className="text-sm text-red-600">{line}</p>
-									))}
+								<div className="overflow-x-auto">
+									<table className="w-full border-collapse border border-[var(--app-border)]">
+										<thead>
+											<tr>
+												<th className={`${headCell} w-[5%]`}>No</th>
+												<th className={`${headCell} w-[15%]`}>Bank Name *</th>
+												<th className={`${headCell} w-[20%]`}>Bank Branch *</th>
+												<th className={`${headCell} w-[20%]`}>Account Name *</th>
+												<th className={`${headCell} w-[15%]`}>Account Number *</th>
+												<th className={`${headCell} w-[25%]`}>Gross Commission *</th>
+												<th className={`${headCell} w-[5%]`}>Preference *</th>
+											</tr>
+										</thead>
+										<tbody>
+											{accountRows.map((row, index) => (
+												<tr key={`${row.accNo}-${index}`}>
+													<td className={`${labelCell} text-center`}>{index + 1}.</td>
+													<td className={`${labelCell} text-center`}>{row.bankDesc}</td>
+													<td className={`${labelCell} text-center`}>{row.bankBranch}</td>
+													<td className={`${labelCell} text-center`}>{row.accName}</td>
+													<td className={`${labelCell} text-center`}>{row.accNo}</td>
+													<td className={`${labelCell} text-center`}>
+														<Box
+															kind="money"
+															value={row.amount}
+															onChange={(v) => updateAccountRow(row.accNo, { amount: v })}
+															disabled={row.amountDisabled || view.accountBlocked}
+															className="w-[140px]"
+														/>
+													</td>
+													<td className={`${labelCell} text-center`}>
+														<input
+															type="checkbox"
+															checked={row.checked}
+															disabled={row.checkboxDisabled || view.accountBlocked}
+															onChange={(e) => updateAccountRow(row.accNo, { checked: e.target.checked })}
+														/>
+													</td>
+												</tr>
+											))}
+											{accountRows.length === 0 && (
+												<tr>
+													<td className={labelCell} colSpan={7}>&nbsp;</td>
+												</tr>
+											)}
+										</tbody>
+									</table>
 								</div>
 							</td>
 						</tr>
-					)}
-				</tbody>
-			</table>
 
-			<div className="mt-4 overflow-x-auto">
-				<table className="w-full border-collapse border border-[var(--app-border)]">
-					<thead>
-						<tr>
-							<th className={`${headCell} w-[10%]`}>Commission To</th>
-							<th className={`${headCell} w-[15%]`}>Name</th>
-							<th className={`${headCell} w-[30%]`}>Address</th>
-							<th className={`${headCell} w-[8%]`}>Bank Name</th>
-							<th className={`${headCell} w-[13%]`}>Account Name</th>
-							<th className={`${headCell} w-[10%]`}>Account Number</th>
-							<th className={`${headCell} w-[10%]`}>Gross Commission</th>
-							<th className={`${headCell} w-[5%]`}>&nbsp;</th>
-						</tr>
-					</thead>
-					<tbody>
-						{view.rows.map((row, index) => (
-							<tr
-								key={`${row.salesNo}-${row.accNo}-${index}`}
-								style={{ backgroundColor: index % 2 === 0 ? "#E5E5E5" : "#F5F5F5" }}
-							>
-								<td className={`${labelCell} align-top`}>{row.sdTypeLabel}</td>
-								<td className={`${labelCell} align-top`}>{row.name}</td>
-								<td className={`${labelCell} align-top`}>{row.address}</td>
-								<td className={`${labelCell} align-top`}>{row.bank}</td>
-								<td className={`${labelCell} align-top`}>{row.accName}</td>
-								<td className={`${labelCell} align-top`}>{row.accNo}</td>
-								<td className={`${labelCell} text-right align-top`}>{fmt(row.amount)}</td>
-								<td className={`${labelCell} text-center align-top`}>
-									{row.canEditDelete && (
-										<span className="inline-flex justify-center gap-1">
-											<button
-												type="button"
-												title="Edit"
-												onClick={() => setEditTarget({ salesNo: row.salesNo, sdType: row.sdType, accNo: row.accNo })}
-												className={actionButton}
-											>
-												Edit
-											</button>
-											<button
-												type="button"
-												title="Delete"
-												onClick={() => void handleDelete(row)}
-												className={actionButton}
-											>
-												Delete
-											</button>
-										</span>
-									)}
+						{!view.accountBlocked && (
+							<tr>
+								<td colSpan={4} className="pt-4 text-center">
+									<button
+										type="button"
+										onClick={handleSave}
+										disabled={saving}
+										className={`mr-2 ${buttonClass}`}
+									>
+										{saving ? "Saving…" : "Save"}
+									</button>
+									<button type="button" onClick={resetForm} className={buttonClass}>
+										Clear
+									</button>
 								</td>
 							</tr>
-						))}
-						<tr>
-							<td className={`${labelCell} text-right`} colSpan={6}><strong>Total</strong></td>
-							<td className={`${labelCell} text-right`}>{fmt(view.totalCommission)}</td>
-							<td className={labelCell}>&nbsp;</td>
-						</tr>
-						<tr>
-							<td className={`${labelCell} text-right`} colSpan={6}><strong>Total Incentive</strong></td>
-							<td className={`${labelCell} text-right`}>{fmt(view.totalIncentive)}</td>
-							<td className={labelCell}>&nbsp;</td>
-						</tr>
-						<tr>
-							<td className={`${labelCell} text-right`} colSpan={6}><strong>Sisa Incentive</strong></td>
-							<td className={`${labelCell} text-right`}>{fmt(view.sisaIncentive)}</td>
-							<td className={labelCell}>&nbsp;</td>
-						</tr>
+						)}
+
+						{messages.length > 0 && (
+							<tr>
+								<td colSpan={4}>
+									<div className="message mt-2 space-y-1">
+										{messages.map((line, i) => (
+											<p key={i} className="text-sm text-red-600">{line}</p>
+										))}
+									</div>
+								</td>
+							</tr>
+						)}
 					</tbody>
 				</table>
-			</div>
 
-			{view.blockMessage && (
-				<div className="message mt-3">
-					<p className="text-sm text-red-600">{view.blockMessage}</p>
+				<div className="mt-4 overflow-x-auto">
+					<table className="w-full border-collapse border border-[var(--app-border)]">
+						<thead>
+							<tr>
+								<th className={`${headCell} w-[10%]`}>Commission To</th>
+								<th className={`${headCell} w-[15%]`}>Name</th>
+								<th className={`${headCell} w-[30%]`}>Address</th>
+								<th className={`${headCell} w-[8%]`}>Bank Name</th>
+								<th className={`${headCell} w-[13%]`}>Account Name</th>
+								<th className={`${headCell} w-[10%]`}>Account Number</th>
+								<th className={`${headCell} w-[10%]`}>Gross Commission</th>
+								<th className={`${headCell} w-[5%]`}>&nbsp;</th>
+							</tr>
+						</thead>
+						<tbody>
+							{view.rows.map((row, index) => (
+								<tr
+									key={`${row.salesNo}-${row.accNo}-${index}`}
+									style={{ backgroundColor: index % 2 === 0 ? "#E5E5E5" : "#F5F5F5" }}
+								>
+									<td className={`${labelCell} align-top`}>{row.sdTypeLabel}</td>
+									<td className={`${labelCell} align-top`}>{row.name}</td>
+									<td className={`${labelCell} align-top`}>{row.address}</td>
+									<td className={`${labelCell} align-top`}>{row.bank}</td>
+									<td className={`${labelCell} align-top`}>{row.accName}</td>
+									<td className={`${labelCell} align-top`}>{row.accNo}</td>
+									<td className={`${labelCell} text-right align-top`}>{fmt(row.amount)}</td>
+									<td className={`${labelCell} text-center align-top`}>
+										{row.canEditDelete && (
+											<span className="inline-flex justify-center gap-1">
+												<button
+													type="button"
+													title="Edit"
+													onClick={() => setEditTarget({ salesNo: row.salesNo, sdType: row.sdType, accNo: row.accNo })}
+													className={actionButton}
+												>
+													Edit
+												</button>
+												<button
+													type="button"
+													title="Delete"
+													onClick={() => void handleDelete(row)}
+													className={actionButton}
+												>
+													Delete
+												</button>
+											</span>
+										)}
+									</td>
+								</tr>
+							))}
+							<tr>
+								<td className={`${labelCell} text-right`} colSpan={6}><strong>Total</strong></td>
+								<td className={`${labelCell} text-right`}>{fmt(view.totalCommission)}</td>
+								<td className={labelCell}>&nbsp;</td>
+							</tr>
+							<tr>
+								<td className={`${labelCell} text-right`} colSpan={6}><strong>Total Incentive</strong></td>
+								<td className={`${labelCell} text-right`}>{fmt(view.totalIncentive)}</td>
+								<td className={labelCell}>&nbsp;</td>
+							</tr>
+							<tr>
+								<td className={`${labelCell} text-right`} colSpan={6}><strong>Sisa Incentive</strong></td>
+								<td className={`${labelCell} text-right`}>{fmt(view.sisaIncentive)}</td>
+								<td className={labelCell}>&nbsp;</td>
+							</tr>
+						</tbody>
+					</table>
 				</div>
-			)}
 
-			{pickerOpen && (
-				<SalesPicker
-					comType={view.comType}
-					onSelect={handlePickSales}
-					onClose={() => setPickerOpen(false)}
-				/>
-			)}
+				{view.blockMessage && (
+					<div className="message mt-3">
+						<p className="text-sm text-red-600">{view.blockMessage}</p>
+					</div>
+				)}
 
-			{editTarget && (
-				<EditCommission
-					applNo={applNo}
-					target={editTarget}
-					onClose={() => setEditTarget(null)}
-					onSaved={load}
-				/>
-			)}
+				{pickerOpen && (
+					<SalesPicker
+						comType={view.comType}
+						onSelect={handlePickSales}
+						onClose={() => setPickerOpen(false)}
+					/>
+				)}
+
+				{editTarget && (
+					<EditCommission
+						applNo={applNo}
+						target={editTarget}
+						onClose={() => setEditTarget(null)}
+						onSaved={load}
+					/>
+				)}
+			</div>
 		</div>
 	);
 });

@@ -28,17 +28,16 @@ export interface CamTabHandle {
 	save: () => void;
 }
 
-function SectionHeader({ children }: { children: React.ReactNode }) {
+// card per document group (WNI / WNA / Additional / BPKB / Individual)
+function Group({ title, children }: { title: string; children: React.ReactNode }) {
 	return (
-		<div className="border-b border-t border-[var(--app-border)] bg-[var(--app-surface)] px-6 py-3 first:border-t-0">
-			<h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">{children}</h2>
-		</div>
-	);
-}
-
-function SubheadLabel({ children }: { children: React.ReactNode }) {
-	return (
-		<p className="px-6 pt-4 text-[11px] font-semibold uppercase tracking-wide text-indigo-600">{children}</p>
+		<section className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-card)]">
+			<div className="flex items-center gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2.5 sm:px-6">
+				<span className="h-4 w-1 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
+				<h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--app-text)]">{title}</h3>
+			</div>
+			<div className="divide-y divide-[var(--app-border)] px-4 sm:px-6">{children}</div>
+		</section>
 	);
 }
 
@@ -128,7 +127,7 @@ function FileChip({
 	deleting: boolean;
 }) {
 	return (
-		<div className="flex items-center gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-2 text-sm">
+		<div className="flex items-center gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)]/60 py-1 pl-3 pr-1.5 text-[13px] transition hover:border-blue-400/60 hover:bg-[var(--app-card)]">
 			<KindIcon fileName={file.documentName} className="h-4 w-4 shrink-0 text-[var(--app-muted)]" />
 			<span className="min-w-0 flex-1 truncate text-[var(--app-text)]" title={file.documentName}>
 				{file.documentName}
@@ -136,8 +135,9 @@ function FileChip({
 			<button
 				type="button"
 				onClick={() => onPreview(file)}
+				title="View"
 				aria-label={`View ${file.documentName}`}
-				className="shrink-0 rounded-md border border-orange-600 bg-orange-100 p-1.5 text-orange-800 transition hover:bg-orange-500 hover:text-white"
+				className="shrink-0 rounded-md p-1.5 text-orange-600 transition hover:bg-orange-500/10"
 			>
 				<EyeIcon className="h-4 w-4" />
 			</button>
@@ -145,10 +145,15 @@ function FileChip({
 				type="button"
 				onClick={() => onDelete(file.id)}
 				disabled={deleting}
+				title="Delete"
 				aria-label={`Delete ${file.documentName}`}
-				className="shrink-0 rounded-md border border-red-600 bg-red-100 p-1.5 text-red-800 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+				className="shrink-0 rounded-md p-1.5 text-red-600 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40"
 			>
-				<TrashIcon className="h-4 w-4" />
+				{deleting ? (
+					<span className="block h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-b-transparent" />
+				) : (
+					<TrashIcon className="h-4 w-4" />
+				)}
 			</button>
 		</div>
 	);
@@ -174,15 +179,26 @@ function DocumentUploadRow({
 	onDelete: (id: number) => void;
 }) {
 	const inputRef = React.useRef<HTMLInputElement>(null);
+	const uploaded = files.length > 0;
 	return (
-		<div className="py-3">
-			<div className="mb-2 flex items-center justify-between gap-3">
-				<p className="text-sm font-medium text-[var(--app-text)]">{label}</p>
+		<div className="grid grid-cols-1 gap-x-6 gap-y-2 py-3 md:grid-cols-[280px_minmax(0,1fr)]">
+			<div className="flex items-start gap-2 pt-1">
+				<span
+					className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${uploaded ? "bg-green-500" : "bg-[var(--app-border)]"}`}
+					title={uploaded ? "Uploaded" : "No file yet"}
+				/>
+				<p className="text-[13px] font-medium text-[var(--app-text)]">{label}</p>
+			</div>
+
+			<div className="min-w-0 space-y-1.5">
+				{files.map(f => (
+					<FileChip key={f.id} file={f} onPreview={onPreview} onDelete={onDelete} deleting={deletingFileId === f.id} />
+				))}
 				<button
 					type="button"
 					disabled={uploading}
 					onClick={() => inputRef.current?.click()}
-					className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[var(--app-border)] px-3 py-1.5 text-sm font-medium text-[var(--app-muted)] hover:border-slate-400 hover:bg-[var(--app-surface)] disabled:cursor-not-allowed disabled:opacity-50"
+					className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-[var(--app-border)] px-3 py-1.5 text-[13px] font-medium text-[var(--app-muted)] transition hover:border-blue-400 hover:bg-blue-500/5 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					{uploading ? (
 						<span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
@@ -202,15 +218,8 @@ function DocumentUploadRow({
 					}}
 					className="hidden"
 				/>
+				{uploadError && <p className="text-xs text-red-600">{uploadError}</p>}
 			</div>
-			{uploadError && <p className="mb-2 text-sm text-red-600">{uploadError}</p>}
-			{files.length > 0 && (
-				<div className="space-y-1.5">
-					{files.map(f => (
-						<FileChip key={f.id} file={f} onPreview={onPreview} onDelete={onDelete} deleting={deletingFileId === f.id} />
-					))}
-				</div>
-			)}
 		</div>
 	);
 }
@@ -331,58 +340,57 @@ const CustIndividualDocumentPage = forwardRef<CamTabHandle, CustIndividualDocume
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
 
 	return (
-		<div className="space-y-4 rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl overflow-hidden">
-			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
-				</div>
-			)}
-			<div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
-				<h2 className="text-xl font-bold text-[var(--app-text)] text-center">Customer's Document</h2>
+		<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
+			<div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--app-border)] px-4 py-3 sm:px-6">
+				<h2 className="text-[17px] font-bold text-[var(--app-text)]">Customer's Document</h2>
+				{judul && <span className="text-xs font-bold text-blue-700">{judul}</span>}
+			</div>
 
-				<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
-					<SectionHeader>Documents</SectionHeader>
-					<div className="divide-y divide-[var(--app-border)] px-6">
-						{citizen === "WNI" && (
-							<>
-								<SubheadLabel>WNI</SubheadLabel>
-								{row("cust-spouse-kk", "Customer's Spouse Family Card")}
-							</>
-						)}
-						{citizen === "WNA" && (
-							<>
-								<SubheadLabel>WNA</SubheadLabel>
-								{row("cust-kitas", "KITAS/KITAP a/n Pelanggan")}
-								{spouseCitizen === "WNI"
-									? row("cust-wna-spouse-ktp", "KITAS/KITAP a/n Suami/Istri Pelanggan")
-									: row("cust-spouse-kitas", "KITAS/KITAP a/n Suami/Istri Pelanggan")}
-								{row("cust-family-tree", "SK. Susunan Keluarga Pendatang (SKSP) WNA")}
-								{row("cust-reference", "Surat Referensi Kerja dari Perusahaan WNA Bekerja")}
-							</>
-						)}
+			<div className="space-y-4 px-4 py-5 sm:px-6">
+				{citizen === "WNI" && (
+					<Group title="WNI">
+						{row("cust-spouse-kk", "Customer's Spouse Family Card")}
+					</Group>
+				)}
+				{citizen === "WNA" && (
+					<Group title="WNA">
+						{row("cust-kitas", "KITAS/KITAP a/n Pelanggan")}
+						{spouseCitizen === "WNI"
+							? row("cust-wna-spouse-ktp", "KITAS/KITAP a/n Suami/Istri Pelanggan")
+							: row("cust-spouse-kitas", "KITAS/KITAP a/n Suami/Istri Pelanggan")}
+						{row("cust-family-tree", "SK. Susunan Keluarga Pendatang (SKSP) WNA")}
+						{row("cust-reference", "Surat Referensi Kerja dari Perusahaan WNA Bekerja")}
+					</Group>
+				)}
 
-						<SubheadLabel>Additional Document</SubheadLabel>
-						{row("cust-salary-receipt", "Salary Receipt")}
+				<Group title="Additional Document">
+					{row("cust-salary-receipt", "Salary Receipt")}
+				</Group>
 
-						<SubheadLabel>BPKB Document</SubheadLabel>
-						{row("cust-ktp-bpkb", "BPKB ID")}
-						{row("cust-kk-bpkb", "BPKB Family Card")}
-						{row("cust-other", "Other")}
+				<Group title="BPKB Document">
+					{row("cust-ktp-bpkb", "BPKB ID")}
+					{row("cust-kk-bpkb", "BPKB Family Card")}
+					{row("cust-other", "Other")}
+				</Group>
 
-						<SubheadLabel>Individual Document</SubheadLabel>
-						{row("cust-ktp", "ID Card")}
-						{citizen === "WNI" &&
-							(spouseCitizen === "WNI"
-								? row("cust-spouse-ktp", "Spouse ID Card")
-								: row("cust-spouse-kitas", "Spouse ID Card"))}
-						{row("cust-kk", "KK")}
-						{row("cust-npwp", "NPWP")}
-						{row("cust-spk", "SPK")}
-						{row("cust-marriage-or-death-statement", "Marriage/ Death/ Divorce/ Prenuptial Statement")}
+				<Group title="Individual Document">
+					{row("cust-ktp", "ID Card")}
+					{citizen === "WNI" &&
+						(spouseCitizen === "WNI"
+							? row("cust-spouse-ktp", "Spouse ID Card")
+							: row("cust-spouse-kitas", "Spouse ID Card"))}
+					{row("cust-kk", "KK")}
+					{row("cust-npwp", "NPWP")}
+					{row("cust-spk", "SPK")}
+					{row("cust-marriage-or-death-statement", "Marriage/ Death/ Divorce/ Prenuptial Statement")}
+				</Group>
+
+				{savingNext && (
+					<div className="flex items-center gap-2 text-[13px] font-medium text-[var(--app-muted)]">
+						<span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-500 border-b-transparent" />
+						Saving…
 					</div>
-				</div>
-
-				{savingNext && <p className="text-sm text-[var(--app-muted)] mt-3">Saving…</p>}
+				)}
 			</div>
 
 			{previewFile && (

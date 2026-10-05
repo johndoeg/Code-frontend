@@ -97,13 +97,20 @@ const CAMCustomerNotesPage = forwardRef<CamTabHandle, CAMCustomerNotesPageProps>
 
 	return (
 		<div className="space-y-4 rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl overflow-hidden">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+			<div className="flex items-center gap-2.5">
+			<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+			<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+			<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+			</svg>
+			</span>
+			<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Customer Notes</h2>
+			</div>
 			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
-				</div>
+			<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
 			)}
+			</div>
 			<div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
-				<h2 className="text-xl font-bold text-[var(--app-text)]">Customer Notes</h2>
 				<div className="space-y-4 overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-sm sm:p-6">
 					<CKEditorNotes value={notes} onChange={setNotes} minHeight={400} />
 

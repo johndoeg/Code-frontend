@@ -391,228 +391,234 @@ const CAMEquipmentBpkbPage = forwardRef<CamTabHandle, CAMEquipmentBpkbPageProps>
 
 	return (
 		<div className="relative space-y-4 overflow-visible rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl">
-			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">BPKB</h2>
 				</div>
-			)}
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
+			</div>
 
 			<div className="space-y-4 px-4 pb-4 sm:px-6">
-				<h2 className="text-xl font-bold text-[var(--app-text)]">BPKB</h2>
-
 				<form onSubmit={onFormSubmit}>
-				{(loadError || isError) && (
-					<p className="mb-2 text-sm text-red-600">{loadError || "Failed to load BPKB data."}</p>
-				)}
+					{(loadError || isError) && (
+						<p className="mb-2 text-sm text-red-600">{loadError || "Failed to load BPKB data."}</p>
+					)}
 
-				<Row label="BPKB No">
-					<input
-						type="text"
-						maxLength={50}
-						value={form.bpkbNo}
-						onChange={e => setForm(f => ({ ...f, bpkbNo: formatBpkbNo(e.target.value) }))}
-						placeholder="AB-12345678"
-						className={inputCls}
-					/>
-				</Row>
+					<Row label="BPKB No">
+						<input
+							type="text"
+							maxLength={50}
+							value={form.bpkbNo}
+							onChange={e => setForm(f => ({ ...f, bpkbNo: formatBpkbNo(e.target.value) }))}
+							placeholder="AB-12345678"
+							className={inputCls}
+						/>
+					</Row>
 
-				<Row label="BPKB Name Type *">
-					<div className="flex flex-wrap items-center gap-3">
-						{nameTypeReadOnly ? (
+					<Row label="BPKB Name Type *">
+						<div className="flex flex-wrap items-center gap-3">
+							{nameTypeReadOnly ? (
+								<input
+									type="text"
+									readOnly
+									value={lookups.bpkbNameTypes.find(o => o.value === form.bpkbAnTp)?.label || form.bpkbAnTp}
+									className={`${readonlyCls} max-w-xs`}
+								/>
+							) : (
+								<select
+									required
+									value={form.bpkbAnTp}
+									onChange={e => setForm(f => ({ ...f, bpkbAnTp: e.target.value }))}
+									className={`${selectCls(true)} max-w-xs`}
+								>
+									<option value="">Select</option>
+									{lookups.bpkbNameTypes.map(o => (
+										<option key={o.value} value={o.value}>{o.label}</option>
+									))}
+								</select>
+							)}
+							{detailTriggerActive && (
+								<button
+									type="button"
+									onClick={() => setShowDetailPanel(s => !s)}
+									className="text-sm text-blue-700 underline hover:text-blue-400"
+								>
+									BPKB name detail
+								</button>
+							)}
+						</div>
+					</Row>
+
+					<Row label="BPKB Name *">
+						<div className="flex flex-wrap items-center gap-3">
 							<input
 								type="text"
-								readOnly
-								value={lookups.bpkbNameTypes.find(o => o.value === form.bpkbAnTp)?.label || form.bpkbAnTp}
-								className={`${readonlyCls} max-w-xs`}
+								required
+								value={form.bpkbAn}
+								onChange={e => setForm(f => ({ ...f, bpkbAn: e.target.value }))}
+								className={`${inputCls} max-w-xs`}
 							/>
-						) : (
+							<button
+								type="button"
+								onClick={handleResetName}
+								className="shrink-0 rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-medium text-[var(--app-text)] hover:bg-slate-300"
+							>
+								Reset Name
+							</button>
+							{showCancelOrder && (
+								<label className="flex items-center gap-2 whitespace-nowrap text-sm text-[var(--app-muted)]">
+									<input
+										type="checkbox"
+										checked={form.cancelOrder}
+										onChange={e => setForm(f => ({ ...f, cancelOrder: e.target.checked }))}
+									/>
+									Cancellation Order
+								</label>
+							)}
+						</div>
+					</Row>
+
+					{showPlaceDob && (
+						<Row label="Place/ Date of Birth *">
+							<div className="flex flex-nowrap items-center gap-2">
+								<input
+									type="text"
+									maxLength={30}
+									required={placeDobRequired}
+									disabled={placeDobDisabled}
+									value={form.placebirth}
+									onChange={e => setForm(f => ({ ...f, placebirth: e.target.value }))}
+									className={`${placeDobDisabled ? readonlyCls : inputCls} !w-32 shrink-0`}
+								/>
+								<span className="shrink-0 text-sm text-[var(--app-muted)]">/</span>
+								<div className="w-44 shrink-0">
+									<AsOfDatePickerComponent
+										label=""
+										format="dd-MM-yyyy"
+										placeholder="dd-mm-yyyy"
+										required={placeDobRequired}
+										disabled={placeDobDisabled}
+										value={parseISODate(form.tglbirth)}
+										onChange={date => setForm(f => ({ ...f, tglbirth: toISODate(date) }))}
+									/>
+								</div>
+							</div>
+						</Row>
+					)}
+
+					{showFamilyDropdown && (
+						<Row label="Family Status *">
 							<select
 								required
-								value={form.bpkbAnTp}
-								onChange={e => setForm(f => ({ ...f, bpkbAnTp: e.target.value }))}
-								className={`${selectCls(true)} max-w-xs`}
+								disabled={namesMatch}
+								value={namesMatch ? "" : form.idFam}
+								onChange={e => setForm(f => ({ ...f, idFam: e.target.value }))}
+								className={`${selectCls(!namesMatch)} max-w-xs`}
 							>
 								<option value="">Select</option>
-								{lookups.bpkbNameTypes.map(o => (
+								{!namesMatch && lookups.familyStatuses.map(o => (
 									<option key={o.value} value={o.value}>{o.label}</option>
 								))}
 							</select>
-						)}
-						{detailTriggerActive && (
-							<button
-								type="button"
-								onClick={() => setShowDetailPanel(s => !s)}
-								className="text-sm text-blue-700 underline hover:text-blue-400"
-							>
-								BPKB name detail
-							</button>
-						)}
-					</div>
-				</Row>
+						</Row>
+					)}
 
-				<Row label="BPKB Name *">
-					<div className="flex flex-wrap items-center gap-3">
+					<Row label="Relationship With Customer *">
 						<input
 							type="text"
-							required
-							value={form.bpkbAn}
-							onChange={e => setForm(f => ({ ...f, bpkbAn: e.target.value }))}
-							className={`${inputCls} max-w-xs`}
+							readOnly={relationReadOnly}
+							required={relationRequired}
+							value={form.relation}
+							onChange={e => setForm(f => ({ ...f, relation: e.target.value }))}
+							className={`${relationReadOnly ? readonlyCls : inputCls} max-w-xs`}
 						/>
-						<button
-							type="button"
-							onClick={handleResetName}
-							className="shrink-0 rounded-lg bg-slate-200 px-3 py-1.5 text-sm font-medium text-[var(--app-text)] hover:bg-slate-300"
-						>
-							Reset Name
-						</button>
-						{showCancelOrder && (
-							<label className="flex items-center gap-2 whitespace-nowrap text-sm text-[var(--app-muted)]">
-								<input
-									type="checkbox"
-									checked={form.cancelOrder}
-									onChange={e => setForm(f => ({ ...f, cancelOrder: e.target.checked }))}
-								/>
-								Cancellation Order
-							</label>
-						)}
-					</div>
-				</Row>
-
-				{showPlaceDob && (
-					<Row label="Place/ Date of Birth *">
-						<div className="flex flex-nowrap items-center gap-2">
-							<input
-								type="text"
-								maxLength={30}
-								required={placeDobRequired}
-								disabled={placeDobDisabled}
-								value={form.placebirth}
-								onChange={e => setForm(f => ({ ...f, placebirth: e.target.value }))}
-								className={`${placeDobDisabled ? readonlyCls : inputCls} !w-32 shrink-0`}
-							/>
-							<span className="shrink-0 text-sm text-[var(--app-muted)]">/</span>
-							<div className="w-44 shrink-0">
-								<AsOfDatePickerComponent
-									label=""
-									format="dd-MM-yyyy"
-									placeholder="dd-mm-yyyy"
-									required={placeDobRequired}
-									disabled={placeDobDisabled}
-									value={parseISODate(form.tglbirth)}
-									onChange={date => setForm(f => ({ ...f, tglbirth: toISODate(date) }))}
-								/>
-							</div>
-						</div>
 					</Row>
-				)}
 
-				{showFamilyDropdown && (
-					<Row label="Family Status *">
-						<select
+					<Row label="BPKB Address *">
+						<textarea
 							required
-							disabled={namesMatch}
-							value={namesMatch ? "" : form.idFam}
-							onChange={e => setForm(f => ({ ...f, idFam: e.target.value }))}
-							className={`${selectCls(!namesMatch)} max-w-xs`}
+							rows={3}
+							value={form.bpkbAddr}
+							onChange={e => setForm(f => ({ ...f, bpkbAddr: e.target.value }))}
+							className={inputCls}
+						/>
+					</Row>
+
+					<Row label="Area *">
+						<select
+							value={form.areaCd}
+							onChange={e => handleAreaChange(e.target.value)}
+							className={selectCls(true)}
 						>
 							<option value="">Select</option>
-							{!namesMatch && lookups.familyStatuses.map(o => (
+							{areas.map(o => (
 								<option key={o.value} value={o.value}>{o.label}</option>
 							))}
 						</select>
 					</Row>
-				)}
 
-				<Row label="Relationship With Customer *">
-					<input
-						type="text"
-						readOnly={relationReadOnly}
-						required={relationRequired}
-						value={form.relation}
-						onChange={e => setForm(f => ({ ...f, relation: e.target.value }))}
-						className={`${relationReadOnly ? readonlyCls : inputCls} max-w-xs`}
-					/>
-				</Row>
+					<Row label="City *">
+						<input
+							type="text"
+							required
+							maxLength={20}
+							value={form.cityBpkb}
+							onChange={e => setForm(f => ({ ...f, cityBpkb: e.target.value }))}
+							className={`${inputCls} max-w-xs`}
+						/>
+					</Row>
 
-				<Row label="BPKB Address *">
-					<textarea
-						required
-						rows={3}
-						value={form.bpkbAddr}
-						onChange={e => setForm(f => ({ ...f, bpkbAddr: e.target.value }))}
-						className={inputCls}
-					/>
-				</Row>
+					<Row label="Additional Collateral">
+						<input
+							type="checkbox"
+							checked={form.addCollateral}
+							onChange={e => setForm(f => ({ ...f, addCollateral: e.target.checked }))}
+						/>
+					</Row>
 
-				<Row label="Area *">
-					<select
-						value={form.areaCd}
-						onChange={e => handleAreaChange(e.target.value)}
-						className={selectCls(true)}
-					>
-						<option value="">Select</option>
-						{areas.map(o => (
-							<option key={o.value} value={o.value}>{o.label}</option>
-						))}
-					</select>
-				</Row>
+					{notaryVisible && (
+						<>
+							<Row label="Notary Name *">
+								<select
+									required={notaryRequired}
+									value={form.notaryNo}
+									onChange={e => handleNotaryChange(e.target.value)}
+									className={selectCls(true)}
+								>
+									<option value="">Select</option>
+									{lookups.notaries.map(o => (
+										<option key={o.value} value={o.value}>{o.label}</option>
+									))}
+								</select>
+							</Row>
+							<Row label="NPWP">
+								<input type="text" readOnly value={npwpEditable ? form.npwpNo : ""} className={`${readonlyCls} max-w-xs`} />
+							</Row>
+							<Row label="NPWP Address">
+								<textarea readOnly rows={2} value={npwpEditable ? form.npwpAddrs : ""} className={readonlyCls} />
+							</Row>
+						</>
+					)}
 
-				<Row label="City *">
-					<input
-						type="text"
-						required
-						maxLength={20}
-						value={form.cityBpkb}
-						onChange={e => setForm(f => ({ ...f, cityBpkb: e.target.value }))}
-						className={`${inputCls} max-w-xs`}
-					/>
-				</Row>
+					{errors.length > 0 && (
+						<div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+							<ul className="list-disc pl-4">
+								{errors.map((msg, i) => <li key={i}>{msg}</li>)}
+							</ul>
+						</div>
+					)}
+					{warning && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-700">{warning}</p>}
+					{saving && <p className="mt-3 text-sm text-[var(--app-muted)]">Saving…</p>}
+					{message && !errors.length && <div className="message mt-3 text-sm text-[var(--app-muted)]">{message}</div>}
 
-				<Row label="Additional Collateral">
-					<input
-						type="checkbox"
-						checked={form.addCollateral}
-						onChange={e => setForm(f => ({ ...f, addCollateral: e.target.checked }))}
-					/>
-				</Row>
-
-				{notaryVisible && (
-					<>
-						<Row label="Notary Name *">
-							<select
-								required={notaryRequired}
-								value={form.notaryNo}
-								onChange={e => handleNotaryChange(e.target.value)}
-								className={selectCls(true)}
-							>
-								<option value="">Select</option>
-								{lookups.notaries.map(o => (
-									<option key={o.value} value={o.value}>{o.label}</option>
-								))}
-							</select>
-						</Row>
-						<Row label="NPWP">
-							<input type="text" readOnly value={npwpEditable ? form.npwpNo : ""} className={`${readonlyCls} max-w-xs`} />
-						</Row>
-						<Row label="NPWP Address">
-							<textarea readOnly rows={2} value={npwpEditable ? form.npwpAddrs : ""} className={readonlyCls} />
-						</Row>
-					</>
-				)}
-
-				{errors.length > 0 && (
-					<div className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-						<ul className="list-disc pl-4">
-							{errors.map((msg, i) => <li key={i}>{msg}</li>)}
-						</ul>
-					</div>
-				)}
-				{warning && <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-700">{warning}</p>}
-				{saving && <p className="mt-3 text-sm text-[var(--app-muted)]">Saving…</p>}
-				{message && !errors.length && <div className="message mt-3 text-sm text-[var(--app-muted)]">{message}</div>}
-
-				<button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
+					<button type="submit" className="hidden" aria-hidden="true" tabIndex={-1} />
 				</form>
 			</div>
 

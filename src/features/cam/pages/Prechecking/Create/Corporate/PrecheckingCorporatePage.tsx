@@ -40,6 +40,7 @@ interface DirectorEntry {
 }
 
 interface WnaBoardMember { uid: string; name: string; idCardNo: string; idType: IdType; }
+interface ShareholderEntry { uid: string; name: string; npwpNo: string; }
 
 interface LesseeTypeOption { value: string; label: string; }
 interface ModalState {
@@ -63,6 +64,7 @@ interface OcrRecord {
 	kelurahan?: string; kecamatan?: string; kota?: string; provinsi?: string;
 	agama?: string; pekerjaan?: string; status_perkawinan?: string;
 	kewarnegaraan?: string; idType?: string; foto?: string; tandaTangan?: string;
+	citizen?: string;
 	confidence?: OcrConfMap;
 	verified?: OcrVerMap;
 	dukcapil?: OcrDukcapil;
@@ -95,6 +97,7 @@ const mapOcrToDirectorData = (ocr?: OcrRecord | null): DirectorData => {
 
 interface IncomingMeta {
 	maritalStatus?: string;
+	lesseeType?: string;
 	isCarro?: boolean;
 	workAddress?: string;
 }
@@ -109,6 +112,7 @@ interface IncomingPrecheckState {
 	};
 	meta?: IncomingMeta;
 	documents?: Record<string, { customerDocumentId: number; fileName: string; fileExt: string; awsKey: string; readonly?: boolean }[]>;
+	previousPrecheckingId?: string;
 }
 
 const REQUIRED_DIRECTOR_FIELDS: [keyof DirectorData, string][] = [
@@ -117,7 +121,7 @@ const REQUIRED_DIRECTOR_FIELDS: [keyof DirectorData, string][] = [
 	["address", "Alamat"], ["rt", "RT"], ["rw", "RW"],
 	["subdistrict", "Kelurahan/Desa"], ["district", "Kecamatan"],
 	["city", "Kota/Kabupaten"], ["province", "Provinsi"],
-	["job", "Pekerjaan"], ["maritalStatus", "Status Perkawinan"],
+	["job", "Pekerjaan"],
 ];
 
 const directorLabel = (entry: DirectorEntry, all: DirectorEntry[]) =>
@@ -131,12 +135,19 @@ const directorHasError = (entry: DirectorEntry, errors: Record<string, string>) 
 
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "heic", "heif", "tiff", "tif", "webp"]);
 
+const NOTES_MAX_LENGTH = 1000;
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 const sanitizeToken = (value?: string) => (value || "").replace(/[^A-Za-z0-9]/g, "");
 
-const DIRECTOR_DOC_PREFIX = "corp-ocr-ktp";
-const WNA_BOARD_DOC_PREFIX = "wna-corp-board";
+const DIRECTOR_DOC_PREFIX = "corp-guarantor-ocr-ktp";
+const WNA_BOARD_DOC_PREFIX = "wna-corp-guarantor-board";
+const SHAREHOLDER_DOC_PREFIX = "shareholder-npwp";
+const SHAREHOLDER_NAME_MAX = 100;
+const SHAREHOLDER_NPWP_MAX = 16;
+
+const NEW_SHAREHOLDER = (): ShareholderEntry => ({ uid: uid(), name: "", npwpNo: "" });
 
 const SERVER_FIELD_MAP: Record<string, keyof DirectorData> = {
 	id_card_no: "idCardNo", name: "name", pob: "placeOfBirth", dob: "dateOfBirth",
@@ -527,8 +538,11 @@ const DocChip: React.FC<{
 	isDeleting: boolean;
 	isPreviewLoading: boolean;
 	canPreview: boolean;
-}> = ({ doc, onPreview, onDelete, isDeleting, isPreviewLoading, canPreview }) => {
+	allowDeleteReadonly?: boolean;
+}> = ({ doc, onPreview, onDelete, isDeleting, isPreviewLoading, canPreview, allowDeleteReadonly = false }) => {
 	const [hovered, setHovered] = useState(false);
+	const [delHovered, setDelHovered] = useState(false);
+	const showDelete = !doc.readonly || allowDeleteReadonly;
 
 	return (
 		<div style={{ display: "inline-flex", alignItems: "center", gap: 8, opacity: isDeleting ? 0.6 : 1 }}>
@@ -578,7 +592,44 @@ const DocChip: React.FC<{
 			)}
 			{isDeleting
 				? <span className="spin dark" style={{ width: 12, height: 12 }} />
-				: !doc.readonly && <button className="doc-chip-del" title="Hapus" onClick={() => onDelete(doc.id)}>×</button>
+				: showDelete && (
+					<button
+						type="button"
+						title={doc.readonly ? "Remove from this prechecking (previous data is kept)" : "Delete file"}
+						onClick={() => onDelete(doc.id)}
+						onMouseEnter={() => setDelHovered(true)}
+						onMouseLeave={() => setDelHovered(false)}
+						style={{
+							display: "inline-flex",
+							alignItems: "center",
+							gap: 6,
+							border: `1px solid ${delHovered ? "#dc2626" : "#fca5a5"}`,
+							background: delHovered ? "#dc2626" : "#fef2f2",
+							color: delHovered ? "#fff" : "#b91c1c",
+							borderRadius: 6,
+							padding: "5px 12px",
+							fontSize: 13,
+							fontWeight: 500,
+							cursor: "pointer",
+							transition: "background 0.15s, color 0.15s, border-color 0.15s",
+						}}
+					>
+						<svg
+							width="14" height="14"
+							viewBox="0 0 24 24" fill="none"
+							stroke="currentColor" strokeWidth="2"
+							strokeLinecap="round" strokeLinejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M3 6h18" />
+							<path d="M8 6V4h8v2" />
+							<path d="M19 6l-1 14H6L5 6" />
+							<path d="M10 11v6" />
+							<path d="M14 11v6" />
+						</svg>
+						Delete
+					</button>
+				)
 			}
 		</div>
 	);
@@ -590,7 +641,8 @@ const DocList: React.FC<{
 	deletingDocs?: Set<number>;
 	onPreview: (doc: UploadedDoc) => void;
 	previewLoadingId?: number | null;
-}> = ({ docs, onDelete, deletingDocs = new Set(), onPreview, previewLoadingId = null }) =>
+	allowDeleteReadonly?: boolean;
+}> = ({ docs, onDelete, deletingDocs = new Set(), onPreview, previewLoadingId = null, allowDeleteReadonly = false }) =>
 		docs.length ? (
 			<div className="doc-chips" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
 				{docs.map((d) => {
@@ -605,6 +657,7 @@ const DocList: React.FC<{
 							isDeleting={deletingDocs.has(d.id)}
 							isPreviewLoading={previewLoadingId === d.id}
 							canPreview={canPreview}
+							allowDeleteReadonly={allowDeleteReadonly}
 						/>
 					);
 				})}
@@ -619,7 +672,8 @@ const LookupResultPanel: React.FC<{
 	onPreview: (doc: UploadedDoc) => void;
 	onPreviewPhoto: (src: string) => void;
 	previewLoadingId?: number | null;
-}> = ({ dukcapil, meta, photo, documents, onPreview, onPreviewPhoto, previewLoadingId = null }) => {
+	onCancel?: () => void;
+}> = ({ dukcapil, meta, photo, documents, onPreview, onPreviewPhoto, previewLoadingId = null, onCancel }) => {
 	const photoSrc = asImageSrc(photo);
 
 	const badge =
@@ -659,6 +713,13 @@ const LookupResultPanel: React.FC<{
 					}
 				</div>
 			</div>
+			{onCancel && (
+				<div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+					<button type="button" className="btn-ghost" onClick={onCancel}>
+						Cancel
+					</button>
+				</div>
+			)}
 		</div>
 	);
 };
@@ -729,14 +790,14 @@ const HistoryModal: React.FC<{
 					)}
 					{modal.type === "valid" && (
 						<>
-							<button className="btn-modal-ghost" onClick={() => window.location.href = `/repeat-order-pt?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&types=P`}>Prechecking</button>
-							<button className="btn-modal-primary" onClick={() => window.location.href = `/create-new-cam?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&lessee_tp=PT`}>Create New CAM</button>
+							<button className="btn-modal-ghost" onClick={() => window.location.href = `/repeat-order-guarantor-pt?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&types=G`}>Prechecking</button>
+							<button className="btn-modal-primary" onClick={() => window.location.href = `/create-cam?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&lessee_tp=PT`}>Create New CAM</button>
 						</>
 					)}
 					{(modal.type === "inprogress" || modal.type === "expired") && (
 						<button className="btn-modal-primary" onClick={() => {
 							close();
-							if (modal.type === "expired") window.location.href = `/repeat-order-pt?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&types=P`;
+							if (modal.type === "expired") window.location.href = `/repeat-order-guarantor-pt?apless=${modal.apless}&prechecking_id=${modal.precheckingId}&types=G`;
 						}}>Close</button>
 					)}
 				</div>
@@ -759,12 +820,34 @@ const NEW_DIRECTOR = (): DirectorEntry => ({
 	lookupDocs: [],
 });
 
-const PrecheckingCorporatePage: React.FC = () => {
+const PrecheckingGuarantorCorporatePage: React.FC = () => {
 	const location = useLocation();
 	const incoming = location.state as IncomingPrecheckState | null;
 
+	const isRepeatOrder = !!incoming?.customerName?.trim();
+
+	const isWnaOfficer = (o: OcrRecord) => {
+		const c = (o.citizen || o.kewarnegaraan || "").trim().toUpperCase();
+		if (c === "WNA") return true;
+		if (c === "WNI") return false;
+		return !o.tglLahir && !o.tempatLahir && !o.alamat;
+	};
+
+	const buildInitialWnaBoard = (): WnaBoardMember[] =>
+		(incoming?.precheckingData?.corporate || [])
+			.filter(isWnaOfficer)
+			.map((o) => {
+				const t = (o.idType || "").trim().toUpperCase();
+				return {
+					uid: uid(),
+					name: (o.nama || "").toUpperCase(),
+					idCardNo: o.nik || "",
+					idType: (WNA_ID_TYPES as string[]).includes(t) ? (t as IdType) : "KITAS",
+				};
+			});
+
 	const buildInitialDirectors = (): DirectorEntry[] => {
-		const officers = incoming?.precheckingData?.corporate || [];
+		const officers = (incoming?.precheckingData?.corporate || []).filter((o) => !isWnaOfficer(o));
 		if (!officers.length) {
 			return [NEW_DIRECTOR()];
 		}
@@ -800,7 +883,8 @@ const PrecheckingCorporatePage: React.FC = () => {
 
 	const [directors, setDirectors] = useState<DirectorEntry[]>(() => buildInitialDirectors());
 	const [activeDirectorTab, setActiveDirectorTab] = useState<string>(() => directors[0].uid);
-	const [wnaBoard, setWnaBoard] = useState<WnaBoardMember[]>([]);
+	const [wnaBoard, setWnaBoard] = useState<WnaBoardMember[]>(() => buildInitialWnaBoard());
+	const [shareholders, setShareholders] = useState<ShareholderEntry[]>(() => [NEW_SHAREHOLDER()]);
 
 	const [docs, setDocs] = useState<UploadedDoc[]>([]);
 	const [uploadingDocs, setUploadingDocs] = useState<Set<string>>(new Set());
@@ -822,13 +906,52 @@ const PrecheckingCorporatePage: React.FC = () => {
 
 				const aplessPromise = incoming?.apless
 					? Promise.resolve({ data: incoming.apless })
-					: api.post('/CAM/Prechecking/generate-apless', { customer_type: "PT" });
+					: api.post('/CAM/Prechecking/generate-apless', { customer_type: "G" });
 
 				const [lesseeR, pidR, aplessR] = await Promise.all([lesseePromise, pidPromise, aplessPromise]);
 
 				setLesseeTypeOptions(lesseeR.data);
 				setPrecheckingId(pidR.data);
 				setApless(aplessR.data);
+
+				const lesseeOpts = (lesseeR.data ?? []) as LesseeTypeOption[];
+				const pickLessee = (raw?: string | null) => {
+					const k = String(raw ?? "").trim().toUpperCase();
+					if (!k) return undefined;
+					return lesseeOpts.find(
+						(o) => String(o.value ?? "").trim().toUpperCase() === k
+							|| String(o.label ?? "").trim().toUpperCase() === k,
+					);
+				};
+
+				let matchedLessee = pickLessee(incoming?.meta?.lesseeType);
+				let lesseeSource = "get-data-customer meta.lesseeType";
+
+				let companyTypeResp: any = null;
+				if (!matchedLessee && isRepeatOrder && (incoming?.apless || incoming?.idCard)) {
+					try {
+						const ct = await api.post('/CAM/company-type', {
+							apless: incoming?.apless ?? "",
+							idCard: incoming?.idCard ?? "",
+							previousPrecheckingId: incoming?.previousPrecheckingId ?? "",
+						});
+						companyTypeResp = ct.data;
+						matchedLessee = pickLessee(ct.data?.lesseeType);
+						lesseeSource = `/CAM/company-type lesseeType="${ct.data?.lesseeType ?? ""}"`;
+					} catch (err: any) {
+						companyTypeResp = err?.response?.data ?? String(err);
+						lesseeSource = `/CAM/company-type failed (${err?.response?.status ?? "network"})`;
+					}
+				}
+
+				console.info("[corp] company type prefill", {
+					matched: matchedLessee?.value ?? null,
+					source: lesseeSource,
+					metaLesseeType: incoming?.meta?.lesseeType,
+					companyTypeResp,
+					optionValues: lesseeOpts.map((o) => o.value),
+				});
+				if (matchedLessee) setLesseeType(matchedLessee.value);
 
 				if (incoming?.customerName) setCorpName(incoming.customerName);
 				if (incoming?.idCard) setCorpNpwpNo(incoming.idCard);
@@ -849,6 +972,20 @@ const PrecheckingCorporatePage: React.FC = () => {
 						});
 					});
 				});
+				const initialWna = wnaBoard;
+				const wnaTokenOf = (t: string) => t.slice(WNA_BOARD_DOC_PREFIX.length + 1);
+				const wnaKnown = new Set(
+					initialWna.flatMap((m) => [m.uid, sanitizeToken(m.idCardNo)]).filter(Boolean),
+				);
+				const legacyWnaTypes = Array.from(new Set(
+					flatDocs
+						.map((d) => d.type)
+						.filter((t) => t.startsWith(`${WNA_BOARD_DOC_PREFIX}_`) && !wnaKnown.has(wnaTokenOf(t))),
+				));
+				if (initialWna.length === 1 && legacyWnaTypes.length === 1) {
+					const target = persistedWnaDocType(initialWna[0]);
+					flatDocs.forEach((d) => { if (d.type === legacyWnaTypes[0]) d.type = target; });
+				}
 				if (flatDocs.length) setDocs(flatDocs);
 			} catch (e) { console.error("Init error", e); }
 			finally { setLoading(false); }
@@ -894,7 +1031,7 @@ const PrecheckingCorporatePage: React.FC = () => {
 			fd.append("lessee_type", lesseeType);
 
 			const res = await api.post(
-				'/CAM/Prechecking/upload-document-corporate',
+				'/CAM/Prechecking/upload-document-guarantor-corporate',
 				fd,
 				{ headers: { "Content-Type": "multipart/form-data" } },
 			);
@@ -921,7 +1058,7 @@ const PrecheckingCorporatePage: React.FC = () => {
 	const _refreshDocs = async (newPreviewUrl?: string, newDocName?: string) => {
 		if (!apless || !precheckingId) return;
 		try {
-			const res = await api.get('/CAM/Prechecking/documents-corporate', {
+			const res = await api.get('/CAM/Prechecking/documents-guarantor-corporate', {
 				params: { apless, prechecking_id: precheckingId },
 			});
 			const fetched: UploadedDoc[] = res.data ?? [];
@@ -943,13 +1080,13 @@ const PrecheckingCorporatePage: React.FC = () => {
 	};
 
 	const _nikForDocType = (docType: string): string => {
-		const dirMatch = /^corp-ocr-ktp_(.+)$/.exec(docType);
+		const dirMatch = /^corp-guarantor-ocr-ktp_(.+)$/.exec(docType);
 		if (dirMatch) {
 			const token = dirMatch[1];
 			const d = directors.find((x) => x.uid === token || sanitizeToken(x.data.idCardNo) === token);
 			return d?.data.idCardNo ?? "";
 		}
-		const wnaMatch = /^wna-corp-board_(.+)$/.exec(docType);
+		const wnaMatch = /^wna-corp-guarantor-board_(.+)$/.exec(docType);
 		if (wnaMatch) {
 			const token = wnaMatch[1];
 			const w = wnaBoard.find((x) => x.uid === token || sanitizeToken(x.idCardNo) === token);
@@ -960,7 +1097,11 @@ const PrecheckingCorporatePage: React.FC = () => {
 
 	const handleDeleteDoc = async (docId: number) => {
 		const target = docs.find((d) => d.id === docId);
-		if (target?.readonly) return;
+		if (target?.readonly) {
+			if (!window.confirm("Hapus file ini dari prechecking yang akan disimpan? Data prechecking sebelumnya tidak ikut terhapus.")) return;
+			setDocs((prev) => prev.filter((d) => d.id !== docId));
+			return;
+		}
 		if (!window.confirm("Apakah Anda yakin ingin menghapus dokumen ini?")) return;
 		setDeletingDocs((prev) => new Set(prev).add(docId));
 		try {
@@ -968,7 +1109,7 @@ const PrecheckingCorporatePage: React.FC = () => {
 			if (doc?.previewUrl?.startsWith("blob:")) URL.revokeObjectURL(doc.previewUrl);
 
 			const nik = doc ? _nikForDocType(doc.type) : "";
-			const res = await api.post('/CAM/Prechecking/delete-document-corporate', {
+			const res = await api.post('/CAM/Prechecking/delete-document-guarantor-corporate', {
 				customer_document_id: docId,
 				prechecking_id: precheckingId,
 				nik,
@@ -993,7 +1134,7 @@ const PrecheckingCorporatePage: React.FC = () => {
 		const types = docTypes.filter(Boolean);
 		if (!types.length) return;
 		try {
-			await api.post('/CAM/Prechecking/delete-documents-by-type-corporate', {
+			await api.post('/CAM/Prechecking/delete-documents-by-type-guarantor-corporate', {
 				prechecking_id: precheckingId, document_types: types, nik: nik ?? "",
 			});
 			setDocs((prev) => prev.filter((d) => !types.includes(d.type)));
@@ -1014,7 +1155,7 @@ const PrecheckingCorporatePage: React.FC = () => {
 
 		setPreviewLoadingId(doc.id);
 		try {
-			const res = await api.get('/CAM/Prechecking/view-document-corporate', {
+			const res = await api.get('/CAM/Prechecking/view-document-guarantor-corporate', {
 				params: { customer_document_id: doc.id },
 			});
 			if (res.data?.success && res.data?.view_url) {
@@ -1029,27 +1170,14 @@ const PrecheckingCorporatePage: React.FC = () => {
 		}
 	};
 
-	const handleNpwpBlur = async () => {
-		if (corpNpwpNo.length < 15) {
-			alert("No NPWP kurang panjang, minimal 15 karakter!");
-			return;
-		}
-		try {
-			const res = await api.post('/CAM/Prechecking/check-customer-history', {
-				idNo: corpNpwpNo, prechecking_id: precheckingId, lesseeType: "PT", checking_for: "C",
-			});
-			const [msg, al, type, pid] = res.data;
-			if (msg) setModal({ open: true, type, message: msg, apless: al, precheckingId: pid });
-		} catch (e) { console.error(e); }
-	};
-
 	const handleCancel = async () => {
-		try { await api.post('/CAM/Prechecking/cancel-corporate', { prechecking_id: precheckingId }); }
+		try { await api.post('/CAM/Prechecking/cancel-guarantor', { prechecking_id: precheckingId }); }
 		finally { window.history.back(); }
 	};
 
 	const docTypeForDirector = (entryUid: string) => `${DIRECTOR_DOC_PREFIX}_${entryUid}`;
 	const docTypeForWnaBoard = (entryUid: string) => `${WNA_BOARD_DOC_PREFIX}_${entryUid}`;
+	const docTypeForShareholder = (entryUid: string) => `${SHAREHOLDER_DOC_PREFIX}_${entryUid}`;
 
 	const persistedDirectorDocType = (entry: DirectorEntry) => {
 		const nik = sanitizeToken(entry.data.idCardNo);
@@ -1067,9 +1195,42 @@ const PrecheckingCorporatePage: React.FC = () => {
 	const wnaDocTypes = (member: WnaBoardMember) =>
 		Array.from(new Set([docTypeForWnaBoard(member.uid), persistedWnaDocType(member)]));
 
+	const persistedShareholderDocType = (member: ShareholderEntry) => {
+		const npwp = sanitizeToken(member.npwpNo);
+		return npwp ? `${SHAREHOLDER_DOC_PREFIX}_${npwp}` : docTypeForShareholder(member.uid);
+	};
+
+	const shareholderDocTypes = (member: ShareholderEntry) =>
+		Array.from(new Set([docTypeForShareholder(member.uid), persistedShareholderDocType(member)]));
+
+	const handleNpwpBlur = async () => {
+		if (isRepeatOrder || !corpNpwpNo) return;
+		if (corpNpwpNo.length < 15) {
+			alert("No NPWP kurang panjang, minimal 15 karakter!");
+			return;
+		}
+		try {
+			const res = await api.post('/CAM/Prechecking/check-customer-history', {
+				idNo: corpNpwpNo, prechecking_id: precheckingId, lesseeType: "PT", checking_for: "G",
+			});
+			const [msg, al, type, pid] = res.data;
+			if (msg) setModal({ open: true, type, message: msg, apless: al, precheckingId: pid });
+		} catch (e) { console.error(e); }
+	};
+
 	const mapServerErrors = (serverErrors: Record<string, string>): Record<string, string> => {
 		const mapped: Record<string, string> = {};
+		const GUARANTOR_KEYS: Record<string, string> = {
+			corp_lessee_type_error: "lessee_type",
+			corp_guarantor_name_error: "corp_name",
+			corp_guarantor_address_error: "corp_address",
+			corp_guarantor_npwp_no_error: "corp_npwp_no",
+		};
 		Object.entries(serverErrors || {}).forEach(([key, message]) => {
+			if (GUARANTOR_KEYS[key]) {
+				mapped[GUARANTOR_KEYS[key]] = String(message);
+				return;
+			}
 			const m = /^corp_board_([A-Za-z0-9]+)__(.+)$/.exec(key);
 			if (!m) {
 				mapped[key] = String(message);
@@ -1167,31 +1328,39 @@ const PrecheckingCorporatePage: React.FC = () => {
 			const rec = res.data.ocr as OcrRecord;
 			const data = mapOcrToDirectorData(rec);
 
-			setDirectors((prev) => prev.map((d) => (
-				d.uid === entryUid
-					? {
-						...d,
-						data,
-						conf: (rec.confidence as ConfidenceMap) || {},
-						ver: rec.verified || {},
-						dukcapil: rec.dukcapil,
-						initialData: {
-							data,
-							conf: rec.confidence,
-							ver: rec.verified,
-							verification: rec.dukcapil,
-						},
-						seedKey: d.seedKey + 1,
-						lookupLoading: false,
-						lookupMeta: {
-							precheckingId: res.data.sourcePrecheckingId || "",
-							lastOCROn: res.data.lastOCROn || "",
-						},
-						lookupDocs: ((res.data.documents ?? []) as UploadedDoc[]).map((doc) => ({ ...doc, readonly: true })),
-						lookupMsg: { tone: "ok", text: "Data pengurus ditemukan. Periksa kembali sebelum submit." },
-					}
-					: d
-			)));
+			const nextEntry: DirectorEntry = {
+				uid: entry.uid,
+				data,
+				conf: (rec.confidence as ConfidenceMap) || {},
+				ver: rec.verified || {},
+				dukcapil: rec.dukcapil,
+				initialData: {
+					data,
+					conf: rec.confidence,
+					ver: rec.verified,
+					verification: rec.dukcapil,
+				},
+				seedKey: entry.seedKey + 1,
+				nikSearch: entry.nikSearch,
+				lookupLoading: false,
+				lookupMeta: {
+					precheckingId: res.data.sourcePrecheckingId || "",
+					lastOCROn: res.data.lastOCROn || "",
+				},
+				lookupDocs: ((res.data.documents ?? []) as UploadedDoc[]).map((doc) => ({ ...doc, readonly: true })),
+				lookupMsg: { tone: "ok", text: "Data pengurus ditemukan. Periksa kembali sebelum submit." },
+			};
+			const persistedType = persistedDirectorDocType(nextEntry);
+
+			setDirectors((prev) => prev.map((d) => (d.uid === entryUid ? nextEntry : d)));
+
+			setDocs((prev) => {
+				const seen = new Set(prev.map((d) => d.id));
+				const additions: UploadedDoc[] = ((res.data.documents ?? []) as UploadedDoc[])
+					.filter((d) => d && d.id != null && !seen.has(d.id))
+					.map((d) => ({ ...d, type: persistedType, readonly: true }));
+				return additions.length ? [...prev, ...additions] : prev;
+			});
 		} catch (e: any) {
 			patchDirector(entryUid, {
 				lookupLoading: false,
@@ -1201,6 +1370,35 @@ const PrecheckingCorporatePage: React.FC = () => {
 				},
 			});
 		}
+	};
+
+	const resetDirectorLookup = (entryUid: string) => {
+		const entry = directors.find((d) => d.uid === entryUid);
+		if (entry && entry.lookupDocs.length) {
+			const removeIds = new Set(entry.lookupDocs.map((d) => d.id));
+			setDocs((prev) => prev.filter((d) => !(d.readonly && removeIds.has(d.id))));
+		}
+		setDirectors((prev) => prev.map((d) => (
+			d.uid === entryUid
+				? {
+					...d,
+					data: EMPTY_DIRECTOR(),
+					conf: {},
+					ver: {},
+					dukcapil: undefined,
+					initialData: undefined,
+					seedKey: d.seedKey + 1,
+					nikSearch: "",
+					lookupLoading: false,
+					lookupMsg: null,
+					lookupMeta: null,
+					lookupDocs: [],
+				}
+				: d
+		)));
+		setErrors((prev) =>
+			Object.fromEntries(Object.entries(prev).filter(([k]) => !k.startsWith(`director_${entryUid}_`)))
+		);
 	};
 
 	const addWnaBoard = () => {
@@ -1216,6 +1414,35 @@ const PrecheckingCorporatePage: React.FC = () => {
 
 	const updateWnaBoard = (entryUid: string, field: "name" | "idCardNo" | "idType", value: string) => {
 		setWnaBoard((prev) => prev.map((w) => (w.uid === entryUid ? { ...w, [field]: value } : w)));
+	};
+
+	const addShareholder = () => {
+		setShareholders((prev) => [...prev, NEW_SHAREHOLDER()]);
+	};
+
+	const _deleteShareholderDocs = async (docTypes: string[]) => {
+		const types = docTypes.filter(Boolean);
+		if (!types.length) return;
+		for (const t of types) {
+			try {
+				await api.post('/CAM/Prechecking/delete-documents-by-type-guarantor-corporate', {
+					prechecking_id: precheckingId, document_type: t, nik: "",
+				});
+			} catch (e) {
+				console.error("Failed to delete shareholder documents for", t, e);
+			}
+		}
+		setDocs((prev) => prev.filter((d) => !types.includes(d.type)));
+	};
+
+	const removeShareholder = (entryUid: string) => {
+		const removed = shareholders.find((x) => x.uid === entryUid);
+		setShareholders((prev) => prev.filter((x) => x.uid !== entryUid));
+		if (removed) _deleteShareholderDocs(shareholderDocTypes(removed));
+	};
+
+	const updateShareholder = (entryUid: string, field: "name" | "npwpNo", value: string) => {
+		setShareholders((prev) => prev.map((x) => (x.uid === entryUid ? { ...x, [field]: value } : x)));
 	};
 
 	const handleSubmit = async () => {
@@ -1243,19 +1470,46 @@ const PrecheckingCorporatePage: React.FC = () => {
 			if (!w.idType) e[`wna_board_${idx}_id_type`] = `ID Type is required (Pengurus WNA #${idx + 1})`;
 		});
 
+		const seenNpwp = new Map<string, number>();
+		shareholders.forEach((sh, idx) => {
+			const name = sh.name.trim();
+			const npwp = sh.npwpNo.trim();
+			const types = shareholderDocTypes(sh);
+			const hasFile = docs.some((d) => types.includes(d.type));
+			if (!name && !npwp && !hasFile) return;
+			const n = idx + 1;
+			if (!name) e[`shareholder_${idx}_name`] = `Name is required (Shareholder #${n})`;
+			if (!npwp) {
+				e[`shareholder_${idx}_npwp_no`] = `NPWP No is required (Shareholder #${n})`;
+			} else if (seenNpwp.has(npwp)) {
+				e[`shareholder_${idx}_npwp_no`] = `NPWP No is already used by Shareholder #${seenNpwp.get(npwp)} (Shareholder #${n})`;
+			} else {
+				seenNpwp.set(npwp, n);
+			}
+		});
+
 		setErrors(e);
 		if (firstInvalidTab) setActiveDirectorTab(firstInvalidTab);
-		if (Object.keys(e).length) return;
+		if (Object.keys(e).length) {
+			const summary = Object.values(e).filter(Boolean);
+			alert(
+				summary.length > 1
+					? `Please complete all required fields:\n\n• ${summary.join("\n• ")}`
+					: summary[0] ?? "Please complete all required fields.",
+			);
+			return;
+		}
 
 		setLoading(true);
 		try {
-			const isDirectorDocType = (t: string) => t.startsWith("corp-ocr-ktp_");
-			const isWnaBoardDocType = (t: string) => t.startsWith("wna-corp-board_");
+			const isDirectorDocType = (t: string) => t.startsWith("corp-guarantor-ocr-ktp_");
+			const isWnaBoardDocType = (t: string) => t.startsWith("wna-corp-guarantor-board_");
+			const isShareholderDocType = (t: string) => t.startsWith(`${SHAREHOLDER_DOC_PREFIX}_`);
 
 			const carriedMap = new Map<number, { customer_document_id: number; document_type: string }>();
 
 			docs
-				.filter((d) => d.readonly && !isDirectorDocType(d.type) && !isWnaBoardDocType(d.type))
+				.filter((d) => d.readonly && !isDirectorDocType(d.type) && !isWnaBoardDocType(d.type) && !isShareholderDocType(d.type))
 				.forEach((d) => carriedMap.set(d.id, { customer_document_id: d.id, document_type: d.type }));
 
 			const uploadedTypes = new Set(docs.filter((d) => !d.readonly).map((d) => d.type));
@@ -1282,14 +1536,24 @@ const PrecheckingCorporatePage: React.FC = () => {
 					.forEach((d) => carriedMap.set(d.id, { customer_document_id: d.id, document_type: target }));
 			});
 
+			shareholders.forEach((member) => {
+				const ownTypes = shareholderDocTypes(member);
+				if (ownTypes.some((t) => uploadedTypes.has(t))) return;
+
+				const target = persistedShareholderDocType(member);
+				docs
+					.filter((d) => d.readonly && ownTypes.includes(d.type))
+					.forEach((d) => carriedMap.set(d.id, { customer_document_id: d.id, document_type: target }));
+			});
+
 			const carriedDocuments = Array.from(carriedMap.values())
 				.filter((d) => !uploadedTypes.has(d.document_type));
 
 			const payload = {
 				prechecking_id: precheckingId, apless, cust_type: "PT", lessee_type: lesseeType,
 				carried_documents: carriedDocuments,
-				check_for: "C", corp_new_ro: "New",
-				corp_name: corpName, corp_address: corpAddress, corp_npwp_no: corpNpwpNo,
+				check_for: "G", corp_new_ro: isRepeatOrder ? "Repeat Order" : "New",
+				corp_guarantor_name: corpName, corp_guarantor_address: corpAddress, corp_guarantor_npwp_no: corpNpwpNo,
 				is_carro_type: isCarro ? 1 : 0, note_prechecking_pt: notes,
 				directors: directors.map((d) => ({
 					id_card_no: d.data.idCardNo, name: d.data.name, pob: d.data.placeOfBirth,
@@ -1299,6 +1563,10 @@ const PrecheckingCorporatePage: React.FC = () => {
 					province: d.data.province, religion: d.data.religion, job: d.data.job,
 					marital_status: d.data.maritalStatus, citizen: d.data.citizen || "WNI",
 					id_type: "KTP", doc_token: d.uid,
+					doc_types: directorDocTypes(d),
+					carried_document_ids: carriedDocuments
+						.filter((c) => c.document_type === persistedDirectorDocType(d))
+						.map((c) => c.customer_document_id),
 					photo_hidden: d.data.photo, signature_hidden: d.data.signature,
 					val_id_card_no: d.conf.idCardNo ?? "", val_name: d.conf.name ?? "",
 					val_pob: d.conf.placeOfBirth ?? "", val_dob: d.conf.dateOfBirth ?? "",
@@ -1319,15 +1587,19 @@ const PrecheckingCorporatePage: React.FC = () => {
 				wna_board: wnaBoard
 					.filter((w) => w.idCardNo.trim())
 					.map((w) => ({ name: w.name, id_card_no: w.idCardNo, id_type: w.idType, doc_token: w.uid })),
+				shareholders: shareholders.map((sh) => ({
+					name: sh.name.trim(), id_type: "NPWP", npwp_no: sh.npwpNo.trim(), doc_token: sh.uid,
+				})),
 			};
 
-			const res = await api.post('/CAM/Prechecking/submit-corporate', payload);
+			const res = await api.post('/CAM/Prechecking/submit-guarantor-corporate', payload);
+			console.info("[corp guarantor submit] response", res.data);
 			if (res.data?.success) {
 				const failedDocs: string[] = res.data?.documents_failed ?? [];
 				alert(
 					failedDocs.length
-						? `Corporate prechecking submitted, tetapi dokumen berikut gagal disalin: ${failedDocs.join(", ")}. Silakan upload ulang.`
-						: "Corporate prechecking submitted successfully!",
+						? `Corporate guarantor prechecking submitted, tetapi dokumen berikut gagal disalin: ${failedDocs.join(", ")}. Silakan upload ulang.`
+						: "Corporate guarantor prechecking submitted successfully!",
 				);
 				window.history.back();
 			}
@@ -1367,14 +1639,73 @@ const PrecheckingCorporatePage: React.FC = () => {
 			<div className="page-wrap">
 
 				<div className="hdr">
-					<div>
-						<div className="hdr-title">Add Prechecking Data</div>
-						<div className="hdr-sub">Corporate Customer (PT) · KYC Verification</div>
+					<div style={{ flex: 1, minWidth: 0 }}>
+						<div className="hdr-title">Add Guarantor Prechecking Data</div>
+						<div className="hdr-sub">Corporate Guarantor (PT) · KYC Verification</div>
 					</div>
 					<div className="hdr-badge">
 						<span className="hdr-badge-label">Prechecking ID</span>
 						<span className="hdr-badge-value">{precheckingId || "—"}</span>
 					</div>
+					<button
+						type="button"
+						onClick={handleCancel}
+						disabled={loading}
+						aria-label="Back"
+						style={{
+							display: "inline-flex", alignItems: "center", gap: 7,
+							padding: "9px 16px 9px 12px",
+							borderRadius: 999,
+							border: "1px solid rgba(15, 29, 60, .1)",
+							background: "linear-gradient(180deg, #ffffff, #F6F9FE)",
+							color: "#0F1D3C",
+							fontSize: ".82rem",
+							fontWeight: 600,
+							fontFamily: "inherit",
+							letterSpacing: ".01em",
+							cursor: loading ? "not-allowed" : "pointer",
+							marginLeft: 12,
+							flexShrink: 0,
+							opacity: loading ? 0.55 : 1,
+							boxShadow: "0 1px 2px rgba(15, 29, 60, .04), 0 1px 1px rgba(15, 29, 60, .02)",
+							transition: "transform .18s cubic-bezier(.4,0,.2,1), box-shadow .18s cubic-bezier(.4,0,.2,1), border-color .18s, background .18s",
+						}}
+						onMouseEnter={(ev) => {
+							if (loading) return;
+							ev.currentTarget.style.background = "linear-gradient(180deg, #F6F9FE, #EBF1FB)";
+							ev.currentTarget.style.borderColor = "rgba(15, 29, 60, .18)";
+							ev.currentTarget.style.boxShadow = "0 4px 12px rgba(15, 29, 60, .09), 0 1px 2px rgba(15, 29, 60, .04)";
+							const arrow = ev.currentTarget.querySelector<SVGElement>("svg");
+							if (arrow) arrow.style.transform = "translateX(-2px)";
+						}}
+						onMouseLeave={(ev) => {
+							ev.currentTarget.style.background = "linear-gradient(180deg, #ffffff, #F6F9FE)";
+							ev.currentTarget.style.borderColor = "rgba(15, 29, 60, .1)";
+							ev.currentTarget.style.boxShadow = "0 1px 2px rgba(15, 29, 60, .04), 0 1px 1px rgba(15, 29, 60, .02)";
+							const arrow = ev.currentTarget.querySelector<SVGElement>("svg");
+							if (arrow) arrow.style.transform = "translateX(0)";
+						}}
+						onMouseDown={(ev) => {
+							if (loading) return;
+							ev.currentTarget.style.transform = "scale(.97)";
+						}}
+						onMouseUp={(ev) => {
+							ev.currentTarget.style.transform = "scale(1)";
+						}}
+					>
+						<svg
+							width="15" height="15"
+							viewBox="0 0 24 24" fill="none"
+							stroke="currentColor" strokeWidth="2.2"
+							strokeLinecap="round" strokeLinejoin="round"
+							style={{ transition: "transform .18s cubic-bezier(.4,0,.2,1)" }}
+							aria-hidden="true"
+						>
+							<path d="M19 12H5" />
+							<path d="M12 19l-7-7 7-7" />
+						</svg>
+						<span>Back</span>
+					</button>
 				</div>
 
 				<div className="card">
@@ -1384,7 +1715,7 @@ const PrecheckingCorporatePage: React.FC = () => {
 						<div className="form-grid" style={{ marginBottom: 14 }}>
 							<div className="form-field">
 								<label className="form-label">Checking For <span className="req">*</span></label>
-								<div className="select-wrap"><select disabled value="C" className="form-select is-disabled"><option value="C">Customer</option></select></div>
+								<div className="select-wrap"><select disabled value="G" className="form-select is-disabled"><option value="G">Guarantor</option></select></div>
 							</div>
 							<div className="form-field">
 								<label className="form-label">Type <span className="req">*</span></label>
@@ -1395,7 +1726,11 @@ const PrecheckingCorporatePage: React.FC = () => {
 							<div className="form-field">
 								<label className="form-label">Company Type <span className="req">*</span></label>
 								<div className="select-wrap">
-									<select value={lesseeType} onChange={(e) => setLesseeType(e.target.value)} className={`form-select${errors.lessee_type ? " err" : ""}`}>
+									<select
+										value={lesseeType}
+										onChange={(e) => setLesseeType(e.target.value)}
+										className={`form-select${errors.lessee_type ? " err" : ""}`}
+									>
 										<option value="">Select</option>
 										{lesseeTypeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
 									</select>
@@ -1404,12 +1739,16 @@ const PrecheckingCorporatePage: React.FC = () => {
 							</div>
 							<div className="form-field">
 								<label className="form-label">New / Repeat Order</label>
-								<div className="select-wrap"><select disabled value="New" className="form-select is-disabled"><option value="New">New</option></select></div>
+								<div className="select-wrap">
+									<select disabled value={isRepeatOrder ? "Repeat Order" : "New"} className="form-select is-disabled">
+										<option value={isRepeatOrder ? "Repeat Order" : "New"}>{isRepeatOrder ? "Repeat Order" : "New"}</option>
+									</select>
+								</div>
 							</div>
 						</div>
-						<div className="form-grid">
+						<div className="form-grid" style={{ marginBottom: 14 }}>
 							<div className="form-field">
-								<label className="form-label">Temp. Customer No.</label>
+								<label className="form-label">{isRepeatOrder ? "Customer No." : "Temp. Customer No."}</label>
 								<input readOnly value={apless} className="form-input is-readonly" />
 							</div>
 						</div>
@@ -1438,10 +1777,21 @@ const PrecheckingCorporatePage: React.FC = () => {
 							/>
 							{errors.corp_npwp_no && <p className="field-err">{errors.corp_npwp_no}</p>}
 						</div>
-						<div className="form-field full">
-							<label className="form-label">NPWP <span className="req">*</span></label>
-							<FileInput multiple label="Upload NPWP" onFileChange={(f) => _uploadDoc(f, "corp-npwp")} uploading={uploadingDocs.has("corp-npwp")} />
-							<DocList docs={docsOf("corp-npwp")} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
+						<div className="form-field" style={{ gridColumn: "1" }}>
+							<label className="form-label">NPWP File</label>
+							<FileInput
+								label="Upload NPWP File"
+								onFileChange={(f) => _uploadDoc(f, "corp-guarantor-npwp")}
+								uploading={uploadingDocs.has("corp-guarantor-npwp")}
+							/>
+							<DocList
+								docs={docsOf("corp-guarantor-npwp")}
+								onDelete={handleDeleteDoc}
+								deletingDocs={deletingDocs}
+								onPreview={handlePreview}
+								previewLoadingId={previewLoadingId}
+								allowDeleteReadonly
+							/>
 						</div>
 					</div>
 
@@ -1505,6 +1855,7 @@ const PrecheckingCorporatePage: React.FC = () => {
 										onPreviewPhoto={(src) => setPreview({ open: true, name: "Pas Foto KTP.jpg", previewUrl: src })}
 										onNikSearchChange={(value) => patchDirector(entry.uid, { nikSearch: value })}
 										onLookup={() => handleDirectorLookup(entry.uid)}
+										onClearLookup={() => resetDirectorLookup(entry.uid)}
 										onChange={(data, conf, ver, dukcapil) => updateDirector(entry.uid, data, conf, ver, dukcapil)}
 										errors={errors}
 										onHistoryModal={(msg, al, type, pid) =>
@@ -1517,75 +1868,75 @@ const PrecheckingCorporatePage: React.FC = () => {
 					</div>
 
 					<div className="section-label"><span className="dot" />Data Pengurus (WNA)<hr /></div>
-					<div style={{ marginBottom: 12, overflowX: "auto" }}>
-						{wnaBoard.length > 0 && (
-							<table className="wna-board-table">
-								<thead>
-									<tr>
-										<th style={{ width: "22%" }}>Name</th>
-										<th style={{ width: "14%" }}>ID Type</th>
-										<th style={{ width: "22%" }}>ID Card No.</th>
-										<th style={{ width: "32%" }}>Upload ID Card File</th>
-										<th style={{ width: "10%" }}></th>
-									</tr>
-								</thead>
-								<tbody>
-									{wnaBoard.map((w, idx) => {
-										const boardDocType = docTypeForWnaBoard(w.uid);
-										return (
-											<tr key={w.uid}>
-												<td>
-													<input
-														className={`form-input${errors[`wna_board_${idx}_name`] ? " err" : ""}`}
-														style={{ textTransform: "uppercase" }}
-														value={w.name}
-														onChange={(e) => updateWnaBoard(w.uid, "name", e.target.value.toUpperCase())}
-													/>
-													{errors[`wna_board_${idx}_name`] && <p className="field-err">{errors[`wna_board_${idx}_name`]}</p>}
-												</td>
-												<td>
-													<div className="select-wrap">
-														<select
-															className="form-select"
-															value={w.idType}
-															onChange={(e) => updateWnaBoard(w.uid, "idType", e.target.value)}
-														>
-															{WNA_ID_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-														</select>
-													</div>
-												</td>
-												<td>
-													<input
-														className="form-input"
-														value={w.idCardNo}
-														onChange={(e) => updateWnaBoard(w.uid, "idCardNo", e.target.value)}
-													/>
-												</td>
-												<td>
-													<FileInput
-														label={`Upload ${w.idType}`}
-														onFileChange={(f) => _uploadDoc(f, boardDocType)}
-														uploading={uploadingDocs.has(boardDocType)}
-													/>
-													<DocList docs={docsOfAny(wnaDocTypes(w))} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
-												</td>
-												<td className="wna-board-row-actions">
-													<button
-														type="button"
-														className="btn-remove"
-														onClick={() => {
-															if (window.confirm(`Hapus Pengurus WNA #${idx + 1}? Dokumen yang sudah diupload untuk pengurus ini juga akan dihapus.`)) {
-																removeWnaBoard(w.uid);
-															}
-														}}
-													>Remove</button>
-												</td>
-											</tr>
-										);
-									})}
-								</tbody>
-							</table>
-						)}
+
+					<div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 14 }}>
+						{wnaBoard.map((w, idx) => {
+							const boardDocType = docTypeForWnaBoard(w.uid);
+							return (
+								<div key={w.uid} className="director-card" style={{ padding: 18 }}>
+									<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+										<div className="director-card-title">
+											<span className="director-badge">{idx + 1}</span>
+											Pengurus WNA #{idx + 1}
+										</div>
+										<button
+											type="button"
+											className="btn-remove"
+											onClick={() => {
+												if (window.confirm(`Hapus Pengurus WNA #${idx + 1}? Dokumen yang sudah diupload untuk pengurus ini juga akan dihapus.`)) {
+													removeWnaBoard(w.uid);
+												}
+											}}
+										>Remove</button>
+									</div>
+
+									<div className="form-grid" style={{ marginBottom: 12 }}>
+										<div className="form-field">
+											<label className="form-label">Name</label>
+											<input
+												className={`form-input${errors[`wna_board_${idx}_name`] ? " err" : ""}`}
+												style={{ textTransform: "uppercase" }}
+												value={w.name}
+												onChange={(e) => updateWnaBoard(w.uid, "name", e.target.value.toUpperCase())}
+											/>
+											{errors[`wna_board_${idx}_name`] && <p className="field-err">{errors[`wna_board_${idx}_name`]}</p>}
+										</div>
+										<div className="form-field">
+											<label className="form-label">ID Type</label>
+											<div className="select-wrap">
+												<select
+													className="form-select"
+													value={w.idType}
+													onChange={(e) => updateWnaBoard(w.uid, "idType", e.target.value)}
+												>
+													{WNA_ID_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+												</select>
+											</div>
+										</div>
+									</div>
+
+									<div className="form-grid">
+										<div className="form-field">
+											<label className="form-label">ID Card No.</label>
+											<input
+												className="form-input"
+												value={w.idCardNo}
+												onChange={(e) => updateWnaBoard(w.uid, "idCardNo", e.target.value)}
+											/>
+										</div>
+										<div className="form-field">
+											<label className="form-label">Upload ID Card File</label>
+											<FileInput
+												label={`Upload ${w.idType}`}
+												onFileChange={(f) => _uploadDoc(f, boardDocType)}
+												uploading={uploadingDocs.has(boardDocType)}
+											/>
+											<DocList docs={docsOfAny(wnaDocTypes(w))} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} allowDeleteReadonly />
+										</div>
+									</div>
+								</div>
+							);
+						})}
 					</div>
 					<div style={{ marginBottom: 24 }}>
 						<button type="button" className="btn-soft" onClick={addWnaBoard}>
@@ -1594,18 +1945,104 @@ const PrecheckingCorporatePage: React.FC = () => {
 						</button>
 					</div>
 
+					<div className="section-label"><span className="dot" />Data Shareholder Company<hr /></div>
+
+					<div style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 14 }}>
+						{shareholders.map((sh, idx) => {
+							const shareholderDocType = docTypeForShareholder(sh.uid);
+							return (
+								<div key={sh.uid} className="director-card" style={{ padding: 18 }}>
+									<div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+										<div className="director-card-title">
+											<span className="director-badge">{idx + 1}</span>
+											Shareholder #{idx + 1}
+										</div>
+										<button
+											type="button"
+											className="btn-remove"
+											onClick={() => {
+												if (window.confirm(`Hapus Shareholder #${idx + 1}? Dokumen yang sudah diupload untuk shareholder ini juga akan dihapus.`)) {
+													removeShareholder(sh.uid);
+												}
+											}}
+										>Remove</button>
+									</div>
+
+									<div className="form-grid" style={{ marginBottom: 12 }}>
+										<div className="form-field">
+											<label className="form-label">Name</label>
+											<input
+												className={`form-input${errors[`shareholder_${idx}_name`] ? " err" : ""}`}
+												style={{ textTransform: "uppercase" }}
+												maxLength={SHAREHOLDER_NAME_MAX}
+												value={sh.name}
+												onChange={(e) => updateShareholder(sh.uid, "name", e.target.value.toUpperCase())}
+											/>
+											{errors[`shareholder_${idx}_name`] && <p className="field-err">{errors[`shareholder_${idx}_name`]}</p>}
+										</div>
+										<div className="form-field">
+											<label className="form-label">ID Type</label>
+											<div className="select-wrap">
+												<select disabled value="NPWP" className="form-select is-disabled">
+													<option value="NPWP">NPWP</option>
+												</select>
+											</div>
+										</div>
+									</div>
+
+									<div className="form-grid">
+										<div className="form-field">
+											<label className="form-label">NPWP No.</label>
+											<input
+												className={`form-input${errors[`shareholder_${idx}_npwp_no`] ? " err" : ""}`}
+												inputMode="numeric"
+												maxLength={SHAREHOLDER_NPWP_MAX}
+												value={sh.npwpNo}
+												onChange={(e) => updateShareholder(sh.uid, "npwpNo", e.target.value.replace(/\D/g, "").slice(0, SHAREHOLDER_NPWP_MAX))}
+											/>
+											{errors[`shareholder_${idx}_npwp_no`] && <p className="field-err">{errors[`shareholder_${idx}_npwp_no`]}</p>}
+										</div>
+										<div className="form-field">
+											<label className="form-label">NPWP File</label>
+											<FileInput
+												label="Upload NPWP File"
+												onFileChange={(f) => _uploadDoc(f, shareholderDocType)}
+												uploading={uploadingDocs.has(shareholderDocType)}
+											/>
+											<DocList
+												docs={docsOfAny(shareholderDocTypes(sh))}
+												onDelete={handleDeleteDoc}
+												deletingDocs={deletingDocs}
+												onPreview={handlePreview}
+												previewLoadingId={previewLoadingId}
+												allowDeleteReadonly
+											/>
+										</div>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+					<div style={{ marginBottom: 24 }}>
+						<button type="button" className="btn-soft" onClick={addShareholder}>
+							<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+							Add Shareholder
+						</button>
+					</div>
+
 					<div className="section-label"><span className="dot" />Supporting Documents<hr /></div>
-					<div className="form-grid" style={{ marginBottom: 24 }}>
+					
+					<div className="form-grid" style={{ marginBottom: 24, gridTemplateColumns: "1fr" }}>
 						{[
-							{ label: "Akta Pendirian", type: "corp-akta" },
-							{ label: "SK Kemenkumham Akta Pendirian", type: "corp-sk-akta" },
-							{ label: "Akta Perubahan Terakhir", type: "corp-akta-terakhir" },
-							{ label: "SK Kemenkumham atas Akta Perubahan Terakhir", type: "corp-sk-akta-terakhir" },
+							{ label: "Akta Pendirian", type: "corp-guarantor-akta" },
+							{ label: "SK Kemenkumham Akta Pendirian", type: "corp-guarantor-sk-akta" },
+							{ label: "Akta Perubahan Terakhir", type: "corp-guarantor-akta-terakhir" },
+							{ label: "SK Kemenkumham atas Akta Perubahan Terakhir", type: "corp-guarantor-sk-akta-terakhir" },
 						].map((doc) => (
 							<div className="form-field" key={doc.type}>
 								<label className="form-label">{doc.label}</label>
 								<FileInput multiple label={`Upload ${doc.label}`} onFileChange={(f) => _uploadDoc(f, doc.type)} uploading={uploadingDocs.has(doc.type)} />
-								<DocList docs={docsOf(doc.type)} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
+								<DocList docs={docsOf(doc.type)} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} allowDeleteReadonly />
 							</div>
 						))}
 					</div>
@@ -1623,7 +2060,18 @@ const PrecheckingCorporatePage: React.FC = () => {
 						</div>
 						<div className="form-field">
 							<label className="form-label">Note for Prechecking</label>
-							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea" placeholder="Optional notes…" style={{ textTransform: "uppercase" }} />
+							<textarea
+								rows={4}
+								value={notes}
+								onChange={(e) => setNotes(e.target.value.toUpperCase().slice(0, NOTES_MAX_LENGTH))}
+								maxLength={NOTES_MAX_LENGTH}
+								className="form-textarea"
+								placeholder=""
+								style={{ textTransform: "uppercase" }}
+							/>
+							<div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+								<span style={{ fontSize: 12, color: "#888" }}>{notes.length}/{NOTES_MAX_LENGTH}</span>
+							</div>
 						</div>
 					</div>
 
@@ -1655,12 +2103,13 @@ const DirectorCard: React.FC<{
 	onPreviewPhoto: (src: string) => void;
 	onNikSearchChange: (value: string) => void;
 	onLookup: () => void;
+	onClearLookup: () => void;
 	onChange: (data: DirectorData, conf: ConfidenceMap, ver?: OcrVerMap, dukcapil?: OcrDukcapil) => void;
 	errors: Record<string, string>;
 	onHistoryModal: (msg: string, apless: string, type: string, pid: string) => void;
 }> = ({
 	entry, label, apless, precheckingId, lesseeType, docs, docTypeAliases, previewLoadingId,
-	onPreview, onPreviewPhoto, onNikSearchChange, onLookup, onChange, errors,
+	onPreview, onPreviewPhoto, onNikSearchChange, onLookup, onClearLookup, onChange, errors,
 	onHistoryModal,
 }) => {
 
@@ -1673,12 +2122,7 @@ const DirectorCard: React.FC<{
 			);
 		};
 
-		const setMaritalStatus = (val: string) => {
-			onChange({ ...entry.data, maritalStatus: val }, entry.conf, entry.ver, entry.dukcapil);
-		};
-
-		const docType = `corp-ocr-ktp_${entry.uid}`;
-		const errKey = `director_${entry.uid}_maritalStatus`;
+		const docType = `corp-guarantor-ocr-ktp_${entry.uid}`;
 
 		return (
 			<div>
@@ -1687,15 +2131,32 @@ const DirectorCard: React.FC<{
 					<div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
 						<div className="form-field" style={{ flex: "1 1 280px" }}>
 							<label className="form-label">NIK Pengurus · KTP</label>
-							<input
-								className="form-input"
-								inputMode="numeric"
-								maxLength={16}
-								placeholder="16 digit NIK"
-								value={entry.nikSearch}
-								onChange={(e) => onNikSearchChange(e.target.value.replace(/\D/g, "").slice(0, 16))}
-								onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onLookup(); } }}
-							/>
+							<div style={{ position: "relative" }}>
+								<input
+									className="form-input"
+									inputMode="numeric"
+									maxLength={16}
+									placeholder="16 digit NIK"
+									value={entry.nikSearch}
+									onChange={(e) => onNikSearchChange(e.target.value.replace(/\D/g, "").slice(0, 16))}
+									onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); onLookup(); } }}
+									style={{ paddingRight: (entry.nikSearch || entry.lookupMeta) ? 34 : undefined }}
+								/>
+								{(entry.nikSearch || entry.lookupMeta) && (
+									<button
+										type="button"
+										aria-label="Hapus & reset data pengurus"
+										title="Hapus & reset data pengurus"
+										onClick={onClearLookup}
+										style={{
+											position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+											width: 22, height: 22, borderRadius: "50%", border: "none", cursor: "pointer",
+											background: "#e2e8f0", color: "#475569", fontSize: 14, lineHeight: "22px",
+											display: "flex", alignItems: "center", justifyContent: "center", padding: 0,
+										}}
+									>×</button>
+								)}
+							</div>
 						</div>
 						<button
 							type="button"
@@ -1721,21 +2182,17 @@ const DirectorCard: React.FC<{
 							onPreview={onPreview}
 							onPreviewPhoto={onPreviewPhoto}
 							previewLoadingId={previewLoadingId}
+							onCancel={onClearLookup}
 						/>
 					)}
 				</div>
 
-				<div style={{ marginBottom: 16 }}>
-					<div className="form-field full">
-						<label className="form-label">Upload ID Card Pengurus for OCR <span className="req">*</span></label>
-					</div>
-				</div>
-
 				<OCRUploadSection
+					idTypeLabel="KTP"
 					key={`director-${entry.uid}-${entry.seedKey}`}
 					apless={apless}
 					precheckingId={precheckingId}
-					ocrFor="corporate"
+					ocrFor="corporate_guarantor"
 					docType={docType}
 					title={`Pengurus ${label} · WNI`}
 					nationality="WNI"
@@ -1754,24 +2211,8 @@ const DirectorCard: React.FC<{
 					onHistoryModal={onHistoryModal}
 				/>
 
-				<div className="form-grid" style={{ marginTop: 16 }}>
-					<div className="form-field">
-						<label className="form-label">ID Type</label>
-						<input readOnly value="KTP" className="form-input is-readonly" />
-					</div>
-					<div className="form-field">
-						<label className="form-label">Status Perkawinan <span className="req">*</span></label>
-						<input
-							value={entry.data.maritalStatus}
-							onChange={(e) => setMaritalStatus(e.target.value)}
-							className={`form-input${errors[errKey] ? " err" : ""}`}
-							maxLength={50}
-						/>
-						{errors[errKey] && <p className="field-err">{errors[errKey]}</p>}
-					</div>
-				</div>
 			</div>
 		);
 	};
 
-export default PrecheckingCorporatePage;
+export default PrecheckingGuarantorCorporatePage;

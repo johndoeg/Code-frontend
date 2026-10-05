@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '@/shared/api/axiosInstance';
+import { useOverlay } from '@/shared/contexts/OverlayContext';
 
 interface CustomerTypeOption {
 	value: string;
 	label: string;
 }
+
+const MAX_ID_LENGTH = 25;
+const MIN_CHECK_LENGTH = 11;
 
 const Spinner: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) => (
 	<svg className={`animate-spin ${className}`} viewBox="0 0 24 24" fill="none">
@@ -16,21 +20,37 @@ const Spinner: React.FC<{ className?: string }> = ({ className = 'w-4 h-4' }) =>
 
 const AddCAMGuarantorForm: React.FC = () => {
 	const navigate = useNavigate();
+	const { closeAddCamGuarantor } = useOverlay();
 
 	const [customerType, setCustomerType] = useState<string>('PR');
 	const [idCard, setIdCard] = useState<string>('');
-	const [apless, setApless] = useState<string>('');
+	const [idCardError, setIdCardError] = useState<string>('');
+	const [, setApless] = useState<string>('');
 	const [customerName, setCustomerName] = useState<string>('');
 	const [isPrechecking, setIsPrechecking] = useState<boolean>(false);
-	const [isCreating, setIsCreating] = useState<boolean>(false);
 
 	const customerTypeOptions: CustomerTypeOption[] = [
 		{ value: 'PR', label: 'Individu' },
 		{ value: 'PT', label: 'Corporate' },
 	];
 
+	const sanitizeDigits = (raw: string) => raw.replace(/\D/g, '');
+
+	const handleIdCardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const raw = e.target.value;
+		const digitsOnly = sanitizeDigits(raw).slice(0, MAX_ID_LENGTH);
+		setIdCard(digitsOnly);
+		setIdCardError(
+			/\D/.test(raw)
+				? 'Only numbers are allowed — letters and spaces are removed automatically.'
+				: '',
+		);
+	};
+
+	const isIdCardValid = idCard.length >= MIN_CHECK_LENGTH;
+
 	useEffect(() => {
-		if (idCard.length <= 12) {
+		if (idCard.length < MIN_CHECK_LENGTH) {
 			setCustomerName('');
 			setApless('');
 			return;
@@ -66,6 +86,10 @@ const AddCAMGuarantorForm: React.FC = () => {
 
 	const handlePrecheck = async () => {
 		if (!idCard.trim()) return;
+		if (!/^\d+$/.test(idCard)) {
+			setIdCardError('Only numbers are allowed — letters and spaces are removed automatically.');
+			return;
+		}
 
 		setIsPrechecking(true);
 		try {
@@ -79,6 +103,7 @@ const AddCAMGuarantorForm: React.FC = () => {
 				? '/PrecheckingGuarantorIndividuPage'
 				: '/PrecheckingGuarantorCorporatePage';
 
+			closeAddCamGuarantor();
 			navigate(route, {
 				state: {
 					idCard,
@@ -95,6 +120,10 @@ const AddCAMGuarantorForm: React.FC = () => {
 
 	const idLabel = customerType === 'PR' ? 'ID Card' : 'NPWP';
 	const hasCustomerData = !!customerName.trim();
+
+	const inputBase =
+		'w-full py-2.5 border rounded-lg text-sm bg-[var(--app-card)] text-[var(--app-text)] ' +
+		'placeholder:text-[var(--app-muted)] focus:outline-none focus:ring-2 transition-all';
 
 	return (
 		<div className="bg-[var(--app-card)] rounded-2xl shadow-md border border-[var(--app-border)] overflow-hidden">
@@ -143,7 +172,7 @@ const AddCAMGuarantorForm: React.FC = () => {
 						{idLabel}
 					</label>
 					<div className="relative">
-						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)]">
+						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none">
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 									d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2" />
@@ -151,17 +180,33 @@ const AddCAMGuarantorForm: React.FC = () => {
 						</div>
 						<input
 							type="text"
+							inputMode="numeric"
+							pattern="[0-9]*"
+							autoComplete="off"
 							value={idCard}
-							onChange={(e) => setIdCard(e.target.value)}
-							maxLength={30}
+							onChange={handleIdCardChange}
+							onPaste={(e) => {
+								const pasted = e.clipboardData.getData('text');
+								if (/\D/.test(pasted)) {
+									setIdCardError('Only numbers are allowed — letters and spaces are removed automatically.');
+								}
+							}}
+							maxLength={MAX_ID_LENGTH}
 							placeholder={`Enter ${idLabel} number`}
-							className="w-full pl-10 pr-14 py-2.5 border border-[var(--app-border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/25 focus:border-orange-400 transition-all placeholder:text-gray-300"
+							aria-invalid={!!idCardError}
+							className={`${inputBase} pl-10 pr-14 ${idCardError
+								? 'border-red-400 focus:ring-red-500/25 focus:border-red-400'
+								: 'border-[var(--app-border)] focus:ring-orange-500/25 focus:border-orange-400'
+								}`}
 						/>
-						<span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums transition-colors ${idCard.length === 16 ? 'text-orange-500 font-medium' : 'text-gray-300'
+						<span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums transition-colors pointer-events-none ${idCard.length === MAX_ID_LENGTH ? 'text-orange-500 font-medium' : 'text-[var(--app-muted)]'
 							}`}>
-							{idCard.length}/16
+							{idCard.length}/{MAX_ID_LENGTH}
 						</span>
 					</div>
+					{idCardError && (
+						<p className="mt-1.5 text-xs text-red-500">{idCardError}</p>
+					)}
 				</div>
 
 				<div>
@@ -186,7 +231,7 @@ const AddCAMGuarantorForm: React.FC = () => {
 						)}
 					</div>
 					<div className="relative">
-						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300">
+						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none">
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 									d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -196,8 +241,8 @@ const AddCAMGuarantorForm: React.FC = () => {
 							type="text"
 							value={customerName}
 							readOnly
-							placeholder="Customer's Name"
-							className="w-full pl-10 pr-4 py-2.5 border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] text-sm text-[var(--app-text)] cursor-not-allowed placeholder:text-gray-300"
+							placeholder="Guarantor's Name"
+							className={`${inputBase} pl-10 pr-4 border-[var(--app-border)] bg-[var(--app-surface)] cursor-not-allowed`}
 						/>
 					</div>
 				</div>
@@ -208,8 +253,8 @@ const AddCAMGuarantorForm: React.FC = () => {
 			<div className="px-6 py-4 flex gap-3">
 				<button
 					onClick={handlePrecheck}
-					disabled={!idCard.trim() || isPrechecking}
-					className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-150 ${!idCard.trim() || isPrechecking
+					disabled={!isIdCardValid || isPrechecking}
+					className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-all duration-150 ${!isIdCardValid || isPrechecking
 						? 'bg-blue-300 cursor-not-allowed'
 						: 'bg-blue-500 hover:bg-blue-600 shadow-sm hover:shadow-md hover:shadow-blue-200 active:scale-[0.98]'
 						}`}

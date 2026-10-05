@@ -23,8 +23,10 @@ export const CAM_PRECHECKING_ROUTES: RouteTuple[] = [
     ["/cam-request-rejected", () => import("@/features/cam/pages/Prechecking/Rejected/PrecheckingRejectedPage")],
     ["/view-prechecking", () => import("@/features/cam/pages/Prechecking/View/ViewPrecheckingPage")],
     ["/cam-request-approval", () => import("@/features/cam/pages/Prechecking/Approval/ApprovalPrecheckingPage")],
-    ["/cam-request-edit-pr", () => import("@/features/cam/pages/Prechecking/Edit/EditPrecheckingIndividuPage")],
-    ["/cam-request-edit-pt", () => import("@/features/cam/pages/Prechecking/Edit/EditPrecheckingCorporatePage")],
+    ["/cam-request-edit-pr", () => import("@/features/cam/pages/Prechecking/Edit/Individu/EditPrecheckingIndividuPage")],
+    ["/cam-request-edit-pt", () => import("@/features/cam/pages/Prechecking/Edit/Corporate/EditPrecheckingCorporatePage")],
+    ["/cam-request-edit-guarantor-pr", () => import("@/features/cam/pages/Prechecking/Edit/Individu/EditPrecheckingGuarantorIndividu")],
+    ["/cam-request-edit-guarantor-pt", () => import("@/features/cam/pages/Prechecking/Edit/Corporate/EditPrecheckingCorporatePage")],
     ["/cam-request-onhand-detail", () => import("@/features/cam/pages/Prechecking/Approval/CamRequestOnhandDetailPage")],
 ];
 

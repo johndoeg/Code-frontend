@@ -1383,406 +1383,416 @@ const CAMFinancingPage = forwardRef<CamTabHandle, CAMFinancingPageProps>(functio
 	const businessTripLine = moneyLine("Business Trip Fee", "businessTripFee", { width: "w-full" });
 
 	return (
-		<div className="rounded-2xl bg-[var(--app-card)] p-4 shadow sm:p-6">
-			{judul && (
-				<div className="judul1 mb-2 text-right text-xs font-semibold text-blue-500">{judul}</div>
-			)}
+		<div className="overflow-hidden rounded-2xl bg-[var(--app-card)] shadow">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Financing</h2>
+				</div>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
+			</div>
+			<div className="p-4 sm:p-6">
+				<div className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-2">
+					<div className="min-w-0">
+						<table className="w-full border-collapse">
+							<tbody>
+								<tr>
+									<td colSpan={2} className="judul border-b border-[var(--app-border)] pb-1 text-sm font-bold text-[var(--app-text)]">
+										Financing
+									</td>
+								</tr>
 
-			<div className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-2">
-				<div className="min-w-0">
-					<table className="w-full border-collapse">
-						<tbody>
-							<tr>
-								<td colSpan={2} className="judul border-b border-[var(--app-border)] pb-1 text-sm font-bold text-[var(--app-text)]">
-									Financing
-								</td>
-							</tr>
+								<Line label="Status *">
+									<Dropdown
+										value={form.contSts || "N"}
+										onChange={handleStatusChange}
+										options={data.lookups.contractStatuses}
+										className="w-[90%]"
+									/>
+								</Line>
 
-							<Line label="Status *">
-								<Dropdown
-									value={form.contSts || "N"}
-									onChange={handleStatusChange}
-									options={data.lookups.contractStatuses}
-									className="w-[90%]"
-								/>
-							</Line>
+								<Line label="Contract Type *">
+									<Box value={data.contract.contTypeName} readOnly align="left" className="w-[89%]" />
+								</Line>
 
-							<Line label="Contract Type *">
-								<Box value={data.contract.contTypeName} readOnly align="left" className="w-[89%]" />
-							</Line>
-
-							<Line label="Disbursement Type *">
-								<div className="relative flex items-center gap-2">
-									{disbForced ? (
-										<Box
-											value={disbForced === "N" ? "NEW DISBURSEMENT" : "CROSS DISBURSEMENT"}
-											readOnly
-											align="left"
-											className="w-[60%]"
-										/>
-									) : (
-										<Dropdown
-											value={form.disbType || ""}
-											onChange={handleDisbTypeChange}
-											options={data.lookups.disbursementTypes}
-											className="w-[60%]"
-										/>
-									)}
-									{crossVisible && (
-										<button
-											type="button"
-											onClick={() => setShowCross(true)}
-											className="h-7 whitespace-nowrap rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-2 text-sm text-[var(--app-text)] hover:bg-slate-200"
-										>
-											Add Cross No
-										</button>
-									)}
-									{crossVisible && showCross && (
-										<div className="absolute left-0 top-9 z-50 w-[350px] max-w-[90vw] rounded border-2 border-[#8AC007] bg-white p-3 shadow-lg">
-											<div className="mb-3 flex">
-												<button
-													type="button"
-													onClick={() => setShowCross(false)}
-													aria-label="Close"
-													className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-lg font-bold leading-none text-white hover:bg-red-700"
-												>
-													×
-												</button>
+								<Line label="Disbursement Type *">
+									<div className="relative flex items-center gap-2">
+										{disbForced ? (
+											<Box
+												value={disbForced === "N" ? "NEW DISBURSEMENT" : "CROSS DISBURSEMENT"}
+												readOnly
+												align="left"
+												className="w-[60%]"
+											/>
+										) : (
+											<Dropdown
+												value={form.disbType || ""}
+												onChange={handleDisbTypeChange}
+												options={data.lookups.disbursementTypes}
+												className="w-[60%]"
+											/>
+										)}
+										{crossVisible && (
+											<button
+												type="button"
+												onClick={() => setShowCross(true)}
+												className="h-7 whitespace-nowrap rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-2 text-sm text-[var(--app-text)] hover:bg-slate-200"
+											>
+												Add Cross No
+											</button>
+										)}
+										{crossVisible && showCross && (
+											<div className="absolute left-0 top-9 z-50 w-[350px] max-w-[90vw] rounded border-2 border-[#8AC007] bg-white p-3 shadow-lg">
+												<div className="mb-3 flex">
+													<button
+														type="button"
+														onClick={() => setShowCross(false)}
+														aria-label="Close"
+														className="flex h-8 w-8 items-center justify-center rounded-full bg-red-600 text-lg font-bold leading-none text-white hover:bg-red-700"
+													>
+														×
+													</button>
+												</div>
+												<div className="flex items-center gap-2">
+													<span className="whitespace-nowrap text-sm text-black">Cross No</span>
+													<Box
+														kind="int"
+														value={form.crossNo || ""}
+														onChange={(v) => setField("crossNo", v)}
+														onKeyDown={handleCrossNoKeyDown}
+														align="left"
+														className="w-[64%]"
+													/>
+												</div>
 											</div>
-											<div className="flex items-center gap-2">
-												<span className="whitespace-nowrap text-sm text-black">Cross No</span>
-												<Box
-													kind="int"
-													value={form.crossNo || ""}
-													onChange={(v) => setField("crossNo", v)}
-													onKeyDown={handleCrossNoKeyDown}
-													align="left"
-													className="w-[64%]"
-												/>
-											</div>
-										</div>
-									)}
-								</div>
-							</Line>
+										)}
+									</div>
+								</Line>
 
-							<Line label="Purpose of Finance *">
-								<Box value={data.contract.purpoffincDesc} readOnly align="left" className="w-[89%]" />
-							</Line>
+								<Line label="Purpose of Finance *">
+									<Box value={data.contract.purpoffincDesc} readOnly align="left" className="w-[89%]" />
+								</Line>
 
-							<Line label="Currency *">
-								<Dropdown
-									value={form.currCode || ""}
-									onChange={(v) => setField("currCode", v)}
-									options={data.lookups.currencies}
-									className="w-[80%]"
-								/>
-							</Line>
+								<Line label="Currency *">
+									<Dropdown
+										value={form.currCode || ""}
+										onChange={(v) => setField("currCode", v)}
+										options={data.lookups.currencies}
+										className="w-[80%]"
+									/>
+								</Line>
 
-							<Line label="Payment Method *">
-								<Dropdown
-									value={form.colType || ""}
-									onChange={(v) => setField("colType", v)}
-									options={data.lookups.paymentMethods}
-									className="w-[90%]"
-								/>
-							</Line>
+								<Line label="Payment Method *">
+									<Dropdown
+										value={form.colType || ""}
+										onChange={(v) => setField("colType", v)}
+										options={data.lookups.paymentMethods}
+										className="w-[90%]"
+									/>
+								</Line>
 
-							<Line label="In Adv / In Arr *">
-								<Choice
-									name="advArr"
-									value={form.advArr}
-									options={[["V", "Adv"], ["R", "Arr"]]}
-									onChange={handleAdvArrChange}
-									gap="gap-x-6"
-								/>
-							</Line>
-
-							<Line label="Fix / Float *">
-								<div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+								<Line label="In Adv / In Arr *">
 									<Choice
-										name="fixFloat"
-										value={form.fixFloat}
-										options={[["X", "Fix"], ["L", "Float"]]}
-										onChange={(v) => setField("fixFloat", v)}
+										name="advArr"
+										value={form.advArr}
+										options={[["V", "Adv"], ["R", "Arr"]]}
+										onChange={handleAdvArrChange}
 										gap="gap-x-6"
 									/>
-									{form.fixFloat === "L" && (
-										<span className="inline-flex items-center gap-2">
-											<span className="text-sm text-[var(--app-text)]">Float Cycle *</span>
-											<Box kind="int" value={form.floatCyc} onChange={(v) => setField("floatCyc", v)} maxLength={3} className="w-[54px]" />
+								</Line>
+
+								<Line label="Fix / Float *">
+									<div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+										<Choice
+											name="fixFloat"
+											value={form.fixFloat}
+											options={[["X", "Fix"], ["L", "Float"]]}
+											onChange={(v) => setField("fixFloat", v)}
+											gap="gap-x-6"
+										/>
+										{form.fixFloat === "L" && (
+											<span className="inline-flex items-center gap-2">
+												<span className="text-sm text-[var(--app-text)]">Float Cycle *</span>
+												<Box kind="int" value={form.floatCyc} onChange={(v) => setField("floatCyc", v)} maxLength={3} className="w-[54px]" />
+												<span className="text-sm text-[var(--app-text)]">Month</span>
+											</span>
+										)}
+									</div>
+								</Line>
+
+								<Line label="Tenor *">
+									<div className="flex flex-wrap items-center gap-x-6 gap-y-1">
+										<span className="inline-flex items-center gap-1 whitespace-nowrap">
+											<Box kind="int" value={form.tenor} onChange={(v) => setField("tenor", v)} onCommit={handleTenorCommit} className="w-[54px]" />
 											<span className="text-sm text-[var(--app-text)]">Month</span>
 										</span>
-									)}
-								</div>
-							</Line>
+										<span className="inline-flex items-center gap-2 whitespace-nowrap">
+											<span className="text-sm text-[var(--app-text)]">Payment Cycle *</span>
+											<Box kind="int" value={form.payCycle} onChange={(v) => setField("payCycle", v)} maxLength={3} className="w-[54px]" />
+											<span className="text-sm text-[var(--app-text)]">Month</span>
+										</span>
+									</div>
+								</Line>
 
-							<Line label="Tenor *">
-								<div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-									<span className="inline-flex items-center gap-1 whitespace-nowrap">
-										<Box kind="int" value={form.tenor} onChange={(v) => setField("tenor", v)} onCommit={handleTenorCommit} className="w-[54px]" />
-										<span className="text-sm text-[var(--app-text)]">Month</span>
-									</span>
-									<span className="inline-flex items-center gap-2 whitespace-nowrap">
-										<span className="text-sm text-[var(--app-text)]">Payment Cycle *</span>
-										<Box kind="int" value={form.payCycle} onChange={(v) => setField("payCycle", v)} maxLength={3} className="w-[54px]" />
-										<span className="text-sm text-[var(--app-text)]">Month</span>
-									</span>
-								</div>
-							</Line>
+								<Line label="Grace Period">
+									<Box kind="int" value={form.gPeriod} onChange={(v) => setField("gPeriod", v)} onCommit={handleGracePeriodCommit} className="w-[100px]" />
+									<span className={unit}>Month</span>
+								</Line>
 
-							<Line label="Grace Period">
-								<Box kind="int" value={form.gPeriod} onChange={(v) => setField("gPeriod", v)} onCommit={handleGracePeriodCommit} className="w-[100px]" />
-								<span className={unit}>Month</span>
-							</Line>
+								<Line label="Grace Int. Rate">
+									<Box value={form.gIntRate} readOnly className="w-[100px]" />
+									<span className={unit}>%</span>
+								</Line>
 
-							<Line label="Grace Int. Rate">
-								<Box value={form.gIntRate} readOnly className="w-[100px]" />
-								<span className={unit}>%</span>
-							</Line>
+								{moneyLine("Grace Int. Amount", "gIntAmt", { readOnly: true })}
 
-							{moneyLine("Grace Int. Amount", "gIntAmt", { readOnly: true })}
-
-							<Line label={flNewCar ? "Survey Fee 2 *" : "Survey Fee 2"}>
-								<span title={surveyLockTitle}>
-									<Choice
-										name="surveyFee2"
-										value={form.surveyFee2}
-										options={[["1", "Yes"], ["0", "No"]]}
-										disabled={!!form.surveyLocked}
-										onChange={handleSurveyFee2Change}
-									/>
-								</span>
-							</Line>
-
-							{moneyLine("Asset Value *", "lAmount", { onCommit: handleAssetCommit })}
-
-							<Line label={financeLease ? "Security Deposit *" : "Down Payment *"}>
-								<div className="flex items-center gap-1">
-									<Box kind="money" value={form.security} onChange={(v) => setField("security", v)} onCommit={handleSecurityCommit} className="w-1/2" />
-									<Box kind="rate" decimals={2} value={form.securityPersen} onChange={(v) => setField("securityPersen", v)} onCommit={handleSecurityPercentCommit} className="w-[22%]" />
-									<span className="text-sm text-[var(--app-text)]">%</span>
-								</div>
-							</Line>
-
-							{moneyLine("Net Finance *", "netFinance", { readOnly: true, value: derived.netFinance, width: "w-[79%]" })}
-
-							<Line label={flNewCar ? "BBN Loan *" : "BBN Loan"}>
-								<Box
-									kind="money"
-									value={form.bbn?.bbnLoan}
-									onChange={(v) => setBbn({ bbnLoan: v })}
-									onCommit={handleLoanCommit}
-									readOnly={bbnLoanReadOnly(bbnVia, bbnPaidBy)}
-									className="w-[79%]"
-								/>
-							</Line>
-
-							{moneyLine("Provision Loan", "provisionLoan", { onCommit: handleLoanCommit })}
-							{moneyLine("Insurance Loan", "creditAmt", { onCommit: handleLoanCommit })}
-							{moneyLine("Other Loan", "otherLoan", { onCommit: handleOtherLoanCommit })}
-							{moneyLine(flNewCar ? "Total Net Finance" : "Total Net Finance *", "totalNetFinance", { readOnly: true, value: derived.tot, width: "w-[79%]" })}
-
-							<Line label="Survey Loan 2">
-								<Box
-									kind="money"
-									value={derived.active ? form.surveyLoan2 : 0}
-									onChange={(v) => setField("surveyLoan2", v)}
-									onCommit={handleSurveyLoan2Commit}
-									disabled={surveyInputsDisabled}
-									className="w-[79%]"
-								/>
-							</Line>
-
-							{moneyLine(
-								flNewCar ? "Total Net Finance + Survey Loan 2" : "Total Net Finance + Survey Loan 2 *",
-								"totalNetFinance2",
-								{ readOnly: true, value: derived.tot2, width: "w-[79%]" },
-							)}
-
-							{!flNewCar && finType === "D" && (
-								<>
-									{moneyLine("Total Customer's Outstanding Contract & CAM Net Finance for Fund Facility (FD)", "totalFDana", { readOnly: true, value: data.outstanding.totalFDana, width: "w-[79%]" })}
-									{moneyLine("Grand Total Customer's Outstanding Contract & CAM Net Finance for Fund Facility (FD)", "totalFDanas", { readOnly: true, value: data.outstanding.totalFDana + Math.trunc(derived.tot2), width: "w-[79%]" })}
-								</>
-							)}
-
-							{!flNewCar && finType === "M" && (
-								<>
-									{moneyLine("Total Customer's Outstanding Contract & CAM Net Finance for Business Capital Facility (FMU)", "totalFModal", { readOnly: true, value: data.outstanding.totalFModal, width: "w-[79%]" })}
-									{moneyLine("Grand Total Customer's Outstanding Contract & CAM Net Finance for Business Capital Facility (FMU)", "totalfunds", { readOnly: true, value: data.outstanding.totalFModal + Math.trunc(derived.tot2), width: "w-[79%]" })}
-								</>
-							)}
-
-							<Line label="Loan to Value (LtV)">
-								<Box value={derived.loanToValue} readOnly className="w-[79%]" />
-								<span className="text-sm text-[var(--app-text)]">%</span>
-							</Line>
-
-							<Line label={flNewCar ? "Amortization Type" : "Amortization Type *"}>
-								<Dropdown
-									value={lType}
-									onChange={handleAmortizationChange}
-									options={data.lookups.amortizationTypes}
-									className="w-[80%]"
-								/>
-							</Line>
-
-							{lType === "4" ? (
-								<>
-									<Line label="Customer Flat Rate *">
-										<Box kind="rate" value={form.flatRate1000} onChange={(v) => setField("flatRate1000", v)} className="w-[69%]" />
-										<span className={unit}>% p.a</span>
-									</Line>
-									<Line label="Customer Tenor *">
-										<Box kind="int" value={form.tenor1000} onChange={(v) => setField("tenor1000", v)} className="w-[69%]" />
-										<span className={unit}>Month</span>
-									</Line>
-									<Line>{sellingBase}</Line>
-									<Line label="Flat Rate *">
-										{ratePair({ key: "flatRate", readOnly: true }, { key: "mlciFlat", onCommit: handleMlciFlatCommit })}
-									</Line>
-									<Line label="Effective Rate *">
-										{ratePair({ key: "declRate", readOnly: true }, { key: "mlciDecl", readOnly: true })}
-									</Line>
-									<Line label="Installment *">
-										{installmentPair(true)}
-									</Line>
-								</>
-							) : (
-								<>
-									<Line>{sellingBase}</Line>
-									<Line label="Flat Rate *">
-										{ratePair({ key: "flatRate", onCommit: handleFlatCommit }, { key: "mlciFlat", onCommit: handleMlciFlatCommit })}
-									</Line>
-									<Line label="Effective Rate *">
-										{ratePair({ key: "declRate", onCommit: handleDeclCommit }, { key: "mlciDecl", onCommit: handleMlciDeclCommit })}
-									</Line>
-									{lType === "3" ? (
-										<Line label="No. of Step *">
-											<div className="flex items-center gap-2">
-												<Box kind="int" value={form.noStep} onChange={(v) => setField("noStep", v)} className="w-1/4" />
-												<button
-													type="button"
-													onClick={handleGo}
-													disabled={blocked}
-													className="h-7 rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm text-[var(--app-text)] hover:bg-slate-200 disabled:opacity-50"
-												>
-													Go
-												</button>
-											</div>
-										</Line>
-									) : (
-										<Line label="Installment *">
-											{installmentPair(false)}
-										</Line>
-									)}
-								</>
-							)}
-
-							{lType === "3" && steps.length > 0 && (
-								<tr>
-									<td colSpan={2} className="py-1">
-										<table className="w-full border-collapse">
-											<thead>
-												<tr className="text-left text-sm font-normal text-[var(--app-text)]">
-													<td className="w-[10%] py-[3px]">Step *</td>
-													<td className="w-[20%] py-[3px]">Month *</td>
-													<td className="w-[35%] py-[3px]">Rental *</td>
-													<td className="w-[35%] py-[3px]">Base *</td>
-												</tr>
-											</thead>
-											<tbody>
-												{steps.map((step, i) => {
-													const isLast = i === steps.length - 1;
-													return (
-														<tr key={i}>
-															<td className="py-[3px] text-sm text-[var(--app-text)]">{i + 1}</td>
-															<td className="py-[3px]">
-																<Box
-																	kind="int"
-																	value={step.month}
-																	onChange={(v) => setStep(i, { month: v })}
-																	onCommit={isLast ? undefined : handleStepMonthCommit(i)}
-																	readOnly={isLast}
-																	className="w-[80%]"
-																/>
-															</td>
-															<td className="py-[3px]">
-																<Box
-																	kind="money"
-																	value={step.rental}
-																	onChange={(v) => setStep(i, { rental: v })}
-																	onCommit={isLast ? undefined : handleStepRentalCommit(i)}
-																	readOnly={isLast && !!form.stepLastReadonly}
-																	className="w-[80%]"
-																/>
-															</td>
-															<td className="py-[3px]">
-																<Box kind="money" value={step.base} readOnly className="w-[80%]" />
-															</td>
-														</tr>
-													);
-												})}
-											</tbody>
-										</table>
-									</td>
-								</tr>
-							)}
-
-							{!blocked && (
-								<tr>
-									<td colSpan={2} className="pt-4 text-right">
-										<button
-											type="button"
-											onClick={handleCalculate}
-											disabled={calculating}
-											className="mr-2 rounded border border-[#CC5200] bg-[#FF6600] px-4 py-1 text-sm text-white hover:bg-[#E65C00] disabled:opacity-50"
-										>
-											{calculating ? "Calculating…" : "Calculate"}
-										</button>
-										<button
-											type="button"
-											onClick={() => handleClear()}
-											className="rounded border border-[#CC5200] bg-[#FF6600] px-4 py-1 text-sm text-white hover:bg-[#E65C00] disabled:opacity-50"
-										>
-											Clear
-										</button>
-									</td>
-								</tr>
-							)}
-						</tbody>
-					</table>
-				</div>
-
-				<div className="min-w-0">
-					<table className="w-full border-collapse">
-						<tbody>
-							<tr>
-								<td colSpan={2} className="pb-1 text-sm">&nbsp;</td>
-							</tr>
-							{flNewCar ? (
-								<>
-									<Line label="BBN Via">
+								<Line label={flNewCar ? "Survey Fee 2 *" : "Survey Fee 2"}>
+									<span title={surveyLockTitle}>
 										<Choice
-											name="bbnVia"
-											value={bbnVia}
-											options={[["MLCI", "Company"], ["Dealer", "Dealer"]]}
-											onChange={handleBbnViaChange}
-											gap="gap-x-16"
+											name="surveyFee2"
+											value={form.surveyFee2}
+											options={[["1", "Yes"], ["0", "No"]]}
+											disabled={!!form.surveyLocked}
+											onChange={handleSurveyFee2Change}
 										/>
-									</Line>
-									{paidByOptions.length > 0 && (
-										<Line label="Paid By">
+									</span>
+								</Line>
+
+								{moneyLine("Asset Value *", "lAmount", { onCommit: handleAssetCommit })}
+
+								<Line label={financeLease ? "Security Deposit *" : "Down Payment *"}>
+									<div className="flex items-center gap-1">
+										<Box kind="money" value={form.security} onChange={(v) => setField("security", v)} onCommit={handleSecurityCommit} className="w-1/2" />
+										<Box kind="rate" decimals={2} value={form.securityPersen} onChange={(v) => setField("securityPersen", v)} onCommit={handleSecurityPercentCommit} className="w-[22%]" />
+										<span className="text-sm text-[var(--app-text)]">%</span>
+									</div>
+								</Line>
+
+								{moneyLine("Net Finance *", "netFinance", { readOnly: true, value: derived.netFinance, width: "w-[79%]" })}
+
+								<Line label={flNewCar ? "BBN Loan *" : "BBN Loan"}>
+									<Box
+										kind="money"
+										value={form.bbn?.bbnLoan}
+										onChange={(v) => setBbn({ bbnLoan: v })}
+										onCommit={handleLoanCommit}
+										readOnly={bbnLoanReadOnly(bbnVia, bbnPaidBy)}
+										className="w-[79%]"
+									/>
+								</Line>
+
+								{moneyLine("Provision Loan", "provisionLoan", { onCommit: handleLoanCommit })}
+								{moneyLine("Insurance Loan", "creditAmt", { onCommit: handleLoanCommit })}
+								{moneyLine("Other Loan", "otherLoan", { onCommit: handleOtherLoanCommit })}
+								{moneyLine(flNewCar ? "Total Net Finance" : "Total Net Finance *", "totalNetFinance", { readOnly: true, value: derived.tot, width: "w-[79%]" })}
+
+								<Line label="Survey Loan 2">
+									<Box
+										kind="money"
+										value={derived.active ? form.surveyLoan2 : 0}
+										onChange={(v) => setField("surveyLoan2", v)}
+										onCommit={handleSurveyLoan2Commit}
+										disabled={surveyInputsDisabled}
+										className="w-[79%]"
+									/>
+								</Line>
+
+								{moneyLine(
+									flNewCar ? "Total Net Finance + Survey Loan 2" : "Total Net Finance + Survey Loan 2 *",
+									"totalNetFinance2",
+									{ readOnly: true, value: derived.tot2, width: "w-[79%]" },
+								)}
+
+								{!flNewCar && finType === "D" && (
+									<>
+										{moneyLine("Total Customer's Outstanding Contract & CAM Net Finance for Fund Facility (FD)", "totalFDana", { readOnly: true, value: data.outstanding.totalFDana, width: "w-[79%]" })}
+										{moneyLine("Grand Total Customer's Outstanding Contract & CAM Net Finance for Fund Facility (FD)", "totalFDanas", { readOnly: true, value: data.outstanding.totalFDana + Math.trunc(derived.tot2), width: "w-[79%]" })}
+									</>
+								)}
+
+								{!flNewCar && finType === "M" && (
+									<>
+										{moneyLine("Total Customer's Outstanding Contract & CAM Net Finance for Business Capital Facility (FMU)", "totalFModal", { readOnly: true, value: data.outstanding.totalFModal, width: "w-[79%]" })}
+										{moneyLine("Grand Total Customer's Outstanding Contract & CAM Net Finance for Business Capital Facility (FMU)", "totalfunds", { readOnly: true, value: data.outstanding.totalFModal + Math.trunc(derived.tot2), width: "w-[79%]" })}
+									</>
+								)}
+
+								<Line label="Loan to Value (LtV)">
+									<Box value={derived.loanToValue} readOnly className="w-[79%]" />
+									<span className="text-sm text-[var(--app-text)]">%</span>
+								</Line>
+
+								<Line label={flNewCar ? "Amortization Type" : "Amortization Type *"}>
+									<Dropdown
+										value={lType}
+										onChange={handleAmortizationChange}
+										options={data.lookups.amortizationTypes}
+										className="w-[80%]"
+									/>
+								</Line>
+
+								{lType === "4" ? (
+									<>
+										<Line label="Customer Flat Rate *">
+											<Box kind="rate" value={form.flatRate1000} onChange={(v) => setField("flatRate1000", v)} className="w-[69%]" />
+											<span className={unit}>% p.a</span>
+										</Line>
+										<Line label="Customer Tenor *">
+											<Box kind="int" value={form.tenor1000} onChange={(v) => setField("tenor1000", v)} className="w-[69%]" />
+											<span className={unit}>Month</span>
+										</Line>
+										<Line>{sellingBase}</Line>
+										<Line label="Flat Rate *">
+											{ratePair({ key: "flatRate", readOnly: true }, { key: "mlciFlat", onCommit: handleMlciFlatCommit })}
+										</Line>
+										<Line label="Effective Rate *">
+											{ratePair({ key: "declRate", readOnly: true }, { key: "mlciDecl", readOnly: true })}
+										</Line>
+										<Line label="Installment *">
+											{installmentPair(true)}
+										</Line>
+									</>
+								) : (
+									<>
+										<Line>{sellingBase}</Line>
+										<Line label="Flat Rate *">
+											{ratePair({ key: "flatRate", onCommit: handleFlatCommit }, { key: "mlciFlat", onCommit: handleMlciFlatCommit })}
+										</Line>
+										<Line label="Effective Rate *">
+											{ratePair({ key: "declRate", onCommit: handleDeclCommit }, { key: "mlciDecl", onCommit: handleMlciDeclCommit })}
+										</Line>
+										{lType === "3" ? (
+											<Line label="No. of Step *">
+												<div className="flex items-center gap-2">
+													<Box kind="int" value={form.noStep} onChange={(v) => setField("noStep", v)} className="w-1/4" />
+													<button
+														type="button"
+														onClick={handleGo}
+														disabled={blocked}
+														className="h-7 rounded border border-[var(--app-border)] bg-[var(--app-surface)] px-3 text-sm text-[var(--app-text)] hover:bg-slate-200 disabled:opacity-50"
+													>
+														Go
+													</button>
+												</div>
+											</Line>
+										) : (
+											<Line label="Installment *">
+												{installmentPair(false)}
+											</Line>
+										)}
+									</>
+								)}
+
+								{lType === "3" && steps.length > 0 && (
+									<tr>
+										<td colSpan={2} className="py-1">
+											<table className="w-full border-collapse">
+												<thead>
+													<tr className="text-left text-sm font-normal text-[var(--app-text)]">
+														<td className="w-[10%] py-[3px]">Step *</td>
+														<td className="w-[20%] py-[3px]">Month *</td>
+														<td className="w-[35%] py-[3px]">Rental *</td>
+														<td className="w-[35%] py-[3px]">Base *</td>
+													</tr>
+												</thead>
+												<tbody>
+													{steps.map((step, i) => {
+														const isLast = i === steps.length - 1;
+														return (
+															<tr key={i}>
+																<td className="py-[3px] text-sm text-[var(--app-text)]">{i + 1}</td>
+																<td className="py-[3px]">
+																	<Box
+																		kind="int"
+																		value={step.month}
+																		onChange={(v) => setStep(i, { month: v })}
+																		onCommit={isLast ? undefined : handleStepMonthCommit(i)}
+																		readOnly={isLast}
+																		className="w-[80%]"
+																	/>
+																</td>
+																<td className="py-[3px]">
+																	<Box
+																		kind="money"
+																		value={step.rental}
+																		onChange={(v) => setStep(i, { rental: v })}
+																		onCommit={isLast ? undefined : handleStepRentalCommit(i)}
+																		readOnly={isLast && !!form.stepLastReadonly}
+																		className="w-[80%]"
+																	/>
+																</td>
+																<td className="py-[3px]">
+																	<Box kind="money" value={step.base} readOnly className="w-[80%]" />
+																</td>
+															</tr>
+														);
+													})}
+												</tbody>
+											</table>
+										</td>
+									</tr>
+								)}
+
+								{!blocked && (
+									<tr>
+										<td colSpan={2} className="pt-4 text-right">
+											<button
+												type="button"
+												onClick={handleCalculate}
+												disabled={calculating}
+												className="mr-2 rounded border border-[#CC5200] bg-[#FF6600] px-4 py-1 text-sm text-white hover:bg-[#E65C00] disabled:opacity-50"
+											>
+												{calculating ? "Calculating…" : "Calculate"}
+											</button>
+											<button
+												type="button"
+												onClick={() => handleClear()}
+												className="rounded border border-[#CC5200] bg-[#FF6600] px-4 py-1 text-sm text-white hover:bg-[#E65C00] disabled:opacity-50"
+											>
+												Clear
+											</button>
+										</td>
+									</tr>
+								)}
+							</tbody>
+						</table>
+					</div>
+
+					<div className="min-w-0">
+						<table className="w-full border-collapse">
+							<tbody>
+								<tr>
+									<td colSpan={2} className="pb-1 text-sm">&nbsp;</td>
+								</tr>
+								{flNewCar ? (
+									<>
+										<Line label="BBN Via">
 											<Choice
-												name="paidBy"
-												value={bbnPaidBy}
-												options={paidByOptions}
-												onChange={handlePaidByChange}
-												gap="gap-x-6"
+												name="bbnVia"
+												value={bbnVia}
+												options={[["MLCI", "Company"], ["Dealer", "Dealer"]]}
+												onChange={handleBbnViaChange}
+												gap="gap-x-16"
 											/>
 										</Line>
-									)}
-									{/* <Line label="Agency Name">
+										{paidByOptions.length > 0 && (
+											<Line label="Paid By">
+												<Choice
+													name="paidBy"
+													value={bbnPaidBy}
+													options={paidByOptions}
+													onChange={handlePaidByChange}
+													gap="gap-x-6"
+												/>
+											</Line>
+										)}
+										{/* <Line label="Agency Name">
 										<Dropdown
 											value={form.bbn?.agencyName || ""}
 											onChange={handleAgencyNameChange}
@@ -1791,186 +1801,187 @@ const CAMFinancingPage = forwardRef<CamTabHandle, CAMFinancingPageProps>(functio
 											className="w-full"
 										/>
 									</Line> */}
-									<Line label="Agency Fee Gross">
-										<Box
-											kind="money"
-											value={form.bbn?.agencyFeeGross}
-											onChange={(v) => setBbn({ agencyFeeGross: v })}
-											onCommit={handleAgencyFeeGrossCommit}
-											readOnly={dealerVia}
-											className="w-full"
-										/>
-									</Line>
-									<Line label="BBN Fee">
-										<Box
-											kind="money"
-											value={form.bbn?.bbnFee}
-											onChange={(v) => setBbn({ bbnFee: v })}
-											onCommit={handleBbnFeeCommit}
-											readOnly={dealerVia}
-											className="w-full"
-										/>
-									</Line>
-									<Line label="Agency Fee Net">
-										<Box kind="money" value={form.bbn?.agencyFeeNet} readOnly className="w-full" />
-									</Line>
-									{notaryLine}
-									{nettDeedLine}
-									{nettCertLine}
-									{businessTripLine}
-									{moneyLine("Residual Value", "residual", { readOnly: true, width: "w-full" })}
-								</>
-							) : (
-								<>
-									{notaryLine}
-									{businessTripLine}
-									{nettDeedLine}
-									{nettCertLine}
-								</>
-							)}
-						</tbody>
-					</table>
+										<Line label="Agency Fee Gross">
+											<Box
+												kind="money"
+												value={form.bbn?.agencyFeeGross}
+												onChange={(v) => setBbn({ agencyFeeGross: v })}
+												onCommit={handleAgencyFeeGrossCommit}
+												readOnly={dealerVia}
+												className="w-full"
+											/>
+										</Line>
+										<Line label="BBN Fee">
+											<Box
+												kind="money"
+												value={form.bbn?.bbnFee}
+												onChange={(v) => setBbn({ bbnFee: v })}
+												onCommit={handleBbnFeeCommit}
+												readOnly={dealerVia}
+												className="w-full"
+											/>
+										</Line>
+										<Line label="Agency Fee Net">
+											<Box kind="money" value={form.bbn?.agencyFeeNet} readOnly className="w-full" />
+										</Line>
+										{notaryLine}
+										{nettDeedLine}
+										{nettCertLine}
+										{businessTripLine}
+										{moneyLine("Residual Value", "residual", { readOnly: true, width: "w-full" })}
+									</>
+								) : (
+									<>
+										{notaryLine}
+										{businessTripLine}
+										{nettDeedLine}
+										{nettCertLine}
+									</>
+								)}
+							</tbody>
+						</table>
 
-					<div className="mt-3 overflow-x-auto">
-						<table className="w-full border-collapse border border-[var(--app-border)]">
-							<thead>
-								<tr>
-									<th className={`${headCell} w-[15%]`}>
-										<button
-											type="button"
-											onClick={() => setShowSubsidyPanel(true)}
-											disabled={blocked}
-											className="rounded bg-[#FF6600] px-2 py-0.5 text-xs font-normal text-white hover:bg-[#e65c00] disabled:opacity-50"
-										>
-											Detail
-										</button>
-									</th>
-									<th className={`${headCell} w-[15%]`}>Income</th>
-									<th className={`${headCell} w-[15%]`}>Subsidy</th>
-									<th className={`${headCell} w-[15%]`}>Total Income (Include Subsidy)</th>
-									<th className={`${headCell} w-[15%]`}>Base Rate</th>
-									<th className={`${headCell} w-[15%]`}>Max Refund</th>
-								</tr>
-							</thead>
+						<div className="mt-3 overflow-x-auto">
+							<table className="w-full border-collapse border border-[var(--app-border)]">
+								<thead>
+									<tr>
+										<th className={`${headCell} w-[15%]`}>
+											<button
+												type="button"
+												onClick={() => setShowSubsidyPanel(true)}
+												disabled={blocked}
+												className="rounded bg-[#FF6600] px-2 py-0.5 text-xs font-normal text-white hover:bg-[#e65c00] disabled:opacity-50"
+											>
+												Detail
+											</button>
+										</th>
+										<th className={`${headCell} w-[15%]`}>Income</th>
+										<th className={`${headCell} w-[15%]`}>Subsidy</th>
+										<th className={`${headCell} w-[15%]`}>Total Income (Include Subsidy)</th>
+										<th className={`${headCell} w-[15%]`}>Base Rate</th>
+										<th className={`${headCell} w-[15%]`}>Max Refund</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td className={labelCell}>Insurance Income</td>
+										<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
+										<td className={greyCell} rowSpan={2} />
+										<td className={greyCell} />
+										<td className={valueCell}><Box kind="money" value={0} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell}>Net Insurance Prem. Received</td>
+										<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
+										<td className={greyCell} />
+										<td className={greyCell} />
+									</tr>
+									<tr>
+										<td className={labelCell}>Survey Fee 1</td>
+										<td className={valueCell}>
+											<Box kind="money" value={form.survInc} onChange={(v) => setField("survInc", v)} onCommit={handleSurvIncCommit} readOnly={blocked} className={cellBox} />
+										</td>
+										<td className={valueCell}><Box kind="money" value={sums.survey} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.ttlSurv} readOnly className={cellBox} /></td>
+										<td className={valueCell}>
+											<Box kind="money" value={form.baseSurv} onChange={(v) => setField("baseSurv", v)} onCommit={handleBaseSurvCommit} readOnly={blocked} className={cellBox} />
+										</td>
+										<td className={valueCell}><Box kind="money" value={derived.excSurv} readOnly className={cellBox} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell}>Survey Fee 2</td>
+										<td className={valueCell}>
+											<Box kind="money" value={derived.survInc2} onChange={(v) => setField("survInc2", v)} onCommit={handleSurvInc2Commit} disabled={surveyInputsDisabled} readOnly={blocked} className={cellBox} />
+										</td>
+										<td className={valueCell}><Box kind="money" value={derived.subSurv2} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.ttlSurv2} readOnly className={cellBox} /></td>
+										<td className={valueCell}>
+											<Box kind="money" value={derived.baseSurv2} onChange={(v) => setField("baseSurv2", v)} onCommit={handleBaseSurv2Commit} disabled={surveyInputsDisabled} readOnly={blocked} className={cellBox} />
+										</td>
+										<td className={valueCell}><Box kind="money" value={derived.excSurv2} readOnly className={cellBox} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell}>Provision Fee</td>
+										<td className={valueCell}>
+											<Box kind="money" value={form.provInc} onChange={(v) => setField("provInc", v)} onCommit={handleProvIncCommit} readOnly={blocked} className={cellBox} />
+										</td>
+										<td className={valueCell}><Box kind="money" value={sums.provision} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.ttlProv} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={0} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.ttlProv} readOnly className={cellBox} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell}>Interest Income</td>
+										<td className={valueCell}><Box kind="money" value={form.grossIntRate} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={sums.interest} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.ttlInt} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={form.netIntRate} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.excInt} readOnly className={cellBox} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell} colSpan={2}>Total</td>
+										<td className={valueCell}><Box kind="money" value={derived.subTotal} readOnly className={cellBox} /></td>
+										<td className={valueCell}><Box kind="money" value={derived.ttlSubTot} readOnly className={`${cellBox} font-bold`} /></td>
+										<td className={greyCell} />
+										<td className={valueCell}><Box kind="money" value={derived.ttlExcTot} readOnly className={`${cellBox} font-bold`} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell} colSpan={3}>Incentive to 3rd Party {derived.percentage}%</td>
+										<td className={valueCell}><Box kind="money" value={derived.maxComm} readOnly className={`${cellBox} font-bold`} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell} colSpan={3}>Marketing Fee</td>
+										<td className={valueCell}><Box kind="money" value={derived.marketingFee} readOnly className={`${cellBox} font-bold`} /></td>
+									</tr>
+									<tr>
+										<td className={labelCell} colSpan={5}>Incentive To Be Paid</td>
+										<td className={valueCell}><Box kind="money" value={derived.eligibleComm} readOnly className={`${cellBox} font-bold`} /></td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<table className="mt-2 w-full border-collapse">
 							<tbody>
-								<tr>
-									<td className={labelCell}>Insurance Income</td>
-									<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
-									<td className={greyCell} rowSpan={2} />
-									<td className={greyCell} />
-									<td className={valueCell}><Box kind="money" value={0} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell}>Net Insurance Prem. Received</td>
-									<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.insuranceIncome} readOnly className={cellBox} /></td>
-									<td className={greyCell} />
-									<td className={greyCell} />
-								</tr>
-								<tr>
-									<td className={labelCell}>Survey Fee 1</td>
-									<td className={valueCell}>
-										<Box kind="money" value={form.survInc} onChange={(v) => setField("survInc", v)} onCommit={handleSurvIncCommit} readOnly={blocked} className={cellBox} />
-									</td>
-									<td className={valueCell}><Box kind="money" value={sums.survey} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.ttlSurv} readOnly className={cellBox} /></td>
-									<td className={valueCell}>
-										<Box kind="money" value={form.baseSurv} onChange={(v) => setField("baseSurv", v)} onCommit={handleBaseSurvCommit} readOnly={blocked} className={cellBox} />
-									</td>
-									<td className={valueCell}><Box kind="money" value={derived.excSurv} readOnly className={cellBox} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell}>Survey Fee 2</td>
-									<td className={valueCell}>
-										<Box kind="money" value={derived.survInc2} onChange={(v) => setField("survInc2", v)} onCommit={handleSurvInc2Commit} disabled={surveyInputsDisabled} readOnly={blocked} className={cellBox} />
-									</td>
-									<td className={valueCell}><Box kind="money" value={derived.subSurv2} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.ttlSurv2} readOnly className={cellBox} /></td>
-									<td className={valueCell}>
-										<Box kind="money" value={derived.baseSurv2} onChange={(v) => setField("baseSurv2", v)} onCommit={handleBaseSurv2Commit} disabled={surveyInputsDisabled} readOnly={blocked} className={cellBox} />
-									</td>
-									<td className={valueCell}><Box kind="money" value={derived.excSurv2} readOnly className={cellBox} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell}>Provision Fee</td>
-									<td className={valueCell}>
-										<Box kind="money" value={form.provInc} onChange={(v) => setField("provInc", v)} onCommit={handleProvIncCommit} readOnly={blocked} className={cellBox} />
-									</td>
-									<td className={valueCell}><Box kind="money" value={sums.provision} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.ttlProv} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={0} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.ttlProv} readOnly className={cellBox} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell}>Interest Income</td>
-									<td className={valueCell}><Box kind="money" value={form.grossIntRate} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={sums.interest} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.ttlInt} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={form.netIntRate} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.excInt} readOnly className={cellBox} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell} colSpan={2}>Total</td>
-									<td className={valueCell}><Box kind="money" value={derived.subTotal} readOnly className={cellBox} /></td>
-									<td className={valueCell}><Box kind="money" value={derived.ttlSubTot} readOnly className={`${cellBox} font-bold`} /></td>
-									<td className={greyCell} />
-									<td className={valueCell}><Box kind="money" value={derived.ttlExcTot} readOnly className={`${cellBox} font-bold`} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell} colSpan={3}>Incentive to 3rd Party {derived.percentage}%</td>
-									<td className={valueCell}><Box kind="money" value={derived.maxComm} readOnly className={`${cellBox} font-bold`} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell} colSpan={3}>Marketing Fee</td>
-									<td className={valueCell}><Box kind="money" value={derived.marketingFee} readOnly className={`${cellBox} font-bold`} /></td>
-								</tr>
-								<tr>
-									<td className={labelCell} colSpan={5}>Incentive To Be Paid</td>
-									<td className={valueCell}><Box kind="money" value={derived.eligibleComm} readOnly className={`${cellBox} font-bold`} /></td>
-								</tr>
+								{moneyLine("Credit Protection", "creditProtection", { readOnly: true, width: "w-[90%]" })}
+								<Line label="Guaranteed Acceptance">
+									<Choice
+										name="guaranteed"
+										value={derived.guaranteed}
+										options={[["1", "Yes"], ["0", "No"]]}
+										disabled={derived.guaranteedDisabled}
+										onChange={(v) => setField("guaranteed", v)}
+									/>
+								</Line>
 							</tbody>
 						</table>
 					</div>
-
-					<table className="mt-2 w-full border-collapse">
-						<tbody>
-							{moneyLine("Credit Protection", "creditProtection", { readOnly: true, width: "w-[90%]" })}
-							<Line label="Guaranteed Acceptance">
-								<Choice
-									name="guaranteed"
-									value={derived.guaranteed}
-									options={[["1", "Yes"], ["0", "No"]]}
-									disabled={derived.guaranteedDisabled}
-									onChange={(v) => setField("guaranteed", v)}
-								/>
-							</Line>
-						</tbody>
-					</table>
 				</div>
+
+				{saving && (
+					<p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>
+				)}
+
+				{(messages || blocked) && (
+					<div className="message mt-3 space-y-1">
+						{messages?.lines.map((line, i) => (
+							<p key={i} className={`text-sm ${messages.type === "success" ? "text-green-600" : "text-red-600"}`}>{line}</p>
+						))}
+						{blocked && <p className="text-sm text-red-600">{data.accountBlockMessage}</p>}
+					</div>
+				)}
+
+				{showSubsidyPanel && (
+					<CAMFinancingSubsidyPanel
+						applNo={applNo}
+						includeSurveyFee2Option={derived.active}
+						onClose={() => setShowSubsidyPanel(false)}
+						onChanged={refreshSubsidy}
+					/>
+				)}
 			</div>
-
-			{saving && (
-				<p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>
-			)}
-
-			{(messages || blocked) && (
-				<div className="message mt-3 space-y-1">
-					{messages?.lines.map((line, i) => (
-						<p key={i} className={`text-sm ${messages.type === "success" ? "text-green-600" : "text-red-600"}`}>{line}</p>
-					))}
-					{blocked && <p className="text-sm text-red-600">{data.accountBlockMessage}</p>}
-				</div>
-			)}
-
-			{showSubsidyPanel && (
-				<CAMFinancingSubsidyPanel
-					applNo={applNo}
-					includeSurveyFee2Option={derived.active}
-					onClose={() => setShowSubsidyPanel(false)}
-					onChanged={refreshSubsidy}
-				/>
-			)}
 		</div>
 	);
 });

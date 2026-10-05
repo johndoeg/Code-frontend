@@ -9,8 +9,14 @@ import {
 } from '@/features/cam/components/PrecheckingShared';
 
 const CANCEL_PATH = '/cam-request-onhand';
-const DIR_PREFIX = 'corp-ocr-ktp_';
-const WNA_PREFIX = 'wna-corp-board_';
+const DIR_PREFIX = 'corp-guarantor-ocr-ktp_';
+const WNA_PREFIX = 'wna-corp-guarantor-board_';
+const SH_PREFIX = 'shareholder-npwp_';
+const SH_NAME_MAX = 100;
+const SH_NPWP_MAX = 16;
+
+const docsSignature = (list: UploadedDoc[]): string =>
+	list.map((d) => `${d.id}:${d.type}`).sort().join('|');
 
 type FieldKey =
 	| 'id_card_no' | 'name' | 'pob' | 'dob' | 'gender' | 'blood_type' | 'address' | 'rt' | 'rw'
@@ -50,6 +56,15 @@ interface WnaEntry {
 	docTypes: string[];
 }
 
+interface ShareholderEntry {
+	uid: string;
+	ocrId: number | null;
+	origNpwp: string;
+	name: string;
+	npwpNo: string;
+	docTypes: string[];
+}
+
 interface LoadedDirector {
 	id: number;
 	values: DirectorValues;
@@ -78,6 +93,7 @@ interface LoadResponse {
 	outstanding: number;
 	directors: LoadedDirector[];
 	wna_board: { id: number; name: string; id_card_no: string; id_type: IdType; doc_types: string[] }[];
+	shareholders?: { id: number; name: string; npwp_no: string; id_type: string; doc_types: string[] }[];
 	unassigned_documents: UploadedDoc[];
 	sik: { subject: string; credit_bureau: string; status: string; score: string; grade: string }[];
 }
@@ -225,10 +241,12 @@ const comparableDirector = (d: DirectorEntry) => ({
 	carry: d.lookupDocs.map((x) => x.id),
 });
 const comparableWna = (w: WnaEntry) => ({ id: w.ocrId, name: w.name.trim(), idNo: w.idCardNo.trim(), type: w.idType });
+const comparableShareholder = (x: ShareholderEntry) => ({ id: x.ocrId, name: x.name.trim(), npwp: x.npwpNo.trim() });
+const isBlankNewShareholder = (x: ShareholderEntry) => !x.ocrId && !x.name.trim() && !x.npwpNo.trim();
 
 const asPhotoSrc = (raw: string) => (raw.startsWith('data:') ? raw : `data:image/jpeg;base64,${raw}`);
 
-const LOCAL_STYLE_ID = 'edit-prechecking-corporate-styles';
+const LOCAL_STYLE_ID = 'edit-prechecking-guarantor-corporate-styles';
 const LOCAL_CSS = `
   .director-tabs-wrap { border: 1.5px solid var(--border); border-radius: 14px; background: #FAFCFF; overflow: hidden; margin-bottom: 18px; }
   .director-tabbar { display: flex; align-items: stretch; overflow-x: auto; background: #F4F7FF; border-bottom: 1.5px solid var(--border); }
@@ -291,7 +309,7 @@ const VerBadge: React.FC<{ value?: string; checked: boolean }> = ({ value, check
 	return value === 'True' ? <span className="badge ok">True</span> : <span className="badge no">False</span>;
 };
 
-const EditPrecheckingCorporatePage: React.FC = () => {
+const EditPrecheckingGuarantorCorporatePage: React.FC = () => {
 	useInjectStyles();
 	useEffect(() => {
 		let tag = document.getElementById(LOCAL_STYLE_ID) as HTMLStyleElement | null;
@@ -314,6 +332,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 	const [saving, setSaving] = useState(false);
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [baseline, setBaseline] = useState('');
+	const [docsBaseline, setDocsBaseline] = useState('');
 
 	const [lesseeLabel, setLesseeLabel] = useState('');
 	const [maritalOptions, setMaritalOptions] = useState<MaritalOption[]>(MARITAL_FALLBACK);
@@ -326,6 +345,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 	const [originals, setOriginals] = useState<Record<string, DirectorEntry>>({});
 	const [activeUid, setActiveUid] = useState('');
 	const [wnaBoard, setWnaBoard] = useState<WnaEntry[]>([]);
+	const [shareholders, setShareholders] = useState<ShareholderEntry[]>([]);
 
 	const [docs, setDocs] = useState<UploadedDoc[]>([]);
 	const [uploadingDocs, setUploadingDocs] = useState<Set<string>>(new Set());
@@ -340,7 +360,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 	const closePreview = useCallback(() => setPreview(PREVIEW_CLOSED), []);
 
 	const fetchDocs = useCallback(async (): Promise<UploadedDoc[]> => {
-		const res = await api.get('/Prechecking/EditPT/documents-corporate', {
+		const res = await api.get('/CAM/Prechecking/documents-guarantor-corporate', {
 			params: { apless, prechecking_id: precheckingId },
 		});
 		return (res.data ?? []) as UploadedDoc[];
@@ -377,6 +397,14 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 		return docsOfAny(types).map((x) => ({ ...x, readonly: true }));
 	};
 
+	const stagingShDocs = (x: ShareholderEntry) => docsOf(`${SH_PREFIX}${x.uid}`);
+	const shDocsFor = (x: ShareholderEntry): UploadedDoc[] => {
+		const staged = stagingShDocs(x);
+		if (staged.length) return staged;
+		const types = Array.from(new Set([...x.docTypes, ...(x.origNpwp ? [`${SH_PREFIX}${token(x.origNpwp)}`] : [])]));
+		return docsOfAny(types).map((d) => ({ ...d, readonly: true }));
+	};
+
 	const uploadFile = async (file: File, docType: string): Promise<boolean> => {
 		const ALLOWED = ['.png', '.jpg', '.jpeg', '.pdf', '.tiff', '.tif'];
 		const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
@@ -397,7 +425,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 			fd.append('document_type', docType);
 			fd.append('cust_type', 'PT');
 			fd.append('lessee_type', data?.lessee_type || '');
-			const res = await api.post('/Prechecking/EditPT/upload-document-corporate', fd, {
+			const res = await api.post('/CAM/Prechecking/upload-document-guarantor-corporate', fd, {
 				headers: { 'Content-Type': 'multipart/form-data' },
 			});
 			if (!res.data?.success) {
@@ -422,7 +450,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 		if (confirmFirst && !window.confirm('Apakah Anda yakin ingin menghapus dokumen ini?')) return false;
 		setDeletingDocs((prev) => new Set(prev).add(docId));
 		try {
-			const res = await api.post('/Prechecking/EditPT/delete-document-corporate', {
+			const res = await api.post('/CAM/Prechecking/delete-document-guarantor-corporate', {
 				customer_document_id: docId, prechecking_id: precheckingId, nik: '',
 			});
 			if (!res.data?.success) {
@@ -462,7 +490,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 		}
 		setPreviewLoadingId(doc.id);
 		try {
-			const res = await api.get('/Prechecking/EditPT/view-document-corporate', { params: { customer_document_id: doc.id } });
+			const res = await api.get('/CAM/Prechecking/view-document-guarantor-corporate', { params: { customer_document_id: doc.id } });
 			if (res.data?.success && res.data?.view_url) {
 				setPreview({ open: true, name: doc.name, previewUrl: res.data.view_url });
 			} else {
@@ -477,10 +505,12 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 
 	const buildComparable = (
 		name: string, address: string, note: string, carro: boolean,
-		dirs: DirectorEntry[], wnas: WnaEntry[], stagedTypes: string[],
+		dirs: DirectorEntry[], wnas: WnaEntry[], shs: ShareholderEntry[], stagedTypes: string[],
 	) => JSON.stringify({
 		name: name.trim(), address: address.trim(), note: note.trim(), carro,
-		dirs: dirs.map(comparableDirector), wnas: wnas.map(comparableWna), staged: [...stagedTypes].sort(),
+		dirs: dirs.map(comparableDirector), wnas: wnas.map(comparableWna),
+		shs: shs.filter((x) => !isBlankNewShareholder(x)).map(comparableShareholder),
+		staged: [...stagedTypes].sort(),
 	});
 
 	useEffect(() => {
@@ -494,9 +524,9 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 			setLoadError(null);
 			try {
 				const [editR, lesseeR, maritalR, docList] = await Promise.all([
-					api.get('/Prechecking/EditPT/edit-corporate', { params: { apless, prechecking_id: precheckingId } }),
-					api.get('/Prechecking/EditPT/lessee-types').catch(() => ({ data: [] })),
-					api.get('/Prechecking/EditPT/marital-statuses').catch(() => ({ data: [] })),
+					api.get('/CAM/Prechecking/edit-guarantor-corporate', { params: { apless, prechecking_id: precheckingId } }),
+					api.get('/CAM/Prechecking/lessee-types').catch(() => ({ data: [] })),
+					api.get('/CAM/Prechecking/marital-statuses').catch(() => ({ data: [] })),
 					fetchDocs().catch(() => [] as UploadedDoc[]),
 				]);
 				const res = editR.data as LoadResponse;
@@ -510,6 +540,9 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 					uid: newUid(), ocrId: w.id, origIdNo: w.id_card_no, origIdType: w.id_type,
 					name: w.name, idCardNo: w.id_card_no, idType: w.id_type, docTypes: w.doc_types || [],
 				}));
+				const shs: ShareholderEntry[] = (res.shareholders ?? []).map((x) => ({
+					uid: newUid(), ocrId: x.id, origNpwp: x.npwp_no, name: x.name, npwpNo: x.npwp_no, docTypes: x.doc_types || [],
+				}));
 				const carro = res.is_carro === '1';
 
 				const lessee = ((lesseeR.data ?? []) as MaritalOption[]).find((o) => o.value === res.lessee_type);
@@ -517,6 +550,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 				if (Array.isArray(maritalR.data) && maritalR.data.length) setMaritalOptions(maritalR.data);
 
 				setDocs(docList);
+				setDocsBaseline(docsSignature(docList));
 				setCorpName(res.corp_name);
 				setCorpAddress(res.corp_address);
 				setNotes(res.note);
@@ -525,7 +559,8 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 				setOriginals(Object.fromEntries(dirs.map((d) => [d.uid, d])));
 				setActiveUid(dirs[0].uid);
 				setWnaBoard(wnas);
-				setBaseline(buildComparable(res.corp_name, res.corp_address, res.note, carro, dirs, wnas, []));
+				setShareholders(shs);
+				setBaseline(buildComparable(res.corp_name, res.corp_address, res.note, carro, dirs, wnas, shs, []));
 				setData(res);
 			} catch (e: any) {
 				setLoadError(e.response?.data?.message ?? 'Failed to load prechecking data. Please try again.');
@@ -675,9 +710,9 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 			of.append('apless', apless);
 			of.append('customer_type', 'PT');
 			of.append('prechecking_id', precheckingId);
-			of.append('check_for', data?.check_for === 'G' ? 'G' : 'C');
+			of.append('check_for', 'G');
 			of.append('repeat_order', '0');
-			of.append('ocr_for', data?.check_for === 'G' ? 'G' : 'P');
+			of.append('ocr_for', 'G');
 			const result = (await api.post('/Prechecking/OCR/scanOCRCustomer', of, {
 				headers: { 'Content-Type': 'multipart/form-data' },
 			})).data;
@@ -819,6 +854,24 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 		setWnaBoard((prev) => prev.filter((x) => x.uid !== uid));
 	};
 
+	const patchShareholder = (uid: string, patch: Partial<ShareholderEntry>) =>
+		setShareholders((prev) => prev.map((x) => (x.uid === uid ? { ...x, ...patch } : x)));
+
+	const addShareholder = () => setShareholders((prev) => [...prev, {
+		uid: newUid(), ocrId: null, origNpwp: '', name: '', npwpNo: '', docTypes: [],
+	}]);
+
+	const removeShareholder = async (uid: string, idx: number) => {
+		const x = shareholders.find((y) => y.uid === uid);
+		if (!x) return;
+		const msg = x.ocrId
+			? `Hapus Shareholder #${idx + 1}? Data dan file-nya akan dihapus saat Save.`
+			: `Hapus Shareholder #${idx + 1}?`;
+		if (!window.confirm(msg)) return;
+		await discardStaging([`${SH_PREFIX}${uid}`]);
+		setShareholders((prev) => prev.filter((y) => y.uid !== uid));
+	};
+
 	const isChanged = (d: DirectorEntry) => {
 		const o = originals[d.uid];
 		if (!o || !d.ocrId) return true;
@@ -829,9 +882,13 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 	const dukcapilPending = directors.some(needsDukcapil);
 
 	const stagedTypes = useMemo(() => {
-		const tokens = new Set([...directors.map((d) => `${DIR_PREFIX}${d.uid}`), ...wnaBoard.map((w) => `${WNA_PREFIX}${w.uid}`)]);
+		const tokens = new Set([
+			...directors.map((d) => `${DIR_PREFIX}${d.uid}`),
+			...wnaBoard.map((w) => `${WNA_PREFIX}${w.uid}`),
+			...shareholders.map((x) => `${SH_PREFIX}${x.uid}`),
+		]);
 		return Array.from(new Set(docs.filter((d) => tokens.has(d.type)).map((d) => d.type)));
-	}, [docs, directors, wnaBoard]);
+	}, [docs, directors, wnaBoard, shareholders]);
 
 	const validate = (): Record<string, string> => {
 		const e: Record<string, string> = {};
@@ -872,6 +929,22 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 				e[`wna_${i}_document`] = `${label}: upload the ${w.idType} file when changing ID Type`;
 			}
 		});
+
+		const seenNpwp = new Map<string, number>();
+		shareholders.forEach((x, i) => {
+			const label = `Shareholder #${i + 1}`;
+			const name = x.name.trim();
+			const npwp = x.npwpNo.trim();
+			if (!x.ocrId && !name && !npwp && !stagingShDocs(x).length) return;
+			if (!name) e[`shareholder_${i}_name`] = `${label}: Name is required`;
+			if (!npwp) {
+				e[`shareholder_${i}_npwp_no`] = `${label}: NPWP No is required`;
+			} else if (seenNpwp.has(npwp)) {
+				e[`shareholder_${i}_npwp_no`] = `${label}: NPWP No is already used by Shareholder #${seenNpwp.get(npwp)}`;
+			} else {
+				seenNpwp.set(npwp, i + 1);
+			}
+		});
 		return e;
 	};
 
@@ -884,14 +957,17 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 			alert(Object.values(e).join('\n'));
 			return;
 		}
-		if (buildComparable(corpName, corpAddress, notes, isCarro, directors, wnaBoard, stagedTypes) === baseline) {
+		const formUnchanged =
+			buildComparable(corpName, corpAddress, notes, isCarro, directors, wnaBoard, shareholders, stagedTypes) === baseline;
+		const docsChanged = docsSignature(docs) !== docsBaseline;
+		if (formUnchanged && !docsChanged) {
 			alert('No data changes.');
 			return;
 		}
 
 		setSaving(true);
 		try {
-			const res = await api.post('/Prechecking/EditPT/update-corporate', {
+			const res = await api.post('/CAM/Prechecking/update-guarantor-corporate', {
 				apless,
 				prechecking_id: precheckingId,
 				corp_name: corpName.trim(),
@@ -918,8 +994,21 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 					id_card_no: w.idCardNo.trim(),
 					id_type: w.idType,
 				})),
+				shareholders: shareholders.map((x) => ({
+					id: x.ocrId,
+					doc_token: x.uid,
+					doc_types: x.docTypes,
+					name: x.name.trim(),
+					id_type: 'NPWP',
+					npwp_no: x.npwpNo.trim(),
+				})),
 			});
 			if (res.data?.success && res.data?.no_changes) {
+				if (docsChanged) {
+					alert('Data updated successfully.');
+					navigate(CANCEL_PATH);
+					return;
+				}
 				alert('No data changes.');
 				return;
 			}
@@ -962,7 +1051,6 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 	}
 
 	const fieldErr = (key: string) => (errors[key] ? <p className="field-err">{errors[key]}</p> : null);
-	const isGuarantor = data.check_for === 'G';
 
 	return (
 		<div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
@@ -971,8 +1059,8 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 			<div className="page-wrap">
 				<div className="hdr">
 					<div>
-						<div className="hdr-title">Edit Prechecking Data</div>
-						<div className="hdr-sub">Corporate {isGuarantor ? 'Guarantor' : 'Customer'} (PT) · {data.apless}</div>
+						<div className="hdr-title">Edit Guarantor Prechecking Data</div>
+						<div className="hdr-sub">Corporate Guarantor (PT) · {data.apless}</div>
 					</div>
 					<div style={{ display: 'flex', alignItems: 'center', gap: 12, position: 'relative', zIndex: 1 }}>
 						<div className="hdr-badge">
@@ -1007,7 +1095,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 					<div className="form-grid" style={{ marginBottom: 24 }}>
 						<div className="form-field">
 							<label className="form-label">Checking For</label>
-							<input readOnly value={isGuarantor ? 'Guarantor' : 'Customer'} className="form-input is-readonly" />
+							<input readOnly value="Guarantor" className="form-input is-readonly" />
 						</div>
 						<div className="form-field">
 							<label className="form-label">Type</label>
@@ -1047,8 +1135,8 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 						</div>
 						<div className="form-field full">
 							<label className="form-label">NPWP</label>
-							<FileInput multiple label="Upload NPWP" onFileChange={(f) => uploadFile(f, 'corp-npwp')} uploading={uploadingDocs.has('corp-npwp')} />
-							<DocList docs={docsOf('corp-npwp')} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
+							<FileInput multiple label="Upload NPWP" onFileChange={(f) => uploadFile(f, 'corp-guarantor-npwp')} uploading={uploadingDocs.has('corp-guarantor-npwp')} />
+							<DocList docs={docsOf('corp-guarantor-npwp')} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
 						</div>
 					</div>
 
@@ -1335,13 +1423,69 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 						</button>
 					</div>
 
+					<div className="section-label"><span className="dot" />Data Shareholder Company<hr /></div>
+					<div style={{ marginBottom: 12 }}>
+						{shareholders.map((x, idx) => {
+							const stagingType = `${SH_PREFIX}${x.uid}`;
+							return (
+								<div className="epc-wna-card" key={x.uid}>
+									<div className="epc-wna-head">
+										<span className="epc-wna-title">Shareholder #{idx + 1}</span>
+										<button type="button" className="btn-remove" onClick={() => removeShareholder(x.uid, idx)}>Remove</button>
+									</div>
+									<div className="epc-wna-row">
+										<div className="epc-pair">
+											<label className="epc-pair-label">Name <span className="req">*</span></label>
+											<div className="epc-pair-body">
+												<input className={`form-input${errors[`shareholder_${idx}_name`] ? ' err' : ''}`} style={{ textTransform: 'uppercase' }}
+													maxLength={SH_NAME_MAX} value={x.name}
+													onChange={(e) => patchShareholder(x.uid, { name: e.target.value.toUpperCase() })} />
+												{fieldErr(`shareholder_${idx}_name`)}
+											</div>
+										</div>
+										<div className="epc-pair">
+											<label className="epc-pair-label">ID Type</label>
+											<div className="epc-pair-body">
+												<input readOnly value="NPWP" className="form-input is-readonly" />
+											</div>
+										</div>
+									</div>
+									<div className="epc-wna-row">
+										<div className="epc-pair">
+											<label className="epc-pair-label">NPWP No. <span className="req">*</span></label>
+											<div className="epc-pair-body">
+												<input className={`form-input${errors[`shareholder_${idx}_npwp_no`] ? ' err' : ''}`}
+													inputMode="numeric" maxLength={SH_NPWP_MAX} value={x.npwpNo}
+													onChange={(e) => patchShareholder(x.uid, { npwpNo: e.target.value.replace(/\D/g, '').slice(0, SH_NPWP_MAX) })} />
+												{fieldErr(`shareholder_${idx}_npwp_no`)}
+											</div>
+										</div>
+										<div className="epc-pair">
+											<label className="epc-pair-label">NPWP File</label>
+											<div className="epc-pair-body">
+												<FileInput label="Upload NPWP File" onFileChange={(f) => uploadFile(f, stagingType)} uploading={uploadingDocs.has(stagingType)} />
+												<DocList docs={shDocsFor(x)} onDelete={handleDeleteDoc} deletingDocs={deletingDocs} onPreview={handlePreview} previewLoadingId={previewLoadingId} />
+											</div>
+										</div>
+									</div>
+								</div>
+							);
+						})}
+					</div>
+					<div style={{ marginBottom: 24 }}>
+						<button type="button" className="btn-soft" onClick={addShareholder}>
+							<svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>
+							Add Shareholder
+						</button>
+					</div>
+
 					<div className="section-label"><span className="dot" />Supporting Documents<hr /></div>
 					<div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 24 }}>
 						{[
-							{ label: 'Akta Pendirian', type: 'corp-akta' },
-							{ label: 'SK Kemenkumham Akta Pendirian', type: 'corp-sk-akta' },
-							{ label: 'Akta Perubahan Terakhir', type: 'corp-akta-terakhir' },
-							{ label: 'SK Kemenkumham atas Akta Perubahan Terakhir', type: 'corp-sk-akta-terakhir' },
+							{ label: 'Akta Pendirian', type: 'corp-guarantor-akta' },
+							{ label: 'SK Kemenkumham Akta Pendirian', type: 'corp-guarantor-sk-akta' },
+							{ label: 'Akta Perubahan Terakhir', type: 'corp-guarantor-akta-terakhir' },
+							{ label: 'SK Kemenkumham atas Akta Perubahan Terakhir', type: 'corp-guarantor-sk-akta-terakhir' },
 						].map((doc) => (
 							<div className="form-field" key={doc.type}>
 								<label className="form-label">{doc.label}</label>
@@ -1365,7 +1509,7 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 						<div className="form-field">
 							<label className="form-label">Note for Prechecking</label>
 							<textarea rows={4} value={notes} onChange={(e) => setNotes(e.target.value.toUpperCase())} className="form-textarea"
-								placeholder="Optional notes…" style={{ textTransform: 'uppercase' }} />
+								placeholder="" style={{ textTransform: 'uppercase' }} />
 						</div>
 					</div>
 
@@ -1412,4 +1556,4 @@ const EditPrecheckingCorporatePage: React.FC = () => {
 	);
 };
 
-export default EditPrecheckingCorporatePage;
+export default EditPrecheckingGuarantorCorporatePage;

@@ -37,64 +37,14 @@ export interface CamTabHandle {
 	save: () => void;
 }
 
-const cellLabel =
-	"border-b border-[var(--app-border)] bg-[var(--app-surface)]/70 px-4 py-2.5 align-top text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] whitespace-nowrap";
-const cellValue = "border-b border-[var(--app-border)] px-4 py-2.5 align-top text-sm text-[var(--app-text)]";
-const cellEmpty = "border-b border-[var(--app-border)] px-4 py-2.5";
-const subheadCell =
-	"border-b border-[var(--app-border)] bg-indigo-50/70 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-600";
-
-function Row({
-	left,
-	right,
-	rightHeader,
-}: {
-	left?: [string, React.ReactNode];
-	right?: [string, React.ReactNode];
-	rightHeader?: string;
-}) {
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
 	return (
-		<tr>
-			{left ? (
-				<>
-					<td className={cellLabel}>{left[0]}</td>
-					<td className={cellValue}>{left[1]}</td>
-				</>
-			) : (
-				<>
-					<td className={cellEmpty}></td>
-					<td className={cellEmpty}></td>
-				</>
-			)}
-			{rightHeader ? (
-				<td colSpan={2} className={subheadCell}>{rightHeader}</td>
-			) : right ? (
-				<>
-					<td className={cellLabel}>{right[0]}</td>
-					<td className={cellValue}>{right[1]}</td>
-				</>
-			) : (
-				<>
-					<td className={cellEmpty}></td>
-					<td className={cellEmpty}></td>
-				</>
-			)}
-		</tr>
+		<div className={`grid grid-cols-[110px_minmax(0,1fr)] items-start gap-x-3 ${className}`}>
+			<label className="pt-2 text-[13px] font-medium text-[var(--app-muted)]">{label}</label>
+			<div>{children}</div>
+		</div>
 	);
 }
-
-function FullRow({ label, children }: { label: string; children: React.ReactNode }) {
-	return (
-		<tr>
-			<td className={cellLabel}>{label}</td>
-			<td colSpan={3} className={cellValue}>{children}</td>
-		</tr>
-	);
-}
-
-const inputCls =
-	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400";
-const errCls = "text-red-600 text-xs mt-1";
 
 const digitsOnlyKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 	if (!/^\d$/.test(e.key) && !["Backspace", "Delete", "Tab", "ArrowLeft", "ArrowRight"].includes(e.key)) {
@@ -185,81 +135,88 @@ const CAMCustomerAddressPage = forwardRef<CamTabHandle, CAMCustomerAddressPagePr
 		);
 	}
 
-	const renderBlock = (
-		title: string,
-		fields: { address: keyof AddressData; city: keyof AddressData; phone: keyof AddressData; zipcode: keyof AddressData; fax: keyof AddressData }
-	) => (
-		<>
-			<tr>
-				<td colSpan={4} className={subheadCell}>{title}</td>
-			</tr>
-			<FullRow label={title}>
-				<textarea className={inputCls} value={d[fields.address]} onChange={e => set(fields.address, e.target.value)} />
-			</FullRow>
-			<Row
-				left={["City", (
-					<input className={inputCls} value={d[fields.city]} onChange={e => set(fields.city, e.target.value)} maxLength={50} />
-				)]}
-				right={["Post Code", (
-					<>
-						<input
-							className={inputCls}
-							value={d[fields.zipcode]}
-							maxLength={5}
-							onKeyDown={digitsOnlyKeyDown}
-							onChange={e => set(fields.zipcode, e.target.value.replace(/\D/g, ""))}
-						/>
-						{errors[fields.zipcode] && <p className={errCls}>{errors[fields.zipcode]}</p>}
-					</>
-				)]}
-			/>
-			<Row
-				left={["Phone", (
-					<input
-						className={inputCls}
-						value={d[fields.phone]}
-						maxLength={20}
-						onKeyDown={digitsOnlyKeyDown}
-						onChange={e => set(fields.phone, e.target.value.replace(/\D/g, ""))}
-					/>
-				)]}
-				right={["Fax", (
-					<input
-						className={inputCls}
-						value={d[fields.fax]}
-						maxLength={20}
-						onKeyDown={digitsOnlyKeyDown}
-						onChange={e => set(fields.fax, e.target.value.replace(/\D/g, ""))}
-					/>
-				)]}
-			/>
-		</>
-	);
-
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
 
+	const fieldCls =
+		"w-full rounded-lg border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-2 text-[13px] text-[var(--app-text)] shadow-sm transition-colors placeholder:text-[var(--app-muted)]/50 hover:border-[var(--app-muted)]/50 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/25";
+	const errCls = "mt-1 text-[11px] text-red-500";
+
+	const numericProps = (key: keyof AddressData, max: number) => ({
+		className: fieldCls,
+		value: d[key] as string,
+		maxLength: max,
+		inputMode: "numeric" as const,
+		onKeyDown: digitsOnlyKeyDown,
+		onChange: (e: React.ChangeEvent<HTMLInputElement>) => set(key, e.target.value.replace(/\D/g, "")),
+	});
+
+	const renderBlock = (
+		title: string,
+		f: { address: keyof AddressData; city: keyof AddressData; phone: keyof AddressData; zipcode: keyof AddressData; fax: keyof AddressData },
+	) => (
+		<section className="overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-card)]">
+			<div className="flex items-center gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2.5">
+				<span className="h-4 w-1 rounded-full bg-gradient-to-b from-blue-500 to-indigo-500" />
+				<h3 className="text-[12px] font-semibold uppercase tracking-wider text-[var(--app-text)]">{title}</h3>
+			</div>
+			<div className="grid grid-cols-1 gap-x-10 gap-y-3 p-4 md:grid-cols-2">
+				<Field label="Address" className="md:col-span-2">
+					<textarea
+						className={`${fieldCls} resize-y`}
+						rows={2}
+						value={d[f.address] as string}
+						onChange={e => set(f.address, e.target.value)}
+					/>
+				</Field>
+				<Field label="City">
+					<input className={fieldCls} value={d[f.city] as string} maxLength={50} onChange={e => set(f.city, e.target.value)} />
+				</Field>
+				<Field label="Post Code">
+					<input {...numericProps(f.zipcode, 5)} />
+					{errors[f.zipcode] && <p className={errCls}>{errors[f.zipcode]}</p>}
+				</Field>
+				<Field label="Phone">
+					<input {...numericProps(f.phone, 20)} />
+				</Field>
+				<Field label="Fax">
+					<input {...numericProps(f.fax, 20)} />
+				</Field>
+			</div>
+		</section>
+	);
+
+	const errorMessages = Object.values(errors).filter(Boolean);
+
 	return (
-		<div className="space-y-4 rounded-2xl bg-[var(--app-card)] shadow sm:rounded-2xl overflow-hidden">
-			{judul && (
-				<div className="judul border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2 text-right text-xs font-semibold text-blue-400 sm:px-6">
-					{judul}
+		<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Address Information</h2>
 				</div>
-			)}
-			<div className="space-y-4 px-4 pb-4 sm:px-6 sm:pb-6">
-				<h2 className="text-xl font-bold text-[var(--app-text)]">Address Detail</h2>
-				<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
-					<div className="overflow-x-auto">
-						<table className="w-full min-w-[820px] border-collapse text-sm">
-							<tbody>
-								{renderBlock("Correspondence Address", { address: "address3", city: "city3", phone: "phone3", zipcode: "zipcode3", fax: "fax3" })}
-								{renderBlock("Additional Address 1", { address: "address4", city: "city4", phone: "phone4", zipcode: "zipcode4", fax: "fax4" })}
-								{renderBlock("Additional Address 2", { address: "address5", city: "city5", phone: "phone5", zipcode: "zipcode5", fax: "fax5" })}
-							</tbody>
-						</table>
-					</div>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
+			</div>
+
+			<div className="px-4 py-5 sm:px-6">
+				<div className="space-y-4">
+					{renderBlock("Correspondence Address", { address: "address3", city: "city3", phone: "phone3", zipcode: "zipcode3", fax: "fax3" })}
+					{renderBlock("Additional Address 1", { address: "address4", city: "city4", phone: "phone4", zipcode: "zipcode4", fax: "fax4" })}
+					{renderBlock("Additional Address 2", { address: "address5", city: "city5", phone: "phone5", zipcode: "zipcode5", fax: "fax5" })}
 				</div>
 
-				{saving && <p className="text-sm text-[var(--app-muted)] mt-3">Saving…</p>}
+				<div className="min-h-[1.5rem] pt-4 text-[13px]">
+					{errorMessages.length > 0 ? (
+						<div className="space-y-0.5 text-red-600">{errorMessages.map((m, i) => <p key={i}>{m}</p>)}</div>
+					) : saving ? (
+						<p className="text-[var(--app-muted)]">Saving…</p>
+					) : null}
+				</div>
 			</div>
 		</div>
 	);

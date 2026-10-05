@@ -1,6 +1,11 @@
 import { useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import GuarantorSelectPage from "./GuarantorSelectPage";
+import GuarantorInfoPage from "./GuarantorInfoPage";
+import GuarantorBankPage from "./GuarantorBankPage";
+import GuarantorDocumentPage from "./GuarantorDocumentPage";
+import { GuarantorSectionHeader, type GuarantorSubView } from "./GuarantorShared";
 
 interface GuarantorRow {
 	grnId: string;
@@ -30,6 +35,8 @@ const GuarantorListPage = forwardRef<CamTabHandle, GuarantorListPageProps>(funct
 	{ apless, applNo, onSaved }, ref
 ) {
 	const [deletingId, setDeletingId] = useState<string | null>(null);
+	const [view, setView] = useState<'list' | 'select' | GuarantorSubView>('list');
+	const [activeGrnId, setActiveGrnId] = useState('');
 
 	const { data: guarantors = [], isLoading: loading, isError, refetch } = useQuery({
 		queryKey: ['cam-guarantor-list', applNo],
@@ -43,8 +50,9 @@ const GuarantorListPage = forwardRef<CamTabHandle, GuarantorListPageProps>(funct
 		save: () => onSaved({ apless, applno: applNo }),
 	}), [apless, applNo, onSaved]);
 
-	const notYetAvailable = (action: string) => {
-		alert(`${action} isn't available yet — this needs a page that hasn't been converted.`);
+	const openSub = (v: GuarantorSubView, grnId: string) => {
+		setActiveGrnId(grnId);
+		setView(v);
 	};
 
 	const handleDelete = async (row: GuarantorRow) => {
@@ -59,6 +67,29 @@ const GuarantorListPage = forwardRef<CamTabHandle, GuarantorListPageProps>(funct
 			setDeletingId(null);
 		}
 	};
+
+	if (view === 'select') {
+		return (
+			<GuarantorSelectPage
+				apless={apless}
+				applNo={applNo}
+				onBack={() => { setView('list'); refetch(); }}
+			/>
+		);
+	}
+
+	if (view === 'info' || view === 'bank' || view === 'document') {
+		const subProps = {
+			apless,
+			applNo,
+			grnId: activeGrnId,
+			onNavigate: (v: GuarantorSubView) => setView(v),
+			onBack: () => { setView('list'); refetch(); },
+		};
+		if (view === 'info') return <GuarantorInfoPage {...subProps} />;
+		if (view === 'bank') return <GuarantorBankPage {...subProps} />;
+		return <GuarantorDocumentPage {...subProps} />;
+	}
 
 	if (loading) {
 		return (
@@ -78,10 +109,8 @@ const GuarantorListPage = forwardRef<CamTabHandle, GuarantorListPageProps>(funct
 
 	return (
 		<div>
-			<h2 className="text-xl font-bold text-[var(--app-text)] mb-1">List of Guarantor</h2>
-			<p className="text-sm text-[var(--app-muted)] mb-4">Customer No. {apless || "(new)"}</p>
-
 			<div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] shadow-sm">
+				<GuarantorSectionHeader>List of Guarantor</GuarantorSectionHeader>
 				<div className="overflow-x-auto">
 					<table className="w-full min-w-[820px] border-collapse text-sm">
 						<thead>
@@ -93,7 +122,7 @@ const GuarantorListPage = forwardRef<CamTabHandle, GuarantorListPageProps>(funct
 								<td className={cellLabel}>
 									<button
 										type="button"
-										onClick={() => notYetAvailable("Add New Guarantor")}
+										onClick={() => setView("select")}
 										className="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs font-medium"
 									>
 										Add New Guarantor
@@ -110,15 +139,15 @@ const GuarantorListPage = forwardRef<CamTabHandle, GuarantorListPageProps>(funct
 									<td className={cellValue}>{row.relation || <span className="text-slate-300">—</span>}</td>
 									<td className={cellValue}>
 										<div className="flex flex-wrap gap-2">
-											<button type="button" onClick={() => notYetAvailable("Edit")}
+											<button type="button" onClick={() => openSub("info", row.grnId)}
 												className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-[var(--app-text)] rounded text-xs font-medium">
 												Edit
 											</button>
-											<button type="button" onClick={() => notYetAvailable("Edit Bank")}
+											<button type="button" onClick={() => openSub("bank", row.grnId)}
 												className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-[var(--app-text)] rounded text-xs font-medium">
 												Edit Bank
 											</button>
-											<button type="button" onClick={() => notYetAvailable("Upload Document")}
+											<button type="button" onClick={() => openSub("document", row.grnId)}
 												className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-[var(--app-text)] rounded text-xs font-medium">
 												Upload Document
 											</button>

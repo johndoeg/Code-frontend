@@ -4,7 +4,7 @@ export interface CustomerData {
 	idCardNo: string; name: string; placeOfBirth: string; dateOfBirth: string;
 	gender: string; bloodType: string; address: string; rt: string; rw: string;
 	subdistrict: string; district: string; city: string; province: string;
-	religion: string; job: string; citizen: string; photo: string; signature: string;
+	religion: string; maritalStatus: string; job: string; citizen: string; photo: string; signature: string;
 }
 export type ConfidenceMap = Partial<Record<keyof CustomerData, string>>;
 export type VerifiedMap = Partial<Record<keyof CustomerData, string>>;
@@ -20,7 +20,7 @@ export const EMPTY_CUSTOMER = (): CustomerData => ({
 	idCardNo: "", name: "", placeOfBirth: "", dateOfBirth: "",
 	gender: "", bloodType: "", address: "", rt: "", rw: "",
 	subdistrict: "", district: "", city: "", province: "",
-	religion: "", job: "", citizen: "", photo: "", signature: "",
+	religion: "", maritalStatus: "", job: "", citizen: "", photo: "", signature: "",
 });
 
 const EMPTY_ID_SET: Set<number> = new Set();
@@ -54,6 +54,7 @@ export const mapOcrToCustomer = (ocr?: OcrRecord | null): CustomerData => {
 		city: ocr.kota || "",
 		province: ocr.provinsi || "",
 		religion: ocr.agama || "",
+		maritalStatus: ocr.status_perkawinan || "",
 		job: ocr.pekerjaan || "",
 		citizen: ocr.kewarnegaraan || "",
 		photo: ocr.foto || "",
@@ -363,8 +364,11 @@ const DocChip: React.FC<{
 	isDeleting: boolean;
 	isPreviewLoading: boolean;
 	canPreview: boolean;
-}> = ({ doc, onPreview, onDelete, isDeleting, isPreviewLoading, canPreview }) => {
+	allowDeleteReadonly?: boolean;
+}> = ({ doc, onPreview, onDelete, isDeleting, isPreviewLoading, canPreview, allowDeleteReadonly = false }) => {
 	const [hovered, setHovered] = useState(false);
+	const [delHovered, setDelHovered] = useState(false);
+	const showDelete = !doc.readonly || allowDeleteReadonly;
 
 	return (
 		<div style={{ display: "inline-flex", alignItems: "center", gap: 8, opacity: isDeleting ? 0.6 : 1 }}>
@@ -414,7 +418,44 @@ const DocChip: React.FC<{
 			)}
 			{isDeleting
 				? <span className="spin dark" style={{ width: 12, height: 12 }} />
-				: !doc.readonly && <button className="doc-chip-del" title="Hapus" onClick={() => onDelete(doc.id)}>×</button>
+				: showDelete && (
+					<button
+						type="button"
+						title="Hapus"
+						onClick={() => onDelete(doc.id)}
+						onMouseEnter={() => setDelHovered(true)}
+						onMouseLeave={() => setDelHovered(false)}
+						style={{
+							display: "inline-flex",
+							alignItems: "center",
+							gap: 6,
+							border: `1px solid ${delHovered ? "#dc2626" : "#fca5a5"}`,
+							background: delHovered ? "#dc2626" : "#fef2f2",
+							color: delHovered ? "#fff" : "#b91c1c",
+							borderRadius: 6,
+							padding: "5px 12px",
+							fontSize: 13,
+							fontWeight: 500,
+							cursor: "pointer",
+							transition: "background 0.15s, color 0.15s, border-color 0.15s",
+						}}
+					>
+						<svg
+							width="14" height="14"
+							viewBox="0 0 24 24" fill="none"
+							stroke="currentColor" strokeWidth="2"
+							strokeLinecap="round" strokeLinejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M3 6h18" />
+							<path d="M8 6V4h8v2" />
+							<path d="M19 6l-1 14H6L5 6" />
+							<path d="M10 11v6" />
+							<path d="M14 11v6" />
+						</svg>
+						Delete
+					</button>
+				)
 			}
 		</div>
 	);
@@ -428,7 +469,8 @@ export const DocList: React.FC<{
 	deletingDocs?: Set<number>;
 	onPreview: (doc: UploadedDoc) => void;
 	previewLoadingId?: number | null;
-}> = ({ docs, onDelete, deletingDocs = EMPTY_ID_SET, onPreview, previewLoadingId = null }) =>
+	allowDeleteReadonly?: boolean;
+}> = ({ docs, onDelete, deletingDocs = EMPTY_ID_SET, onPreview, previewLoadingId = null, allowDeleteReadonly = false }) =>
 		docs.length ? (
 			<div className="doc-chips" style={{ flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
 				{docs.map((d) => {
@@ -443,6 +485,7 @@ export const DocList: React.FC<{
 							isDeleting={deletingDocs.has(d.id)}
 							isPreviewLoading={previewLoadingId === d.id}
 							canPreview={canPreview}
+							allowDeleteReadonly={allowDeleteReadonly}
 						/>
 					);
 				})}
@@ -489,17 +532,6 @@ export const LookupResultPanel: React.FC<{
 					</span>
 					<div style={{ display: "flex", alignItems: "center", gap: 8 }}>
 						{dukcapilBadge}
-						{onCancel && (
-							<button
-								type="button"
-								className="btn-ghost"
-								style={{ padding: "5px 12px", fontSize: ".74rem" }}
-								onClick={onCancel}
-								disabled={cancelDisabled}
-							>
-								{cancelLabel}
-							</button>
-						)}
 					</div>
 				</div>
 				<div className="lookup-body">
@@ -522,6 +554,19 @@ export const LookupResultPanel: React.FC<{
 						}
 					</div>
 				</div>
+				{onCancel && (
+					<div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 14px", borderTop: "1px solid var(--border)" }}>
+						<button
+							type="button"
+							className="btn-ghost"
+							style={{ padding: "6px 14px", fontSize: ".78rem" }}
+							onClick={onCancel}
+							disabled={cancelDisabled}
+						>
+							{cancelLabel}
+						</button>
+					</div>
+				)}
 			</div>
 		);
 	};

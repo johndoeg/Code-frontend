@@ -330,136 +330,144 @@ const CAMFinancingOutstandingPage = forwardRef<CamTabHandle, CAMFinancingOutstan
 	const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
 
 	return (
-		<div className="rounded-2xl bg-[var(--app-card)] p-6 shadow">
-			<div className="judul mb-3 border-b border-[var(--app-border)] pb-2">
-				<div className="flex items-end justify-between">
-					<strong className="text-sm font-bold text-[var(--app-text)]">Outstanding</strong>
-					{judul && <span className="judul1 text-xs font-semibold text-blue-500">{judul}</span>}
+		<div className="overflow-hidden rounded-2xl bg-[var(--app-card)] shadow">
+			<div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+				<div className="flex items-center gap-2.5">
+					<span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+						<svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+							<path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+						</svg>
+					</span>
+					<h2 className="text-[15px] font-semibold text-[var(--app-text)]">Outstanding</h2>
 				</div>
+				{judul && (
+					<span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+				)}
 			</div>
-
-			<div className="flex justify-center">
-				<table className="border-collapse">
-					<tbody>
-						<tr>
-							<td className={rowLabel}>&nbsp;</td>
-							<td className="py-[3px] pr-3 text-center text-sm font-bold text-[var(--app-text)]" colSpan={2}>
-								OUTSTANDING EXPOSURE
-							</td>
-						</tr>
-						<tr>
-							<td className={rowLabel}>Outstanding</td>
-							<td className="py-[3px] pr-3 text-center text-sm font-bold text-[var(--app-text)]">Unit</td>
-							<td className="py-[3px] pr-3 text-center text-sm font-bold text-[var(--app-text)]">Amount</td>
-						</tr>
-						<ExposureRow label="Disbursement" row={view.summary.disbursement} />
-						<ExposureRow label="Undisbursement" row={view.summary.undisbursement} />
-						<ExposureRow label="Unapprove" row={view.summary.unapprove} />
-						<ExposureRow label="Group" row={view.summary.group} />
-						<ExposureRow label="Guarantor" row={view.summary.guarantor} />
-						<tr>
-							<td className={rowLabel}>&nbsp;</td>
-							<td className={rowValue}>&nbsp;</td>
-							<td className={rowValue}>&nbsp;</td>
-						</tr>
-						<ExposureRow label="Total" row={view.summary.total} />
-						<tr>
-							<td className={rowLabel}>Calculation Date</td>
-							<td className="py-[3px] pr-3 text-sm text-[var(--app-text)]" colSpan={2}>
-								{formatDate(view.calcDate)}
-							</td>
-						</tr>
-						<tr>
-							<td className="py-3 text-center" colSpan={3}>
-								<button type="button" onClick={handleCalculate} disabled={calculating} className={buttonClass}>
-									{calculating ? "Calculating…" : "Calculate"}
-								</button>
-							</td>
-						</tr>
-						<tr>
-							<td className={`${rowLabel} align-top`}>Outstanding Notes</td>
-							<td className={rowValue} colSpan={2}>
-								<textarea
-									id="outstand_notes"
-									value={notes}
-									onChange={(e) => setNotes(e.target.value)}
-									rows={3}
-									className="w-[300px] rounded border border-[var(--app-border)] bg-[var(--app-card)] px-1.5 py-1 text-sm text-[var(--app-text)]"
-								/>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-
-			{calcError && <p className="mt-2 text-center text-sm text-red-600">{calcError}</p>}
-
-			{disRows.length > 0 && <DisbursementTable rows={disRows} setRows={setDisRows} section={view.disbursement} />}
-
-			{undisRows.length > 0 && (
-				<SimpleDetailTable
-					title="Undisbursement"
-					showCustomerRecords
-					contractNoLabel="Contract No / Cam No"
-					rows={undisRows}
-					setRows={setUndisRows}
-					subTotal={view.undisbursement.subTotal}
-					showPaymentStatus
-					marketPriceReadOnly={false}
-				/>
-			)}
-
-			{unappRows.length > 0 && (
-				<SimpleDetailTable
-					title="Unapprove"
-					contractNoLabel="Cam No"
-					rows={unappRows}
-					setRows={setUnappRows}
-					subTotal={view.unapprove.subTotal}
-					showPaymentStatus={false}
-					showFinanceType
-					marketPriceReadOnly
-				/>
-			)}
-
-			<GrandTotalTable title="Grand Total" totals={view.grandTotal.disUndisUnapp} />
-
-			{groupRows.length > 0 && (
-				<SimpleDetailTable
-					title="Group"
-					contractNoLabel="Cam / Contract No"
-					rows={groupRows}
-					setRows={setGroupRows}
-					subTotal={view.group.subTotal}
-					showPaymentStatus
-					marketPriceReadOnly={false}
-				/>
-			)}
-
-			{guaRows.length > 0 && (
-				<SimpleDetailTable
-					title="Guarantor"
-					contractNoLabel="Cam / Contract No"
-					rows={guaRows}
-					setRows={setGuaRows}
-					subTotal={view.guarantor.subTotal}
-					showPaymentStatus
-					marketPriceReadOnly={false}
-				/>
-			)}
-
-			{view.grandTotal.all && <GrandTotalTable title="Grand Total" totals={view.grandTotal.all} />}
-
-			<RemarksLegend />
-
-			{nextErrors.length > 0 && (
-				<div className="message mt-3">
-					{nextErrors.map((e, i) => (
-						<p key={i} className="text-sm text-red-600">{e}</p>
-					))}
+			<div className="p-4 sm:p-6">
+				<div className="flex justify-center">
+					<table className="border-collapse">
+						<tbody>
+							<tr>
+								<td className={rowLabel}>&nbsp;</td>
+								<td className="py-[3px] pr-3 text-center text-sm font-bold text-[var(--app-text)]" colSpan={2}>
+									OUTSTANDING EXPOSURE
+								</td>
+							</tr>
+							<tr>
+								<td className={rowLabel}>Outstanding</td>
+								<td className="py-[3px] pr-3 text-center text-sm font-bold text-[var(--app-text)]">Unit</td>
+								<td className="py-[3px] pr-3 text-center text-sm font-bold text-[var(--app-text)]">Amount</td>
+							</tr>
+							<ExposureRow label="Disbursement" row={view.summary.disbursement} />
+							<ExposureRow label="Undisbursement" row={view.summary.undisbursement} />
+							<ExposureRow label="Unapprove" row={view.summary.unapprove} />
+							<ExposureRow label="Group" row={view.summary.group} />
+							<ExposureRow label="Guarantor" row={view.summary.guarantor} />
+							<tr>
+								<td className={rowLabel}>&nbsp;</td>
+								<td className={rowValue}>&nbsp;</td>
+								<td className={rowValue}>&nbsp;</td>
+							</tr>
+							<ExposureRow label="Total" row={view.summary.total} />
+							<tr>
+								<td className={rowLabel}>Calculation Date</td>
+								<td className="py-[3px] pr-3 text-sm text-[var(--app-text)]" colSpan={2}>
+									{formatDate(view.calcDate)}
+								</td>
+							</tr>
+							<tr>
+								<td className="py-3 text-center" colSpan={3}>
+									<button type="button" onClick={handleCalculate} disabled={calculating} className={buttonClass}>
+										{calculating ? "Calculating…" : "Calculate"}
+									</button>
+								</td>
+							</tr>
+							<tr>
+								<td className={`${rowLabel} align-top`}>Outstanding Notes</td>
+								<td className={rowValue} colSpan={2}>
+									<textarea
+										id="outstand_notes"
+										value={notes}
+										onChange={(e) => setNotes(e.target.value)}
+										rows={3}
+										className="w-[300px] rounded border border-[var(--app-border)] bg-[var(--app-card)] px-1.5 py-1 text-sm text-[var(--app-text)]"
+									/>
+								</td>
+							</tr>
+						</tbody>
+					</table>
 				</div>
-			)}
-			{advancing && <p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>}
+
+				{calcError && <p className="mt-2 text-center text-sm text-red-600">{calcError}</p>}
+
+				{disRows.length > 0 && <DisbursementTable rows={disRows} setRows={setDisRows} section={view.disbursement} />}
+
+				{undisRows.length > 0 && (
+					<SimpleDetailTable
+						title="Undisbursement"
+						showCustomerRecords
+						contractNoLabel="Contract No / Cam No"
+						rows={undisRows}
+						setRows={setUndisRows}
+						subTotal={view.undisbursement.subTotal}
+						showPaymentStatus
+						marketPriceReadOnly={false}
+					/>
+				)}
+
+				{unappRows.length > 0 && (
+					<SimpleDetailTable
+						title="Unapprove"
+						contractNoLabel="Cam No"
+						rows={unappRows}
+						setRows={setUnappRows}
+						subTotal={view.unapprove.subTotal}
+						showPaymentStatus={false}
+						showFinanceType
+						marketPriceReadOnly
+					/>
+				)}
+
+				<GrandTotalTable title="Grand Total" totals={view.grandTotal.disUndisUnapp} />
+
+				{groupRows.length > 0 && (
+					<SimpleDetailTable
+						title="Group"
+						contractNoLabel="Cam / Contract No"
+						rows={groupRows}
+						setRows={setGroupRows}
+						subTotal={view.group.subTotal}
+						showPaymentStatus
+						marketPriceReadOnly={false}
+					/>
+				)}
+
+				{guaRows.length > 0 && (
+					<SimpleDetailTable
+						title="Guarantor"
+						contractNoLabel="Cam / Contract No"
+						rows={guaRows}
+						setRows={setGuaRows}
+						subTotal={view.guarantor.subTotal}
+						showPaymentStatus
+						marketPriceReadOnly={false}
+					/>
+				)}
+
+				{view.grandTotal.all && <GrandTotalTable title="Grand Total" totals={view.grandTotal.all} />}
+
+				<RemarksLegend />
+
+				{nextErrors.length > 0 && (
+					<div className="message mt-3">
+						{nextErrors.map((e, i) => (
+							<p key={i} className="text-sm text-red-600">{e}</p>
+						))}
+					</div>
+				)}
+				{advancing && <p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>}
+			</div>
 		</div>
 	);
 });

@@ -509,296 +509,302 @@ const CAMFinancingInsurancePage = forwardRef<CamTabHandle, CAMFinancingInsurance
     const judul = [finType, applNo, custName].filter(Boolean).join(" - ");
 
     return (
-        <div className="rounded-2xl bg-[var(--app-card)] p-4 shadow sm:p-6">
-            <table className="w-full border-collapse">
-                <tbody>
-                    <tr>
-                        <td colSpan={4} className="judul border-b border-[var(--app-border)] pb-1">
-                            <div className="flex items-end justify-between">
-                                <strong className="text-sm font-bold text-[var(--app-text)]">Insurance</strong>
-                                {judul && <span className="judul1 text-xs font-semibold text-blue-500">{judul}</span>}
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td className={gridLabel}>Ins. Policy *</td>
-                        <td className={gridValue}>
-                            <Box value={insPol} readOnly align="left" className={plain} />
-                        </td>
-                        <td className={gridLabel}>Pay Method *</td>
-                        <td className={gridValue}>
-                            <Dropdown
-                                value={payMethod}
-                                onChange={setPayMethod}
-                                options={payMethodOptions}
-                                disabled={blocked || payMethodLocked}
-                                className={auto}
-                            />
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td className={gridLabel}>Ins. Company *</td>
-                        <td className={gridValue}>
-                            <Dropdown
-                                value={insCd}
-                                onChange={handleInsCdChange}
-                                options={companies}
-                                disabled={blocked}
-                                className={auto}
-                            />
-                        </td>
-                        <td className={gridLabel}>Model *</td>
-                        <td className={gridValue}>
-                            <Dropdown
-                                value={model}
-                                onChange={handleModelChange}
-                                options={models}
-                                disabled={blocked}
-                                className={auto}
-                            />
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td className={gridLabel}>Insurance Area *</td>
-                        <td className={gridValue}>
-                            <Dropdown
-                                value={bpkbArea}
-                                onChange={setBpkbArea}
-                                options={insuranceAreaOptions}
-                                disabled={blocked || insuranceAreaDisabled}
-                                className={auto}
-                            />
-                        </td>
-                        <td className={gridLabel}>Condition *</td>
-                        <td className={gridValue}>
-                            <Box value={conditionLabel} readOnly align="left" className={plain} />
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td className={gridLabel}>Gross Premium</td>
-                        <td className={gridValue}>
-                            <Box kind="money" value={grossPrem} readOnly className={wide} />
-                        </td>
-                        <td className={gridLabel}>Seat</td>
-                        <td className={gridValue}>
-                            <Box
-                                kind="int"
-                                value={totalSeat}
-                                onChange={setTotalSeat}
-                                readOnly={blocked}
-                                maxLength={2}
-                                className="w-[53px]"
-                            />
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td className={gridLabel}>Net Premium</td>
-                        <td className={gridValue}>
-                            <Box kind="money" value={netCom} readOnly className={wide} />
-                        </td>
-                        <td className={gridLabel}>&nbsp;</td>
-                        <td className={gridValue}>&nbsp;</td>
-                    </tr>
-
-                    <tr>
-                        <td colSpan={4} className="pt-3">
-                            <div className="overflow-x-auto">
-                                <table className="w-full border-collapse border border-[var(--app-border)]">
-                                    <thead>
-                                        <tr>
-                                            <th className={`${labelCell} w-[10%] text-left font-normal`}>Year No</th>
-                                            <th className={`${labelCell} w-[15%] text-left font-normal`}>Insurance Amount *</th>
-                                            <th className={`${labelCell} w-[15%] text-left font-normal`}>TPL Amount</th>
-                                            <th className={`${labelCell} w-[15%] text-left font-normal`}>TLO CP *</th>
-                                            <th className={`${labelCell} w-[15%] text-left font-normal`}>CLAUSE</th>
-                                            <th className={`${labelCell} w-[15%] text-left font-normal`}>Premium Receive *</th>
-                                            <th className={`${labelCell} w-[15%] text-left font-normal`}>Premium Payment *</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {rows.map((row) => (
-                                            <tr key={row.year}>
-                                                <td className={labelCell}>
-                                                    <Box value={row.year} readOnly align="center" className="w-[53px]" />
-                                                </td>
-                                                <td className={labelCell}>
-                                                    <Box kind="money" value={row.insAmt} readOnly className={wide} />
-                                                </td>
-                                                <td className={labelCell}>
-                                                    <Dropdown
-                                                        value={row.tplAmt}
-                                                        onChange={(value) => setRowField(row.year, { tplAmt: value })}
-                                                        options={tplOptions.map((v) => ({ value: v, label: v }))}
-                                                        disabled={blocked}
-                                                        placeholder={false}
-                                                        className={`${wide} text-right`}
-                                                    />
-                                                </td>
-                                                <td className={labelCell}>
-                                                    <Dropdown
-                                                        value={row.tloAr}
-                                                        onChange={(value) => setRowField(row.year, { tloAr: value })}
-                                                        options={tloOptions}
-                                                        disabled={blocked}
-                                                        placeholder={false}
-                                                        className={wide}
-                                                    />
-                                                </td>
-                                                <td className={labelCell}>
-                                                    <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
-                                                        {CLAUSE_NAMES.filter((name) => row.clauseCodes[name]).map((name) => (
-                                                            <label key={name} className="inline-flex items-center gap-1 text-sm">
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={!!row.clauseSelected[name]}
-                                                                    onChange={() => toggleClause(row.year, name)}
-                                                                />
-                                                                {name}
-                                                            </label>
-                                                        ))}
-                                                    </span>
-                                                </td>
-                                                <td className={labelCell}>
-                                                    <Box kind="money" value={row.prerAmt} readOnly className={wide} />
-                                                </td>
-                                                <td className={labelCell}>
-                                                    <Box kind="money" value={row.prepAmt} readOnly className={wide} />
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </td>
-                    </tr>
-
-                    {!blocked && (
+        <div className="overflow-hidden rounded-2xl bg-[var(--app-card)] shadow">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-card)] px-5 py-3 sm:px-6">
+                <div className="flex items-center gap-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="currentColor" aria-hidden="true">
+                            <path d="M4.6 5.5A2 2 0 016.4 4.2h7.2a2 2 0 011.8 1.3l1 2.5h.1A1.5 1.5 0 0118 9.5V13a1 1 0 01-1 1h-.6a2 2 0 01-3.8 0H7.4a2 2 0 01-3.8 0H3a1 1 0 01-1-1V9.5A1.5 1.5 0 013.5 8h.1l1-2.5zM6.4 5.7L5.5 8h9l-.9-2.3a.5.5 0 00-.5-.3H6.9a.5.5 0 00-.5.3zM5.5 15a.8.8 0 100-1.6.8.8 0 000 1.6zm9 0a.8.8 0 100-1.6.8.8 0 000 1.6z" />
+                        </svg>
+                    </span>
+                    <h2 className="text-[15px] font-semibold text-[var(--app-text)]">Insurance</h2>
+                </div>
+                {judul && (
+                    <span className="rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-500">{judul}</span>
+                )}
+            </div>
+            <div className="p-4 sm:p-6">
+                <table className="w-full border-collapse">
+                    <tbody>
                         <tr>
-                            <td colSpan={4} className="pt-4 text-center">
-                                <button
-                                    type="button"
-                                    onClick={handleCalculate}
-                                    disabled={calculating}
-                                    className={`mr-2 ${buttonClass}`}
-                                >
-                                    {calculating ? "Calculating…" : "Calculate"}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => void handleClear()}
-                                    className={buttonClass}
-                                >
-                                    Clear
-                                </button>
+                            <td className={gridLabel}>Ins. Policy *</td>
+                            <td className={gridValue}>
+                                <Box value={insPol} readOnly align="left" className={plain} />
+                            </td>
+                            <td className={gridLabel}>Pay Method *</td>
+                            <td className={gridValue}>
+                                <Dropdown
+                                    value={payMethod}
+                                    onChange={setPayMethod}
+                                    options={payMethodOptions}
+                                    disabled={blocked || payMethodLocked}
+                                    className={auto}
+                                />
                             </td>
                         </tr>
-                    )}
-                </tbody>
-            </table>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                <div className="min-w-0 overflow-x-auto">
-                    <table className="w-full border-collapse border border-[var(--app-border)]">
-                        <thead>
+                        <tr>
+                            <td className={gridLabel}>Ins. Company *</td>
+                            <td className={gridValue}>
+                                <Dropdown
+                                    value={insCd}
+                                    onChange={handleInsCdChange}
+                                    options={companies}
+                                    disabled={blocked}
+                                    className={auto}
+                                />
+                            </td>
+                            <td className={gridLabel}>Model *</td>
+                            <td className={gridValue}>
+                                <Dropdown
+                                    value={model}
+                                    onChange={handleModelChange}
+                                    options={models}
+                                    disabled={blocked}
+                                    className={auto}
+                                />
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td className={gridLabel}>Insurance Area *</td>
+                            <td className={gridValue}>
+                                <Dropdown
+                                    value={bpkbArea}
+                                    onChange={setBpkbArea}
+                                    options={insuranceAreaOptions}
+                                    disabled={blocked || insuranceAreaDisabled}
+                                    className={auto}
+                                />
+                            </td>
+                            <td className={gridLabel}>Condition *</td>
+                            <td className={gridValue}>
+                                <Box value={conditionLabel} readOnly align="left" className={plain} />
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td className={gridLabel}>Gross Premium</td>
+                            <td className={gridValue}>
+                                <Box kind="money" value={grossPrem} readOnly className={wide} />
+                            </td>
+                            <td className={gridLabel}>Seat</td>
+                            <td className={gridValue}>
+                                <Box
+                                    kind="int"
+                                    value={totalSeat}
+                                    onChange={setTotalSeat}
+                                    readOnly={blocked}
+                                    maxLength={2}
+                                    className="w-[53px]"
+                                />
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <td className={gridLabel}>Net Premium</td>
+                            <td className={gridValue}>
+                                <Box kind="money" value={netCom} readOnly className={wide} />
+                            </td>
+                            <td className={gridLabel}>&nbsp;</td>
+                            <td className={gridValue}>&nbsp;</td>
+                        </tr>
+
+                        <tr>
+                            <td colSpan={4} className="pt-3">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full border-collapse border border-[var(--app-border)]">
+                                        <thead>
+                                            <tr>
+                                                <th className={`${labelCell} w-[10%] text-left font-normal`}>Year No</th>
+                                                <th className={`${labelCell} w-[15%] text-left font-normal`}>Insurance Amount *</th>
+                                                <th className={`${labelCell} w-[15%] text-left font-normal`}>TPL Amount</th>
+                                                <th className={`${labelCell} w-[15%] text-left font-normal`}>TLO CP *</th>
+                                                <th className={`${labelCell} w-[15%] text-left font-normal`}>CLAUSE</th>
+                                                <th className={`${labelCell} w-[15%] text-left font-normal`}>Premium Receive *</th>
+                                                <th className={`${labelCell} w-[15%] text-left font-normal`}>Premium Payment *</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {rows.map((row) => (
+                                                <tr key={row.year}>
+                                                    <td className={labelCell}>
+                                                        <Box value={row.year} readOnly align="center" className="w-[53px]" />
+                                                    </td>
+                                                    <td className={labelCell}>
+                                                        <Box kind="money" value={row.insAmt} readOnly className={wide} />
+                                                    </td>
+                                                    <td className={labelCell}>
+                                                        <Dropdown
+                                                            value={row.tplAmt}
+                                                            onChange={(value) => setRowField(row.year, { tplAmt: value })}
+                                                            options={tplOptions.map((v) => ({ value: v, label: v }))}
+                                                            disabled={blocked}
+                                                            placeholder={false}
+                                                            className={`${wide} text-right`}
+                                                        />
+                                                    </td>
+                                                    <td className={labelCell}>
+                                                        <Dropdown
+                                                            value={row.tloAr}
+                                                            onChange={(value) => setRowField(row.year, { tloAr: value })}
+                                                            options={tloOptions}
+                                                            disabled={blocked}
+                                                            placeholder={false}
+                                                            className={wide}
+                                                        />
+                                                    </td>
+                                                    <td className={labelCell}>
+                                                        <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                                                            {CLAUSE_NAMES.filter((name) => row.clauseCodes[name]).map((name) => (
+                                                                <label key={name} className="inline-flex items-center gap-1 text-sm">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={!!row.clauseSelected[name]}
+                                                                        onChange={() => toggleClause(row.year, name)}
+                                                                    />
+                                                                    {name}
+                                                                </label>
+                                                            ))}
+                                                        </span>
+                                                    </td>
+                                                    <td className={labelCell}>
+                                                        <Box kind="money" value={row.prerAmt} readOnly className={wide} />
+                                                    </td>
+                                                    <td className={labelCell}>
+                                                        <Box kind="money" value={row.prepAmt} readOnly className={wide} />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </td>
+                        </tr>
+
+                        {!blocked && (
                             <tr>
-                                <th className={`${headCell} w-[18%]`}>&nbsp;</th>
-                                <th className={`${headCell} w-[18%]`}>Income</th>
-                                <th className={`${headCell} w-[18%]`}>Subsidy</th>
-                                <th className={`${headCell} w-[18%]`}>Total Income<br />(Include Subsidy)</th>
-                                <th className={`${headCell} w-[18%]`}>Base Rate</th>
-                                <th className={`${headCell} w-[18%]`}>Max Refund</th>
+                                <td colSpan={4} className="pt-4 text-center">
+                                    <button
+                                        type="button"
+                                        onClick={handleCalculate}
+                                        disabled={calculating}
+                                        className={`mr-2 ${buttonClass}`}
+                                    >
+                                        {calculating ? "Calculating…" : "Calculate"}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => void handleClear()}
+                                        className={buttonClass}
+                                    >
+                                        Clear
+                                    </button>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td className={labelCell}>Insurance Income</td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlIncome} readOnly className={cellBox} /></td>
-                                <td className={greyCell} rowSpan={2} />
-                                <td className={greyCell} />
-                                <td className={valueCell}><Box kind="money" value={summary.baseInc} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.execInc} readOnly className={cellBox} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell}>Net Insurance Prem. Received</td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlIncomeNet} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlSubIncNet} readOnly className={cellBox} /></td>
-                                <td className={greyCell} />
-                                <td className={greyCell} />
-                            </tr>
-                            <tr>
-                                <td className={labelCell}>Survey Fee 1</td>
-                                <td className={valueCell}><Box kind="money" value={summary.survInc} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.subSurv} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlSurv} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.baseSurv} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.exceSurv} readOnly className={cellBox} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell}>Survey Fee 2</td>
-                                <td className={valueCell}><Box kind="money" value={summary.survInc2} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.subSurv2} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlSurv2} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.baseSurv2} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.exceSurv2} readOnly className={cellBox} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell}>Provision Fee</td>
-                                <td className={valueCell}><Box kind="money" value={summary.provInc} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.subProv} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlProv} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.provBase} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.provExec} readOnly className={cellBox} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell}>Interest Income</td>
-                                <td className={valueCell}><Box kind="money" value={summary.interestIncome} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.subInt} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlInt} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.baseInterest} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.excInt} readOnly className={cellBox} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell} colSpan={2}>Total</td>
-                                <td className={valueCell}><Box kind="money" value={summary.subsidyTotal} readOnly className={cellBox} /></td>
-                                <td className={valueCell}><Box kind="money" value={summary.ttlSubTot} readOnly className={`${cellBox} font-bold`} /></td>
-                                <td className={greyCell} />
-                                <td className={valueCell}><Box kind="money" value={summary.ttlExcTot} readOnly className={`${cellBox} font-bold`} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell} colSpan={3}>Incentive to 3rd Party {summary.percentage}%</td>
-                                <td className={valueCell}><Box kind="money" value={summary.maxComm} readOnly className={`${cellBox} font-bold`} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell} colSpan={3}>Marketing Fee</td>
-                                <td className={valueCell}><Box kind="money" value={summary.marketingFee} readOnly className={`${cellBox} font-bold`} /></td>
-                            </tr>
-                            <tr>
-                                <td className={labelCell} colSpan={5}>Incentive To Be Paid</td>
-                                <td className={valueCell}><Box kind="money" value={summary.eligibleComm} readOnly className={`${cellBox} font-bold`} /></td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        )}
+                    </tbody>
+                </table>
+
+                <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+                    <div className="min-w-0 overflow-x-auto">
+                        <table className="w-full border-collapse border border-[var(--app-border)]">
+                            <thead>
+                                <tr>
+                                    <th className={`${headCell} w-[18%]`}>&nbsp;</th>
+                                    <th className={`${headCell} w-[18%]`}>Income</th>
+                                    <th className={`${headCell} w-[18%]`}>Subsidy</th>
+                                    <th className={`${headCell} w-[18%]`}>Total Income<br />(Include Subsidy)</th>
+                                    <th className={`${headCell} w-[18%]`}>Base Rate</th>
+                                    <th className={`${headCell} w-[18%]`}>Max Refund</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td className={labelCell}>Insurance Income</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlIncome} readOnly className={cellBox} /></td>
+                                    <td className={greyCell} rowSpan={2} />
+                                    <td className={greyCell} />
+                                    <td className={valueCell}><Box kind="money" value={summary.baseInc} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.execInc} readOnly className={cellBox} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell}>Net Insurance Prem. Received</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlIncomeNet} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlSubIncNet} readOnly className={cellBox} /></td>
+                                    <td className={greyCell} />
+                                    <td className={greyCell} />
+                                </tr>
+                                <tr>
+                                    <td className={labelCell}>Survey Fee 1</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.survInc} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.subSurv} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlSurv} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.baseSurv} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.exceSurv} readOnly className={cellBox} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell}>Survey Fee 2</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.survInc2} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.subSurv2} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlSurv2} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.baseSurv2} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.exceSurv2} readOnly className={cellBox} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell}>Provision Fee</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.provInc} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.subProv} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlProv} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.provBase} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.provExec} readOnly className={cellBox} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell}>Interest Income</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.interestIncome} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.subInt} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlInt} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.baseInterest} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.excInt} readOnly className={cellBox} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell} colSpan={2}>Total</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.subsidyTotal} readOnly className={cellBox} /></td>
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlSubTot} readOnly className={`${cellBox} font-bold`} /></td>
+                                    <td className={greyCell} />
+                                    <td className={valueCell}><Box kind="money" value={summary.ttlExcTot} readOnly className={`${cellBox} font-bold`} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell} colSpan={3}>Incentive to 3rd Party {summary.percentage}%</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.maxComm} readOnly className={`${cellBox} font-bold`} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell} colSpan={3}>Marketing Fee</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.marketingFee} readOnly className={`${cellBox} font-bold`} /></td>
+                                </tr>
+                                <tr>
+                                    <td className={labelCell} colSpan={5}>Incentive To Be Paid</td>
+                                    <td className={valueCell}><Box kind="money" value={summary.eligibleComm} readOnly className={`${cellBox} font-bold`} /></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="min-w-0" />
                 </div>
-                <div className="min-w-0" />
+
+                {saving && (
+                    <p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>
+                )}
+
+                {(messages.length > 0 || blocked) && (
+                    <div className="message mt-3 space-y-1">
+                        {messages.map((line, i) => (
+                            <p key={i} className="text-sm text-red-600">{line}</p>
+                        ))}
+                        {blocked && <p className="text-sm text-red-600">{loadError}</p>}
+                    </div>
+                )}
             </div>
-
-            {saving && (
-                <p className="mt-3 text-right text-sm text-[var(--app-muted)]">Please wait…</p>
-            )}
-
-            {(messages.length > 0 || blocked) && (
-                <div className="message mt-3 space-y-1">
-                    {messages.map((line, i) => (
-                        <p key={i} className="text-sm text-red-600">{line}</p>
-                    ))}
-                    {blocked && <p className="text-sm text-red-600">{loadError}</p>}
-                </div>
-            )}
         </div>
     );
 });

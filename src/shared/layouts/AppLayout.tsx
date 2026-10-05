@@ -1,11 +1,14 @@
-import { Suspense, useState } from "react";
+import { Suspense, useState, lazy } from "react";
 import { Outlet } from "react-router-dom";
 import { useSessionTimeout } from '@/shared/hooks/useSessionTimeout';
 import Sidebar from '@/shared/components/Sidebar';
 import TopHeader from '@/shared/components/TopHeader';
 import PageLoader from '@/shared/components/PageLoader';
 import { useOverlay } from '@/shared/contexts/OverlayContext';
-import PrecheckingIndividuPage from '@/features/cam/pages/Prechecking/Create/Individu/PrecheckingIndividuPage';
+
+const PrecheckingIndividuPage = lazy(
+    () => import('@/features/cam/pages/Prechecking/Create/Individu/PrecheckingIndividuPage')
+);
 
 export default function AppLayout() {
     const [sidebarOpen, setSidebarOpen] = useState(true);

@@ -27,11 +27,44 @@ interface AmortizationData {
 	rows: AmortizationRow[];
 }
 
+const fileMessage = async (err: any, fallback: string): Promise<string> => {
+	const d = err?.response?.data;
+	if (d instanceof Blob) {
+		try { return JSON.parse(await d.text()).message || fallback; } catch { return fallback; }
+	}
+	return d?.message || fallback;
+};
+
+const downloadBlob = async (path: string, params: Record<string, string>, mime: string): Promise<Blob> => {
+	const res = await api.get(path, { params, responseType: 'blob', timeout: 0 });
+	return new Blob([res.data], { type: mime });
+};
+
+const saveBlob = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+
+const openPdf = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	if (!window.open(url, '_blank')) saveBlob(blob, filename);
+	setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+
+const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 const AmortizationReport: React.FC = () => {
 	const [leaseNo, setLeaseNo] = useState<string>("");
 	const [loading, setLoading] = useState<boolean>(false);
 	const [data, setData] = useState<AmortizationData | null>(null);
 	const [error, setError] = useState<string | null>(null);
+	const [exporting, setExporting] = useState<null | "contractual" | "all" | "excel">(null);
 	const tableContainerRef = useRef<HTMLDivElement>(null);
 
 	const fetchAmortization = useCallback(async () => {
@@ -45,7 +78,7 @@ const AmortizationReport: React.FC = () => {
 
 		try {
 			const response = await api.get<AmortizationData>(
-				'/HistoryPayment/amortization',
+				'/AmortizationReport/get-data',
 				{
 					params: { lease_no: leaseNo },
 				}
@@ -67,17 +100,28 @@ const AmortizationReport: React.FC = () => {
 		fetchAmortization();
 	};
 
-	const handlePrint = (type: "contractual" | "all") => {
+	const runExport = async (type: "contractual" | "all" | "excel") => {
 		if (!data) return;
-		const url = `/HistoryPayment/print/amortization?lease_no=${leaseNo}&type=${type}`;
-		window.open(url, "_blank");
+		setExporting(type);
+		setError(null);
+		try {
+			if (type === "excel") {
+				const blob = await downloadBlob('/AmortizationReport/export', { lease_no: leaseNo, format: 'xlsx' }, XLSX);
+				saveBlob(blob, `Amortization_${leaseNo}.xlsx`);
+			} else {
+				const blob = await downloadBlob('/AmortizationReport/print', { lease_no: leaseNo, type }, 'application/pdf');
+				openPdf(blob, `Amortization_${leaseNo}_${type}.pdf`);
+			}
+		} catch (err: any) {
+			console.error("Export failed:", err);
+			setError(await fileMessage(err, "Failed to generate the report. Please try again."));
+		} finally {
+			setExporting(null);
+		}
 	};
 
-	const handleExport = () => {
-		if (!data) return;
-		const url = `/HistoryPayment/export/amortization?lease_no=${leaseNo}&format=xlsx`;
-		window.open(url, "_blank");
-	};
+	const handlePrint = (type: "contractual" | "all") => runExport(type);
+	const handleExport = () => runExport("excel");
 
 	const formatCurrency = (value: string) => {
 		return value;
@@ -188,7 +232,8 @@ const AmortizationReport: React.FC = () => {
 								<>
 									<button
 										onClick={() => handlePrint("contractual")}
-										className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+											disabled={exporting !== null}
+										className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										<svg
 											className="w-4 h-4"
@@ -203,12 +248,13 @@ const AmortizationReport: React.FC = () => {
 												d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
 											/>
 										</svg>
-										Print Contractual
+										{exporting === "contractual" ? "Generating…" : "Print Contractual"}
 									</button>
 
 									<button
 										onClick={() => handlePrint("all")}
-										className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+											disabled={exporting !== null}
+										className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										<svg
 											className="w-4 h-4"
@@ -223,12 +269,13 @@ const AmortizationReport: React.FC = () => {
 												d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
 											/>
 										</svg>
-										Print All
+										{exporting === "all" ? "Generating…" : "Print All"}
 									</button>
 
 									<button
 										onClick={handleExport}
-										className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+											disabled={exporting !== null}
+										className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										<svg
 											className="w-4 h-4"
@@ -243,7 +290,7 @@ const AmortizationReport: React.FC = () => {
 												d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
 											/>
 										</svg>
-										Export to Excel
+										{exporting === "excel" ? "Generating…" : "Export to Excel"}
 									</button>
 								</>
 							)}

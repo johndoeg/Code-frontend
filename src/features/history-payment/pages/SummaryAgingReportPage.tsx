@@ -3,6 +3,7 @@ import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 
 const toISO = (d: Date): string => d.toISOString().split('T')[0];
+
 interface ComboOption {
 	value: string;
 	label: string;
@@ -10,12 +11,44 @@ interface ComboOption {
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+const fileMessage = async (err: any, fallback: string): Promise<string> => {
+	const d = err?.response?.data;
+	if (d instanceof Blob) {
+		try {
+			const j = JSON.parse(await d.text());
+			return j.error || j.message || fallback;
+		} catch {
+			return fallback;
+		}
+	}
+	return d?.error || d?.message || fallback;
+};
+
+const saveBlob = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+
+const openPdf = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	if (!window.open(url, '_blank')) saveBlob(blob, filename);
+	setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+
 const SummaryAgingReportPage: React.FC = () => {
 	const [asof, setAsof] = useState<Date | null>(new Date());
 	const [by, setBy] = useState('0');
 	const [excludeJf, setExcludeJf] = useState(false);
 	const [byOptions, setByOptions] = useState<ComboOption[]>([]);
-	const [loading, setLoading] = useState(false);
+	const [exporting, setExporting] = useState<null | 'excel' | 'pdf'>(null);
 	const [comboLoad, setComboLoad] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -33,38 +66,34 @@ const SummaryAgingReportPage: React.FC = () => {
 			return;
 		}
 
-		setLoading(true);
+		setExporting(type);
 		setError(null);
 
 		try {
 			const response = await api.get(`/SummaryAging/${type}`, {
 				params: { asof: toISO(asof), by, cek_jf: excludeJf ? '1' : '0' },
 				responseType: 'blob',
+				timeout: 0,
 			});
 
-			const mimeType = type === 'excel'
-				? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-				: 'application/pdf';
-			const blob = new Blob([response.data], { type: mimeType });
-			const url = URL.createObjectURL(blob);
+			const mime = type === 'excel' ? XLSX : 'application/pdf';
+			const blob = new Blob([response.data], { type: mime });
+			const stamp = toISO(asof);
 
 			if (type === 'pdf') {
-				window.open(url, '_blank');
-				setTimeout(() => URL.revokeObjectURL(url), 10_000);
+				openPdf(blob, `SummaryAging_${stamp}.pdf`);
 			} else {
-				const anchor = document.createElement('a');
-				anchor.href = url;
-				anchor.download = `SummaryAging_${toISO(asof)}.xlsx`;
-				anchor.click();
-				URL.revokeObjectURL(url);
+				saveBlob(blob, `SummaryAging_${stamp}.xlsx`);
 			}
-		} catch (err) {
+		} catch (err: any) {
 			console.error(err);
-			setError(`Failed to export ${type.toUpperCase()}. Please try again.`);
+			setError(await fileMessage(err, `Failed to export ${type.toUpperCase()}. Please try again.`));
 		} finally {
-			setLoading(false);
+			setExporting(null);
 		}
 	};
+
+	const busy = exporting !== null;
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
@@ -87,7 +116,7 @@ const SummaryAgingReportPage: React.FC = () => {
 							<select
 								value={by}
 								onChange={e => setBy(e.target.value)}
-								disabled={comboLoad}
+								disabled={comboLoad || busy}
 								className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg shadow-sm bg-white text-slate-900
 								           focus:outline-none focus:ring-2 focus:ring-blue-500
 								           focus:border-blue-500 disabled:bg-[var(--app-surface-alt)]"
@@ -105,6 +134,7 @@ const SummaryAgingReportPage: React.FC = () => {
 								type="checkbox"
 								checked={excludeJf}
 								onChange={e => setExcludeJf(e.target.checked)}
+								disabled={busy}
 								className="w-4 h-4 accent-blue-600"
 							/>
 							<span className="text-sm text-[var(--app-text)]">Exclude JF Portion</span>
@@ -120,25 +150,25 @@ const SummaryAgingReportPage: React.FC = () => {
 					<div className="flex flex-wrap gap-2">
 						<button
 							onClick={() => handleExport('excel')}
-							disabled={loading}
+							disabled={busy}
 							className="bg-gradient-to-r from-green-600 to-emerald-700
 							           hover:from-green-700 hover:to-emerald-800
 							           text-white px-4 py-2 text-sm rounded-lg font-medium
-							           shadow-md hover:shadow-lg transition-all disabled:opacity-60"
+							           shadow-md hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 						>
-							{loading ? 'Exporting…' : 'Export to Excel'}
+							{exporting === 'excel' ? 'Exporting…' : 'Export to Excel'}
 						</button>
 
 						<button
 							onClick={() => handleExport('pdf')}
-							disabled={loading || by !== '0'}
+							disabled={busy || by !== '0'}
 							title={by !== '0' ? 'PDF is only available for By Branch' : ''}
 							className="bg-gradient-to-r from-red-600 to-rose-700
 							           hover:from-red-700 hover:to-rose-800
 							           text-white px-4 py-2 text-sm rounded-lg font-medium
-							           shadow-md hover:shadow-lg transition-all disabled:opacity-60"
+							           shadow-md hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 						>
-							Export to PDF
+							{exporting === 'pdf' ? 'Generating…' : 'Export to PDF'}
 						</button>
 					</div>
 

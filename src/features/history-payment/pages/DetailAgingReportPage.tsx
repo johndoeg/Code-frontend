@@ -12,6 +12,38 @@ interface EquipmentType {
 	DESC_VALUE: string;
 }
 
+const fileMessage = async (err: any, fallback: string): Promise<string> => {
+	const d = err?.response?.data;
+	if (d instanceof Blob) {
+		try { return JSON.parse(await d.text()).message || fallback; } catch { return fallback; }
+	}
+	return d?.message || fallback;
+};
+
+const downloadBlob = async (path: string, params: Record<string, string>, mime: string): Promise<Blob> => {
+	const res = await api.get(path, { params, responseType: 'blob', timeout: 0 });
+	return new Blob([res.data], { type: mime });
+};
+
+const saveBlob = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = filename;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+
+const openPdf = (blob: Blob, filename: string) => {
+	const url = URL.createObjectURL(blob);
+	if (!window.open(url, '_blank')) saveBlob(blob, filename);
+	setTimeout(() => URL.revokeObjectURL(url), 60_000);
+};
+
+const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
 const DetailAgingReportPage: React.FC = () => {
@@ -24,6 +56,7 @@ const DetailAgingReportPage: React.FC = () => {
 
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
+	const [exporting, setExporting] = useState<null | 'excel' | 'pdf'>(null);
 
 	const formatDateForApi = (date: Date | null): string => {
 		if (!date) return "";
@@ -60,35 +93,38 @@ const DetailAgingReportPage: React.FC = () => {
 		fetchDropdownData();
 	}, []);
 
-	const handleExportExcel = useCallback(() => {
+	const runExport = useCallback(async (type: 'excel' | 'pdf') => {
 		if (!asof) {
 			alert("Please select date first");
 			return;
 		}
 
-		const params = new URLSearchParams({
-			asof: formatDateForApi(asof),
-			branch_cd: branchCd,
-			type_of: typeOf,
-		});
-
-		window.open(`/Report/export/aging-detail?${params.toString()}`, "_blank");
-	}, [asof, branchCd, typeOf]);
-
-	const handleExportPDF = useCallback(() => {
-		if (!asof) {
-			alert("Please select date first");
-			return;
+		setExporting(type);
+		setError(null);
+		try {
+			const params = {
+				asof: formatDateForApi(asof),
+				branch_cd: branchCd,
+				type_of: typeOf,
+			};
+			const stamp = formatDateForApi(asof);
+			if (type === 'excel') {
+				const blob = await downloadBlob('/DetailAgingReport/export/aging-detail', params, XLSX);
+				saveBlob(blob, `DetailAging_${stamp}.xlsx`);
+			} else {
+				const blob = await downloadBlob('/DetailAgingReport/print/aging-detail', params, 'application/pdf');
+				openPdf(blob, `DetailAging_${stamp}.pdf`);
+			}
+		} catch (err: any) {
+			console.error("Export failed:", err);
+			setError(await fileMessage(err, `Failed to export ${type.toUpperCase()}. Please try again.`));
+		} finally {
+			setExporting(null);
 		}
-
-		const params = new URLSearchParams({
-			asof: formatDateForApi(asof),
-			branch_cd: branchCd,
-			type_of: typeOf,
-		});
-
-		window.open(`/Report/print/aging-detail?${params.toString()}`, "_blank");
 	}, [asof, branchCd, typeOf]);
+
+	const handleExportExcel = () => runExport('excel');
+	const handleExportPDF = () => runExport('pdf');
 
 
 	return (
@@ -162,24 +198,24 @@ const DetailAgingReportPage: React.FC = () => {
 						<div className="flex flex-wrap gap-3 mt-6">
 							<button
 								onClick={handleExportExcel}
-								disabled={!asof || loading}
+								disabled={!asof || loading || exporting !== null}
 								className={`px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
 							>
 								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 								</svg>
-								Export to Excel
+								{exporting === 'excel' ? 'Exporting…' : 'Export to Excel'}
 							</button>
 
 							<button
 								onClick={handleExportPDF}
-								disabled={!asof || loading}
+								disabled={!asof || loading || exporting !== null}
 								className={`px-6 py-2.5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 hover:to-rose-800 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
 							>
 								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
 								</svg>
-								Export to PDF
+								{exporting === 'pdf' ? 'Generating…' : 'Export to PDF'}
 							</button>
 						</div>
 					</div>

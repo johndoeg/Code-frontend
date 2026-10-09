@@ -66,14 +66,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 };
                 setUser(u);
                 sessionStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+                queryClient.invalidateQueries({ queryKey: ["menus"] });
             } else {
                 setUser(null);
                 sessionStorage.removeItem(STORAGE_KEY);
+                queryClient.clear();
             }
         } catch (err: any) {
             if (err?.response?.status === 401) {
                 setUser(null);
                 sessionStorage.removeItem(STORAGE_KEY);
+                queryClient.clear();
             }
         } finally {
             setLoading(false);

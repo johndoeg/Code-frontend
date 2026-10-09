@@ -9,6 +9,9 @@ const BOD_OTHER_VALUE = '5';
 const BOC_OTHER_VALUE = '10';
 const CORSEC_REASON = '8';
 
+const NPWP_SEGMENTS = [2, 3, 3, 1, 3, 4];
+const NPWP_SEPS = ['.', '.', '.', '-', '.'];
+
 interface Member {
 	id_blacklist: number;
 	os_code: string;
@@ -41,6 +44,7 @@ interface Detail {
 	contact_address: string;
 	group_code: string;
 	reason_category: string;
+	reason_label: string;
 	reason_other: string;
 	remark: string;
 	create_user: string;
@@ -62,24 +66,55 @@ interface Props {
 }
 
 const toDisplayDate = (iso: string) => {
-	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || "");
+	const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
 	return m ? `${m[3]}-${m[2]}-${m[1]}` : (iso || "");
 };
 
-const ReadField = ({ label, value, multiline }: { label: string; value?: string; multiline?: boolean }) => (
-	<div>
-		<div className="text-xs font-medium text-[var(--app-muted)] mb-1">{label}</div>
-		<div
-			className={`w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm text-[var(--app-text)] bg-[var(--app-surface)] ${multiline ? "whitespace-pre-wrap min-h-[64px]" : "truncate"}`}
-		>
-			{value && value.trim() !== "" ? value : <span className="text-[var(--app-muted)]">-</span>}
-		</div>
+function npwpSegments(npwp: string): string[] {
+	const digits = (npwp || "").replace(/\D/g, "");
+	const out: string[] = [];
+	let pos = 0;
+	for (const len of NPWP_SEGMENTS) {
+		out.push(digits.substr(pos, len));
+		pos += len;
+	}
+	return out;
+}
+
+const roInput =
+	"w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm text-[var(--app-text)] bg-[var(--app-surface)]";
+
+const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+	<div className="flex items-start gap-3">
+		<label className="w-40 flex-shrink-0 pt-2 text-sm font-medium text-[var(--app-text)]">{label}</label>
+		<div className="flex-1 min-w-0">{children}</div>
 	</div>
 );
 
-const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-	<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider mb-3">{children}</h3>
+const ReadInput = ({ value, multiline }: { value?: string; multiline?: boolean }) => (
+	<div className={`${roInput} ${multiline ? "whitespace-pre-wrap min-h-[64px]" : "truncate"}`}>
+		{value && value.trim() !== "" ? value : <span className="text-[var(--app-muted)]">-</span>}
+	</div>
 );
+
+function NpwpView({ value }: { value: string }) {
+	const segs = npwpSegments(value);
+	return (
+		<div className="flex items-center gap-1 flex-wrap">
+			{segs.map((s, i) => (
+				<React.Fragment key={i}>
+					<div
+						className={`${roInput} text-center px-2`}
+						style={{ width: `${NPWP_SEGMENTS[i] * 18 + 28}px`, flex: "0 0 auto" }}
+					>
+						{s || " "}
+					</div>
+					{i < NPWP_SEPS.length && <span className="px-0.5 text-sm font-bold text-[var(--app-text)]">{NPWP_SEPS[i]}</span>}
+				</React.Fragment>
+			))}
+		</div>
+	);
+}
 
 const WatchlistDetailModal: React.FC<Props> = ({ no, groups, onClose }) => {
 	const [detail, setDetail] = useState<Detail | null>(null);
@@ -89,6 +124,7 @@ const WatchlistDetailModal: React.FC<Props> = ({ no, groups, onClose }) => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState("");
 	const [fileError, setFileError] = useState("");
+	const [showBodBoc, setShowBodBoc] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -156,7 +192,6 @@ const WatchlistDetailModal: React.FC<Props> = ({ no, groups, onClose }) => {
 	const isPR = detail?.customer_type === "PR";
 	const isCorsec = detail?.reason_category === CORSEC_REASON;
 	const boardMembers = (detail?.members || []).filter(m => m.os_code === BOD_OS_CODE || m.os_code === BOC_OS_CODE);
-	const managementRows = (detail?.members || []).filter(m => (isCorsec ? m.os_code === 'PT04' : true) && m.name);
 	const groupName = groups.find(g => g.code === detail?.group_code)?.name ?? detail?.group_code ?? "";
 
 	return (
@@ -165,13 +200,13 @@ const WatchlistDetailModal: React.FC<Props> = ({ no, groups, onClose }) => {
 			onClick={onClose}
 		>
 			<div
-				className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-5xl my-8"
+				className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-8xl my-8"
 				onClick={(e) => e.stopPropagation()}
 			>
 				<div className="flex justify-between items-center px-6 py-5 border-b">
 					<div>
 						<h2 className="text-xl font-bold text-[var(--app-text)]">Watchlist Detail</h2>
-						<p className="text-sm text-[var(--app-muted)] mt-0.5">{detail?.name || "\u00a0"}</p>
+						<p className="text-sm text-[var(--app-muted)] mt-0.5">{detail?.name || " "}</p>
 					</div>
 					<button onClick={onClose} className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-2xl leading-none">×</button>
 				</div>
@@ -189,64 +224,87 @@ const WatchlistDetailModal: React.FC<Props> = ({ no, groups, onClose }) => {
 								<div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600 mb-4">{fileError}</div>
 							)}
 
-							<div className="mb-5">
-								<span
-									style={{
-										fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-										background: isPR ? "#dbeafe" : "#fef3c7", color: isPR ? "#1e40af" : "#92400e",
-									}}
-								>
-									{isPR ? "Individual" : "Corporate"}
-								</span>
-							</div>
+							<h3 className="text-sm font-bold text-[var(--app-text)] mb-4">WATCHLIST</h3>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-								<div className="space-y-4">
-									<SectionTitle>{isPR ? "Personal Information" : "Company Information"}</SectionTitle>
-									<ReadField label="Name" value={detail.name} />
-									{isPR && <ReadField label="Alias Name" value={detail.alias_name} />}
-									<ReadField label="Address" value={detail.address} multiline />
-									<ReadField label="Phone" value={detail.phone} />
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+								<div className="space-y-3">
+									<Field label="Customer Type">
+										<div className="flex gap-4 pt-1">
+											{(["PR", "PT"] as CustomerType[]).map(t => (
+												<label key={t} className="flex items-center gap-2 text-sm text-[var(--app-text)]">
+													<input type="radio" checked={detail.customer_type === t} disabled readOnly className="accent-amber-600" />
+													{t === "PR" ? "Individual" : "Corporate"}
+												</label>
+											))}
+										</div>
+									</Field>
+
+									<Field label="Name"><ReadInput value={detail.name} /></Field>
+									{isPR && <Field label="Alias Name"><ReadInput value={detail.alias_name} /></Field>}
+									<Field label="Address"><ReadInput value={detail.address} multiline /></Field>
+									<Field label="Phone"><ReadInput value={detail.phone} /></Field>
+
 									{isPR ? (
 										<>
-											<ReadField label="ID Card No." value={detail.id_card} />
-											<ReadField label="Date of Birth" value={toDisplayDate(detail.birth)} />
-											<ReadField label="NPWP" value={detail.npwp} />
-											<ReadField label="Spouse Name" value={detail.spouse_name} />
-											<ReadField label="Mother's Maiden Name" value={detail.mother} />
+											<Field label="ID Card No."><ReadInput value={detail.id_card} /></Field>
+											<Field label="Date of Birth"><ReadInput value={toDisplayDate(detail.birth)} /></Field>
+											<Field label="NPWP"><NpwpView value={detail.npwp} /></Field>
+											<Field label="Spouse Name"><ReadInput value={detail.spouse_name} /></Field>
+											<Field label="Mother's Maiden Name"><ReadInput value={detail.mother} /></Field>
 										</>
 									) : (
 										<>
-											<ReadField label="NPWP" value={detail.npwp} />
-											<ReadField label="Establishment Date" value={toDisplayDate(detail.es_birth)} />
-											<ReadField label="Contact Person Name" value={detail.contact_person} />
-											<ReadField label="Contact Person Address" value={detail.contact_address} multiline />
-											<ReadField label="Group" value={groupName} />
+											<Field label="NPWP"><NpwpView value={detail.npwp} /></Field>
+											<Field label="Establishment Date"><ReadInput value={toDisplayDate(detail.es_birth)} /></Field>
+
+											<div className="pt-2 pb-1">
+												<span className="text-sm font-bold text-[var(--app-text)] underline">Contact person</span>
+											</div>
+
+											<Field label="Name"><ReadInput value={detail.contact_person} /></Field>
+											<Field label="Address"><ReadInput value={detail.contact_address} multiline /></Field>
+											<Field label="Group"><ReadInput value={groupName} /></Field>
+											<Field label="Composition of BOD / BOC">
+												<button
+													type="button"
+													onClick={() => setShowBodBoc(s => !s)}
+													className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md text-sm font-medium"
+												>
+													{showBodBoc ? "Hide" : "View"}
+												</button>
+											</Field>
 										</>
 									)}
 								</div>
 
-								<div className="space-y-4">
-									<SectionTitle>Case Information</SectionTitle>
-									<ReadField label="Reason" value={reasonLabel} />
-									{detail.reason_category === "5" && <ReadField label="Reason Other" value={detail.reason_other} multiline />}
-									<ReadField label="Remark" value={detail.remark} multiline />
-									<div className="grid grid-cols-2 gap-4">
-										<ReadField label="Create By" value={detail.create_user} />
-										<ReadField label="Create Date" value={toDisplayDate(detail.create_date)} />
-									</div>
-									{detail.last_user && (
-										<div className="grid grid-cols-2 gap-4">
-											<ReadField label="Update By" value={detail.last_user} />
-											<ReadField label="Last Update" value={toDisplayDate(detail.last_update)} />
-										</div>
+								<div className="space-y-3">
+									<Field label="Reason">
+										<select
+											disabled
+											value={detail.reason_category}
+											className={`${roInput} cursor-not-allowed`}
+											style={{ colorScheme: "light" }}
+										>
+											<option value={detail.reason_category} style={{ backgroundColor: "#fff", color: "#0f172a" }}>
+												{detail.reason_label || reasonLabel || detail.reason_category}
+											</option>
+										</select>
+									</Field>
+									{detail.reason_category === "5" && <Field label="Reason Other"><ReadInput value={detail.reason_other} multiline /></Field>}
+									<Field label="Remark"><ReadInput value={detail.remark} multiline /></Field>
+									<Field label="Create By"><ReadInput value={detail.create_user} /></Field>
+									<Field label="Create Date"><ReadInput value={toDisplayDate(detail.create_date)} /></Field>
+									{(detail.last_user || detail.last_update) && (
+										<>
+											<Field label="Update by"><ReadInput value={detail.last_user} /></Field>
+											<Field label="Last Update"><ReadInput value={toDisplayDate(detail.last_update)} /></Field>
+										</>
 									)}
 
 									{isCorsec && (
-										<div>
-											<div className="text-xs font-medium text-[var(--app-muted)] mb-1">Attachment</div>
+										<Field label="Attachment">
 											{detail.ppatk_files.length === 0 ? (
-												<div className="text-sm text-[var(--app-muted)]">-</div>
+												<div className={roInput}><span className="text-[var(--app-muted)]">-</span></div>
 											) : (
 												<ul className="space-y-1">
 													{detail.ppatk_files.map(f => (
@@ -262,66 +320,61 @@ const WatchlistDetailModal: React.FC<Props> = ({ no, groups, onClose }) => {
 													))}
 												</ul>
 											)}
-										</div>
+										</Field>
 									)}
 								</div>
 							</div>
 
-							{!isPR && (
-								<div className="mt-8 space-y-6">
-									<div>
-										<SectionTitle>Composition of BOD / BOC</SectionTitle>
-										<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
-											<table className="w-full text-sm">
-												<thead className="bg-[var(--app-surface)]">
-													<tr>
-														{["No.", "Name", "BOD", "BOC", "Other"].map(h => (
-															<th key={h} className="py-2 px-3 text-left text-xs font-semibold text-[var(--app-muted)] uppercase">{h}</th>
-														))}
-													</tr>
-												</thead>
-												<tbody className="divide-y divide-[var(--app-border)]">
-													{boardMembers.length === 0 ? (
-														<tr><td colSpan={5} className="py-6 text-center text-[var(--app-muted)]">No records</td></tr>
-													) : boardMembers.map((m, i) => {
-														const p = positionLabel(m);
-														return (
-															<tr key={m.id_blacklist}>
-																<td className="py-2 px-3 text-center">{i + 1}</td>
-																<td className="py-2 px-3">{m.name}</td>
-																<td className="py-2 px-3">{p.bod || "-"}</td>
-																<td className="py-2 px-3">{p.boc || "-"}</td>
-																<td className="py-2 px-3">{p.other || "-"}</td>
-															</tr>
-														);
-													})}
-												</tbody>
-											</table>
-										</div>
-									</div>
+							{!isPR && showBodBoc && (
+								<div className="mt-8">
+									<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider mb-3">
+										Composition of BOD / BOC &amp; Management Detail
+									</h3>
 
-									<div>
-										<SectionTitle>Management Detail Information</SectionTitle>
-										<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
-											<table className="w-full text-sm">
-												<thead className="bg-[var(--app-surface)]">
-													<tr>
-														{["No.", "Name", "ID Card", "Address", "City", "Image"].map(h => (
-															<th key={h} className="py-2 px-3 text-left text-xs font-semibold text-[var(--app-muted)] uppercase">{h}</th>
-														))}
-													</tr>
-												</thead>
-												<tbody className="divide-y divide-[var(--app-border)]">
-													{managementRows.length === 0 ? (
-														<tr><td colSpan={6} className="py-6 text-center text-[var(--app-muted)]">No records</td></tr>
-													) : managementRows.map((m, i) => (
-														<tr key={m.id_blacklist}>
-															<td className="py-2 px-3 text-center">{i + 1}</td>
-															<td className="py-2 px-3">{m.name}</td>
-															<td className="py-2 px-3">{m.id_card || "-"}</td>
-															<td className="py-2 px-3 whitespace-pre-wrap">{m.address || "-"}</td>
-															<td className="py-2 px-3">{m.city || "-"}</td>
-															<td className="py-2 px-3">
+									{boardMembers.length === 0 ? (
+										<div className="text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-lg p-6 text-center">
+											No members
+										</div>
+									) : (
+										<div className="space-y-3">
+											{boardMembers.map((m, idx) => {
+												const p = positionLabel(m);
+												return (
+													<div key={m.id_blacklist} className="border border-[var(--app-border)] rounded-xl p-4">
+														<div className="flex justify-between items-center mb-3">
+															<span className="text-sm font-semibold text-[var(--app-text)]">#{idx + 1}</span>
+														</div>
+														<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Name</label>
+																<input type="text" value={m.name} disabled className={roInput} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOD</label>
+																<input type="text" value={p.bod} disabled className={roInput} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOC</label>
+																<input type="text" value={p.boc} disabled className={roInput} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Other</label>
+																<input type="text" value={p.other} disabled className={roInput} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">ID Card</label>
+																<input type="text" value={m.id_card} disabled className={roInput} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Address</label>
+																<input type="text" value={m.address} disabled className={roInput} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">City</label>
+																<input type="text" value={m.city} disabled className={roInput} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Image</label>
 																{m.image ? (
 																	<button
 																		type="button"
@@ -330,14 +383,16 @@ const WatchlistDetailModal: React.FC<Props> = ({ no, groups, onClose }) => {
 																	>
 																		View
 																	</button>
-																) : "-"}
-															</td>
-														</tr>
-													))}
-												</tbody>
-											</table>
+																) : (
+																	<div className={roInput}><span className="text-[var(--app-muted)]">-</span></div>
+																)}
+															</div>
+														</div>
+													</div>
+												);
+											})}
 										</div>
-									</div>
+									)}
 								</div>
 							)}
 						</>

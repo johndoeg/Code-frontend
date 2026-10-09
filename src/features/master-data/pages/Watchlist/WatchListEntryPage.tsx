@@ -6,6 +6,7 @@ import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import WatchlistDetailModal from '@/features/master-data/pages/Watchlist/WatchListDetailModal';
 import WatchListEditModal from '@/features/master-data/pages/Watchlist/WatchListEditModal';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 type CustomerType = "PR" | "PT";
 
@@ -157,10 +158,108 @@ const Field = ({
 	</div>
 );
 
+const NPWP_SEGMENTS = [2, 3, 3, 1, 3, 4];
+const NPWP_SEPS = ['.', '.', '.', '-', '.'];
+const BOD_OTHER_VALUE = '5';
+const BOC_OTHER_VALUE = '10';
+
+function npwpSegments(npwp: string): string[] {
+	const digits = (npwp || "").replace(/\D/g, "");
+	const out: string[] = [];
+	let pos = 0;
+	for (const len of NPWP_SEGMENTS) {
+		out.push(digits.substr(pos, len));
+		pos += len;
+	}
+	return out;
+}
+
+interface Opt { value: string; label: string; }
+
+interface AddMemberRow {
+	key: string;
+	name: string;
+	bod_position: string;
+	boc_position: string;
+	other: string;
+	id_card: string;
+	address: string;
+	city: string;
+}
+
+let memberSeq = 0;
+const newMemberKey = () => `am${++memberSeq}`;
+const emptyMember = (): AddMemberRow => ({
+	key: newMemberKey(), name: "", bod_position: "", boc_position: "", other: "", id_card: "", address: "", city: "",
+});
+
+const AddField = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
+	<div className="flex items-start gap-3">
+		<label className="w-40 flex-shrink-0 pt-2 text-sm font-medium text-[var(--app-text)]">
+			{label}{required && <span className="text-red-500 ml-0.5">*</span>}
+		</label>
+		<div className="flex-1 min-w-0">{children}</div>
+	</div>
+);
+
+function NpwpInput({ value, disabled, onChange }: { value: string; disabled?: boolean; onChange: (v: string) => void }) {
+	const [segs, setSegs] = useState<string[]>(() => npwpSegments(value));
+	const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+	useEffect(() => {
+		if (value !== segs.join("")) setSegs(npwpSegments(value));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [value]);
+
+	const setSeg = (i: number, v: string) => {
+		const digits = v.replace(/\D/g, "").slice(0, NPWP_SEGMENTS[i]);
+		const next = [...segs];
+		next[i] = digits;
+		setSegs(next);
+		onChange(next.join(""));
+		if (digits.length === NPWP_SEGMENTS[i] && i < NPWP_SEGMENTS.length - 1) {
+			refs.current[i + 1]?.focus();
+		}
+	};
+
+	const onKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Backspace" && segs[i] === "" && i > 0) {
+			e.preventDefault();
+			refs.current[i - 1]?.focus();
+		}
+	};
+
+	return (
+		<div className="flex items-center gap-1 flex-wrap">
+			{segs.map((s, i) => (
+				<React.Fragment key={i}>
+					<input
+						ref={(el) => { refs.current[i] = el; }}
+						type="text"
+						inputMode="numeric"
+						value={s}
+						disabled={disabled}
+						maxLength={NPWP_SEGMENTS[i]}
+						onChange={e => setSeg(i, e.target.value)}
+						onKeyDown={e => onKeyDown(i, e)}
+						className={`${inputCls} text-center px-2`}
+						style={{ width: `${NPWP_SEGMENTS[i] * 18 + 28}px`, flex: "0 0 auto" }}
+					/>
+					{i < NPWP_SEPS.length && <span className="px-0.5 text-sm font-bold text-[var(--app-text)]">{NPWP_SEPS[i]}</span>}
+				</React.Fragment>
+			))}
+		</div>
+	);
+}
+
 const WatchlistEntryPage: React.FC = () => {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const menuId = searchParams.get("menu_id") ?? "";
+	const { user } = useAuth();
+	const currentUser = user?.username ?? "";
+	const now = new Date();
+	const todayDisplay = `${String(now.getDate()).padStart(2, "0")}-${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}`;
 
 	const [entries, setEntries] = useState<WatchlistRow[]>([]);
 	const [total, setTotal] = useState(0);
@@ -183,6 +282,10 @@ const WatchlistEntryPage: React.FC = () => {
 	const [addLoading, setAddLoading] = useState(false);
 	const [custType, setCustType] = useState<CustomerType>("PR");
 	const [addForm, setAddForm] = useState<AddForm>(emptyForm());
+	const [showBodBoc, setShowBodBoc] = useState(false);
+	const [members, setMembers] = useState<AddMemberRow[]>([]);
+	const [bodOptions, setBodOptions] = useState<Opt[]>([]);
+	const [bocOptions, setBocOptions] = useState<Opt[]>([]);
 
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [deleteTarget, setDeleteTarget] = useState<WatchlistRow | null>(null);
@@ -217,12 +320,16 @@ const WatchlistEntryPage: React.FC = () => {
 
 	const fetchCombos = useCallback(async () => {
 		try {
-			const [r, g] = await Promise.all([
+			const [r, g, p] = await Promise.all([
 				api.get('/MasterData/watchlist/reasons'),
 				api.get('/MasterData/watchlist/groups'),
+				api.get('/MasterData/watchlist/positions'),
 			]);
 			setReasons(r.data || []);
 			setGroups(g.data || []);
+			const toOpt = (o: { value: unknown; label: string }) => ({ value: String(o.value), label: o.label });
+			setBodOptions((p.data?.bod_options || []).map(toOpt));
+			setBocOptions((p.data?.boc_options || []).map(toOpt));
 		} catch { }
 	}, []);
 
@@ -249,6 +356,8 @@ const WatchlistEntryPage: React.FC = () => {
 	const openAdd = () => {
 		setAddForm(emptyForm());
 		setCustType("PR");
+		setMembers([]);
+		setShowBodBoc(false);
 		setAddErrors([]);
 		setAddOpen(true);
 	};
@@ -256,11 +365,20 @@ const WatchlistEntryPage: React.FC = () => {
 	const setField = (field: keyof AddForm, value: string) =>
 		setAddForm((f) => ({ ...f, [field]: value }));
 
+	const addMember = () => setMembers((ms) => [...ms, emptyMember()]);
+	const updateMember = (idx: number, patch: Partial<AddMemberRow>) =>
+		setMembers((ms) => ms.map((m, i) => (i === idx ? { ...m, ...patch } : m)));
+	const removeMember = (idx: number) => setMembers((ms) => ms.filter((_, i) => i !== idx));
+
 	const handleSave = async () => {
 		setAddLoading(true);
 		setAddErrors([]);
 		try {
-			await api.post('/MasterData/watchlist/save', { ...addForm, customer_type: custType });
+			await api.post('/MasterData/watchlist/save', {
+				...addForm,
+				customer_type: custType,
+				members: custType === "PT" ? members.map(({ key, ...rest }) => rest) : [],
+			});
 			setAddOpen(false);
 			fetchList();
 		} catch (err: any) {
@@ -493,7 +611,7 @@ const WatchlistEntryPage: React.FC = () => {
 
 			{addOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-4xl my-8">
+					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-8xl my-8">
 
 						<div className="flex justify-between items-center px-6 py-5 border-b">
 							<div>
@@ -513,237 +631,202 @@ const WatchlistEntryPage: React.FC = () => {
 								<ErrorBanner errors={addErrors} onClose={() => setAddErrors([])} />
 							)}
 
-							<div className="mb-6">
-								<label className="block text-sm font-semibold text-[var(--app-text)] mb-2">
-									Customer Type <span className="text-red-500">*</span>
-								</label>
-								<div className="flex gap-4">
-									{(["PR", "PT"] as CustomerType[]).map((t) => (
-										<label key={t} className="flex items-center gap-2 cursor-pointer">
-											<input
-												type="radio"
-												name="customer_type"
-												value={t}
-												checked={custType === t}
-												onChange={() => setCustType(t)}
-												className="accent-amber-600"
-											/>
-											<span className="text-sm font-medium text-[var(--app-text)]">
-												{t === "PR" ? "Individual" : "Corporate"}
-											</span>
-										</label>
-									))}
-								</div>
-							</div>
+							<h3 className="text-sm font-bold text-[var(--app-text)] mb-4">WATCHLIST</h3>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
-								<div className="space-y-4">
-									<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
-										{custType === "PR" ? "Personal Information" : "Company Information"}
-									</h3>
+								<div className="space-y-3">
+									<AddField label="Customer Type" required>
+										<div className="flex gap-4 pt-1">
+											{(["PR", "PT"] as CustomerType[]).map((t) => (
+												<label key={t} className="flex items-center gap-2 text-sm text-[var(--app-text)] cursor-pointer">
+													<input
+														type="radio"
+														name="customer_type"
+														value={t}
+														checked={custType === t}
+														onChange={() => setCustType(t)}
+														className="accent-amber-600"
+													/>
+													{t === "PR" ? "Individual" : "Corporate"}
+												</label>
+											))}
+										</div>
+									</AddField>
 
-									<Field label="Name" required>
-										<input
-											type="text"
-											value={addForm.name}
-											onChange={(e) => setField("name", e.target.value)}
-											className={inputCls}
-											placeholder="Full name"
-										/>
-									</Field>
+									<AddField label="Name" required>
+										<input type="text" value={addForm.name} onChange={(e) => setField("name", e.target.value)} className={inputCls} placeholder="Full name" />
+									</AddField>
 
 									{custType === "PR" && (
-										<Field label="Alias Name">
-											<input
-												type="text"
-												value={addForm.alias_name}
-												onChange={(e) => setField("alias_name", e.target.value)}
-												className={inputCls}
-												placeholder="Alias / other name"
-											/>
-										</Field>
+										<AddField label="Alias Name">
+											<input type="text" value={addForm.alias_name} onChange={(e) => setField("alias_name", e.target.value)} className={inputCls} placeholder="Alias / other name" />
+										</AddField>
 									)}
 
-									<Field label="Address" required>
-										<textarea
-											value={addForm.address}
-											onChange={(e) => setField("address", e.target.value)}
-											className={`${inputCls} resize-none`}
-											rows={3}
-											placeholder="Full address"
-										/>
-									</Field>
+									<AddField label="Address" required>
+										<textarea value={addForm.address} onChange={(e) => setField("address", e.target.value)} className={`${inputCls} resize-none`} rows={3} placeholder="Full address" />
+									</AddField>
 
-									<Field label="Phone">
-										<input
-											type="tel"
-											value={addForm.phone}
-											onChange={(e) => setField("phone", e.target.value.replace(/\D/g, ""))}
-											className={inputCls}
-											placeholder="08xx-xxxx-xxxx"
-										/>
-									</Field>
+									<AddField label="Phone">
+										<input type="tel" value={addForm.phone} onChange={(e) => setField("phone", e.target.value.replace(/\D/g, ""))} className={inputCls} placeholder="08xx-xxxx-xxxx" />
+									</AddField>
 
-									{custType === "PR" && (
+									{custType === "PR" ? (
 										<>
-											<Field label="ID Card No." required>
-												<input
-													type="text"
-													value={addForm.id_card}
-													onChange={(e) => setField("id_card", e.target.value.replace(/\D/g, ""))}
-													className={inputCls}
-													placeholder="16-digit KTP"
-													maxLength={16}
-												/>
-											</Field>
-
-											<AsOfDatePicker
-												label="Date of Birth"
-												format="DD-MM-YYYY"
-												placeholder="dd-mm-yyyy"
-												maxDate={new Date()}
-												value={parseISODate(addForm.birth)}
-												onChange={(d) => setField("birth", formatISODate(d))}
-											/>
-
-											<Field label="NPWP">
-												<input
-													type="text"
-													value={addForm.npwp}
-													onChange={(e) => setField("npwp", e.target.value.replace(/\D/g, ""))}
-													className={inputCls}
-													placeholder="15/16-digit NPWP"
-													maxLength={16}
-												/>
-											</Field>
-
-											<Field label="Spouse Name">
-												<input
-													type="text"
-													value={addForm.spouse_name}
-													onChange={(e) => setField("spouse_name", e.target.value)}
-													className={inputCls}
-												/>
-											</Field>
-
-											<Field label="Mother's Maiden Name">
-												<input
-													type="text"
-													value={addForm.mother}
-													onChange={(e) => setField("mother", e.target.value)}
-													className={inputCls}
-												/>
-											</Field>
+											<AddField label="ID Card No." required>
+												<input type="text" value={addForm.id_card} onChange={(e) => setField("id_card", e.target.value.replace(/\D/g, ""))} className={inputCls} placeholder="16-digit KTP" maxLength={16} />
+											</AddField>
+											<AddField label="Date of Birth">
+												<AsOfDatePicker format="DD-MM-YYYY" label="" placeholder="dd-mm-yyyy" maxDate={new Date()} value={parseISODate(addForm.birth)} onChange={(d) => setField("birth", formatISODate(d))} />
+											</AddField>
+											<AddField label="NPWP">
+												<NpwpInput value={addForm.npwp} onChange={(v) => setField("npwp", v)} />
+											</AddField>
+											<AddField label="Spouse Name">
+												<input type="text" value={addForm.spouse_name} onChange={(e) => setField("spouse_name", e.target.value)} className={inputCls} />
+											</AddField>
+											<AddField label="Mother's Maiden Name">
+												<input type="text" value={addForm.mother} onChange={(e) => setField("mother", e.target.value)} className={inputCls} />
+											</AddField>
 										</>
-									)}
-
-									{custType === "PT" && (
+									) : (
 										<>
-											<Field label="NPWP" required>
-												<input
-													type="text"
-													value={addForm.npwp}
-													onChange={(e) => setField("npwp", e.target.value.replace(/\D/g, ""))}
-													className={inputCls}
-													placeholder="15/16-digit NPWP"
-													maxLength={16}
-												/>
-											</Field>
+											<AddField label="NPWP" required>
+												<NpwpInput value={addForm.npwp} onChange={(v) => setField("npwp", v)} />
+											</AddField>
+											<AddField label="Establishment Date">
+												<AsOfDatePicker format="DD-MM-YYYY" label="" placeholder="dd-mm-yyyy" maxDate={new Date()} value={parseISODate(addForm.es_birth)} onChange={(d) => setField("es_birth", formatISODate(d))} />
+											</AddField>
 
-											<AsOfDatePicker
-												label="Establishment Date"
-												format="DD-MM-YYYY"
-												placeholder="dd-mm-yyyy"
-												maxDate={new Date()}
-												value={parseISODate(addForm.es_birth)}
-												onChange={(d) => setField("es_birth", formatISODate(d))}
-											/>
-										</>
-									)}
-								</div>
+											<div className="pt-2 pb-1">
+												<span className="text-sm font-bold text-[var(--app-text)] underline">Contact person</span>
+											</div>
 
-								<div className="space-y-4">
-									<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
-										{custType === "PT" ? "Contact Person" : "Case Information"}
-									</h3>
-
-									{custType === "PT" && (
-										<>
-											<Field label="Contact Person Name">
-												<input
-													type="text"
-													value={addForm.contact_person}
-													onChange={(e) => setField("contact_person", e.target.value)}
-													className={inputCls}
-												/>
-											</Field>
-
-											<Field label="Contact Person Address">
-												<textarea
-													value={addForm.contact_address}
-													onChange={(e) => setField("contact_address", e.target.value)}
-													className={`${inputCls} resize-none`}
-													rows={3}
-												/>
-											</Field>
-
-											<Field label="Group">
-												<select
-													value={addForm.group_code}
-													onChange={(e) => setField("group_code", e.target.value)}
-													style={selectStyle}
-													className={selectCls}
-												>
+											<AddField label="Name">
+												<input type="text" value={addForm.contact_person} onChange={(e) => setField("contact_person", e.target.value)} className={inputCls} />
+											</AddField>
+											<AddField label="Address">
+												<textarea value={addForm.contact_address} onChange={(e) => setField("contact_address", e.target.value)} className={`${inputCls} resize-none`} rows={3} />
+											</AddField>
+											<AddField label="Group">
+												<select value={addForm.group_code} onChange={(e) => setField("group_code", e.target.value)} style={selectStyle} className={selectCls}>
 													<option value="" style={optionStyle}>— Select —</option>
 													{groups.map((g) => (
-														<option key={g.code} value={g.code} style={optionStyle}>
-															{g.name}
-														</option>
+														<option key={g.code} value={g.code} style={optionStyle}>{g.name}</option>
 													))}
 												</select>
-											</Field>
+											</AddField>
+											<AddField label="Composition of BOD / BOC">
+												<button type="button" onClick={() => setShowBodBoc((s) => !s)} className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md text-sm font-medium">
+													{showBodBoc ? "Hide" : "View"}
+												</button>
+											</AddField>
 										</>
 									)}
+								</div>
 
-									<Field label="Reason" required>
-										<select
-											value={addForm.reason}
-											onChange={(e) => setField("reason", e.target.value)}
-											style={selectStyle}
-											className={selectCls}
-										>
+								<div className="space-y-3">
+									<AddField label="Reason" required>
+										<select value={addForm.reason} onChange={(e) => setField("reason", e.target.value)} style={selectStyle} className={selectCls}>
 											<option value="" style={optionStyle}>— Select reason —</option>
 											{reasons.map((r) => (
-												<option key={r.value} value={r.value} disabled={r.disabled} style={optionStyle}>
-													{r.label}
-												</option>
+												<option key={r.value} value={r.value} disabled={r.disabled} style={optionStyle}>{r.label}</option>
 											))}
 										</select>
-									</Field>
+									</AddField>
 
 									{addForm.reason === "5" && (
-										<Field label="Reason Other" required>
-											<textarea
-												value={addForm.reason_other}
-												onChange={(e) => setField("reason_other", e.target.value)}
-												className={`${inputCls} resize-none`}
-												rows={2}
-												placeholder="Specify other reason…"
-											/>
-										</Field>
+										<AddField label="Reason Other" required>
+											<textarea value={addForm.reason_other} onChange={(e) => setField("reason_other", e.target.value)} className={`${inputCls} resize-none`} rows={2} placeholder="Specify other reason…" />
+										</AddField>
 									)}
 
-									<Field label="Remark">
-										<textarea
-											value={addForm.remark}
-											onChange={(e) => setField("remark", e.target.value)}
-											className={`${inputCls} resize-none`}
-											rows={3}
-										/>
-									</Field>
+									<AddField label="Remark">
+										<textarea value={addForm.remark} onChange={(e) => setField("remark", e.target.value)} className={`${inputCls} resize-none`} rows={3} />
+									</AddField>
+
+									<AddField label="Create By">
+										<input type="text" value={currentUser} readOnly className={`${inputCls} bg-[var(--app-surface)]`} />
+									</AddField>
+									<AddField label="Create Date">
+										<input type="text" value={todayDisplay} readOnly className={`${inputCls} bg-[var(--app-surface)]`} />
+									</AddField>
 								</div>
 							</div>
+
+							{custType === "PT" && showBodBoc && (
+								<div className="mt-8">
+									<div className="flex items-center justify-between mb-3">
+										<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+											Composition of BOD / BOC &amp; Management Detail
+										</h3>
+										<button type="button" onClick={addMember} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
+											+ Add Member
+										</button>
+									</div>
+
+									{members.length === 0 ? (
+										<div className="text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-lg p-6 text-center">
+											No members
+										</div>
+									) : (
+										<div className="space-y-3">
+											{members.map((m, idx) => {
+												const otherEnabled = m.bod_position === BOD_OTHER_VALUE || m.boc_position === BOC_OTHER_VALUE;
+												return (
+													<div key={m.key} className="border border-[var(--app-border)] rounded-xl p-4">
+														<div className="flex justify-between items-center mb-3">
+															<span className="text-sm font-semibold text-[var(--app-text)]">#{idx + 1}</span>
+															<button type="button" onClick={() => removeMember(idx)} className="text-red-500 hover:text-red-700 text-xs">Remove</button>
+														</div>
+														<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Name</label>
+																<input type="text" value={m.name} onChange={(e) => updateMember(idx, { name: e.target.value })} className={inputCls} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOD</label>
+																<select value={m.bod_position} disabled={!!m.boc_position}
+																	onChange={(e) => updateMember(idx, { bod_position: e.target.value, other: e.target.value === BOD_OTHER_VALUE ? m.other : "" })}
+																	style={selectStyle} className={selectCls}>
+																	<option value="" style={optionStyle}>Select</option>
+																	{bodOptions.map((o) => <option key={o.value} value={o.value} style={optionStyle}>{o.label}</option>)}
+																</select>
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOC</label>
+																<select value={m.boc_position} disabled={!!m.bod_position}
+																	onChange={(e) => updateMember(idx, { boc_position: e.target.value, other: e.target.value === BOC_OTHER_VALUE ? m.other : "" })}
+																	style={selectStyle} className={selectCls}>
+																	<option value="" style={optionStyle}>Select</option>
+																	{bocOptions.map((o) => <option key={o.value} value={o.value} style={optionStyle}>{o.label}</option>)}
+																</select>
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Other</label>
+																<input type="text" value={m.other} disabled={!otherEnabled} onChange={(e) => updateMember(idx, { other: e.target.value })} className={inputCls} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">ID Card</label>
+																<input type="text" value={m.id_card} onChange={(e) => updateMember(idx, { id_card: e.target.value })} className={inputCls} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Address</label>
+																<input type="text" value={m.address} onChange={(e) => updateMember(idx, { address: e.target.value })} className={inputCls} />
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">City</label>
+																<input type="text" value={m.city} onChange={(e) => updateMember(idx, { city: e.target.value })} className={inputCls} />
+															</div>
+														</div>
+													</div>
+												);
+											})}
+										</div>
+									)}
+								</div>
+							)}
 						</div>
 
 						<div className="flex justify-end gap-3 px-6 py-4 border-t bg-[var(--app-surface)] rounded-b-2xl">

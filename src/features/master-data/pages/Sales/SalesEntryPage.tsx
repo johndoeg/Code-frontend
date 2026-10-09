@@ -244,6 +244,8 @@ const SalesEntryPage: React.FC = () => {
 	const salesNo0 = searchParams.get("salesno") || "";
 	const salType0 = searchParams.get("sal_type") || "";
 	const brokerType0 = searchParams.get("broker") || "";
+	const menuId = searchParams.get("menu_id") || "";
+	const salesListUrl = menuId ? `/sales?menu_id=${menuId}` : "/sales";
 
 	const [mode, setMode] = useState<Mode>(mode0);
 	const [currentSno, setCurrentSno] = useState(salesNo0);
@@ -396,7 +398,7 @@ const SalesEntryPage: React.FC = () => {
 					setMain(f => ({ ...f, sales_no: sno }));
 					setMode("Edit");
 					setMsg("main", { type: "success", text: `Sales created successfully. Sales No: ${sno}` });
-					navigate(`/sales-entry?id=Edit&salesno=${sno}&sal_type=${main.sal_type}&broker=${main.broker}`, { replace: true });
+					navigate(`/sales-entry?id=Edit&salesno=${sno}&sal_type=${main.sal_type}&broker=${main.broker}${menuId ? `&menu_id=${menuId}` : ""}`, { replace: true });
 				} else {
 					setMsg("main", { type: "error", text: r.data.message || "Save failed." });
 				}
@@ -604,7 +606,7 @@ const SalesEntryPage: React.FC = () => {
 						</p>
 					</div>
 					<button
-						onClick={() => navigate("/sales")}
+						onClick={() => navigate(salesListUrl)}
 						className={`${cls.btn} border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)]`}
 					>
 						← Back to Sales
@@ -802,7 +804,7 @@ const SalesEntryPage: React.FC = () => {
 											className={`${cls.btn} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60`}>
 											{saving.main ? "Saving…" : mode === "Add" ? "Save" : "Update"}
 										</button>
-										<button onClick={() => navigate("/sales")}
+										<button onClick={() => navigate(salesListUrl)}
 											className={`${cls.btn} border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)]`}>
 											Cancel
 										</button>
@@ -890,7 +892,7 @@ const SalesEntryPage: React.FC = () => {
 											className={`${cls.btn} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60`}>
 											{saving.pic ? "Saving…" : pic.cont_name ? "Update" : "Save"}
 										</button>
-										<button onClick={() => navigate("/sales")}
+										<button onClick={() => navigate(salesListUrl)}
 											className={`${cls.btn} border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)]`}>
 											Cancel
 										</button>
@@ -1147,7 +1149,7 @@ const SalesEntryPage: React.FC = () => {
 											className={`${cls.btn} bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60`}>
 											{saving.tax ? "Saving…" : "Save"}
 										</button>
-										<button onClick={() => navigate("/sales")}
+										<button onClick={() => navigate(salesListUrl)}
 											className={`${cls.btn} border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)]`}>
 											Cancel
 										</button>
@@ -1311,7 +1313,7 @@ const SalesEntryPage: React.FC = () => {
 											{savingNotes ? "Saving…" : notes ? "Update" : "Save"}
 										</button>
 										<button
-											onClick={() => navigate("/sales")}
+											onClick={() => navigate(salesListUrl)}
 											className={`${cls.btn} border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)]`}
 										>
 											Cancel

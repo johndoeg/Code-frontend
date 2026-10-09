@@ -30,10 +30,14 @@ const isWithinSaveWindow = (): boolean => {
 	const now = new Date(
 		new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' })
 	);
-	const h = now.getHours();
-	const m = now.getMinutes();
-	const totalMin = h * 60 + m;
-	return totalMin >= 6 * 60 && totalMin < 12 * 60;
+	const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+	return sec >= 6 * 3600 && sec <= 12 * 3600;
+};
+
+const formatCoverDate = (): string => {
+	const d = new Date();
+	const mon = d.toLocaleString('en-US', { month: 'short' });
+	return `${String(d.getDate()).padStart(2, '0')}-${mon}-${d.getFullYear()}`;
 };
 
 const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
@@ -47,6 +51,8 @@ const InsuranceEntryPage: React.FC = () => {
 	const [companies, setCompanies] = useState<InsuranceCompany[]>([]);
 	const [selectedIns, setSelectedIns] = useState<string>('All');
 	const [contractNo, setContractNo] = useState<string>('');
+	const [appliedSearch, setAppliedSearch] = useState<string>('');
+	const [canAdd, setCanAdd] = useState<boolean>(false);
 	const [uploadFailed, setUploadFailed] = useState<boolean>(false);
 	const [loading, setLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
@@ -62,8 +68,6 @@ const InsuranceEntryPage: React.FC = () => {
 	const [selectAll, setSelectAll] = useState<boolean>(false);
 	const [saving, setSaving] = useState<boolean>(false);
 
-	const branchCd: string = (window as any).__USER_BRANCH__ ?? '';
-
 	const fetchCompanies = useCallback(async () => {
 		try {
 			const res = await api.get('/InsuranceEntry/companies');
@@ -71,23 +75,20 @@ const InsuranceEntryPage: React.FC = () => {
 		} catch {}
 	}, []);
 
-	const fetchRecords = useCallback(async (
-		ins_cd = selectedIns,
-		search = contractNo,
-		failed = uploadFailed,
-	) => {
+	const fetchRecords = useCallback(async () => {
 		setLoading(true);
 		setError(null);
 		try {
 			const res = await api.get('/InsuranceEntry/list', {
 				params: {
-					ins_cd: ins_cd === 'All' ? '00' : ins_cd,
-					search_val: search,
-					is_failed: failed ? 1 : 0,
+					ins_cd: selectedIns === 'All' ? '00' : selectedIns,
+					search_val: appliedSearch,
+					is_failed: uploadFailed ? 1 : 0,
 					page,
 					limit,
 				},
 			});
+			setCanAdd(!!res.data?.can_add);
 			if (res.data?.data) {
 				setRecords(res.data.data);
 				setTotal(res.data.total ?? res.data.data.length);
@@ -100,26 +101,35 @@ const InsuranceEntryPage: React.FC = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [selectedIns, contractNo, uploadFailed, page, limit]);
+	}, [selectedIns, appliedSearch, uploadFailed, page, limit]);
 
 	useEffect(() => { fetchCompanies(); }, [fetchCompanies]);
 	useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-	useEffect(() => { setPage(1); }, [selectedIns, uploadFailed]);
-
 	const handleInsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		setSelectedIns(e.target.value);
 		setContractNo('');
+		setAppliedSearch('');
 		setUploadFailed(false);
+		setPage(1);
 	};
 
 	const handleSearch = () => {
 		if (!contractNo.trim()) { alert('Please fill Contract No.'); return; }
-		fetchRecords(selectedIns, contractNo, uploadFailed);
+		setAppliedSearch(contractNo.trim());
+		setPage(1);
+	};
+
+	const clearContractNo = () => {
+		setContractNo('');
+		setAppliedSearch('');
+		setPage(1);
 	};
 
 	const handleUploadFailedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setUploadFailed(e.target.checked);
+		setAppliedSearch(contractNo.trim());
+		setPage(1);
 	};
 
 	const handleCancel = async (leaseNo: string) => {
@@ -152,21 +162,19 @@ const InsuranceEntryPage: React.FC = () => {
 
 	const handleGetContractData = async () => {
 		if (!retailContractNo.trim()) { alert('Please fill Contract Retail No.'); return; }
+		setContractRows([]);
+		setMasterContract('');
+		setSelectedItems(new Set());
+		setSelectAll(false);
 		try {
 			const res = await api.get('/InsuranceEntry/contract', {
-				params: { lease_no: retailContractNo },
+				params: { lease_no: retailContractNo.trim() },
 			});
-			if (res.data?.error) {
-				alert(res.data.error);
-				return;
-			}
-			const rows: ContractRow[] = res.data ?? [];
+			const rows: ContractRow[] = Array.isArray(res.data) ? res.data : [];
 			setContractRows(rows);
-			setSelectedItems(new Set());
-			setSelectAll(false);
 			if (rows.length > 0) setMasterContract(rows[0].MSTR_CL ?? '');
-		} catch {
-			alert('Failed to fetch contract data.');
+		} catch (e: any) {
+			alert(e.response?.data?.error || 'Failed to fetch contract data.');
 		}
 	};
 
@@ -206,8 +214,8 @@ const InsuranceEntryPage: React.FC = () => {
 			alert('SUCCESS');
 			setAddModalOpen(false);
 			fetchRecords();
-		} catch {
-			alert('Failed to save. Please try again.');
+		} catch (e: any) {
+			alert(e.response?.data?.error || 'Failed to save. Please try again.');
 		} finally {
 			setSaving(false);
 		}
@@ -215,7 +223,6 @@ const InsuranceEntryPage: React.FC = () => {
 
 	const totalPages = Math.ceil(total / limit);
 	const startIndex = (page - 1) * limit + 1;
-	const canAdd = branchCd === '100';
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
@@ -275,7 +282,7 @@ const InsuranceEntryPage: React.FC = () => {
 										style={{ height: '2.2rem', width: '200px' }}
 									/>
 									{contractNo && (
-										<button type="button" onClick={() => setContractNo('')} aria-label="Clear contract number"
+										<button type="button" onClick={clearContractNo} aria-label="Clear contract number"
 											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
 											&times;
 										</button>
@@ -476,9 +483,7 @@ const InsuranceEntryPage: React.FC = () => {
 									<input
 										type="text"
 										readOnly
-										value={new Date().toLocaleDateString('id-ID', {
-											day: '2-digit', month: 'short', year: 'numeric',
-										})}
+										value={formatCoverDate()}
 										className="px-3 py-2 border border-[var(--app-border)] rounded-md text-sm
 										           bg-[var(--app-surface)] text-[var(--app-muted)] cursor-not-allowed"
 									/>

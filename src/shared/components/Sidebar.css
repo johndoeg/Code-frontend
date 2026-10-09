@@ -364,7 +364,8 @@
 	white-space: nowrap;
 	flex: 1;
 	overflow: hidden;
-	text-overflow: ellipsis;
+	min-width: 0;
+	text-overflow: clip;
 	transition: opacity var(--sb-dur), transform var(--sb-dur), color .12s;
 }
 
@@ -738,4 +739,99 @@ body.sb-resizing {
 body.sb-resizing * {
 	cursor: col-resize !important;
 	user-select: none;
+}
+
+.sb-flyout {
+	position: fixed;
+	min-width: 210px;
+	max-width: 300px;
+	max-height: 72vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+	background: var(--sb-bg);
+	border: 1px solid var(--sb-border);
+	border-radius: 10px;
+	box-shadow: 0 8px 28px var(--sb-shadow-color);
+	padding: 6px;
+	z-index: 9999;
+	opacity: 0;
+	visibility: hidden;
+	pointer-events: none;
+	transition: opacity .12s var(--sb-ease), visibility .12s var(--sb-ease);
+	scrollbar-width: thin;
+	scrollbar-color: var(--sb-scrollbar) transparent;
+}
+
+.sb-flyout::-webkit-scrollbar { width: 3px; }
+.sb-flyout::-webkit-scrollbar-thumb { background: var(--sb-scrollbar); border-radius: 3px; }
+
+.sb-shell.collapsed li:hover > .sb-flyout {
+	opacity: 1;
+	visibility: visible;
+	pointer-events: auto;
+}
+
+.sb-flyout-head {
+	font-size: .8rem;
+	font-weight: 600;
+	color: var(--sb-text-strong);
+	padding: 5px 10px 8px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid var(--sb-border);
+	white-space: nowrap;
+}
+
+.sb-flyout-list {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.sb-flyout .sb-child-item { margin: 1px 2px; }
+.sb-brand-logo {
+	transition: filter .12s;
+}
+
+.dark .sb-brand-logo {
+	filter: brightness(0) invert(1);
+}
+
+.sb-collapse {
+	display: grid;
+	grid-template-rows: 0fr;
+	transition: grid-template-rows var(--sb-dur) var(--sb-ease);
+}
+
+.sb-collapse.open {
+	grid-template-rows: 1fr;
+}
+
+.sb-collapse-inner {
+	min-height: 0;
+	overflow: hidden;
+	opacity: 0;
+	transform: translateY(-4px);
+	transition: opacity var(--sb-dur) var(--sb-ease), transform var(--sb-dur) var(--sb-ease);
+}
+
+.sb-collapse.open > .sb-collapse-inner {
+	opacity: 1;
+	transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.sb-collapse,
+	.sb-collapse-inner {
+		transition: none;
+	}
+}
+
+.sb-shell.collapsed .sb-scroll>ul>li>.sb-collapse {
+	grid-template-rows: 0fr;
+}
+
+.sb-shell.collapsed .sb-scroll>ul>li>.sb-collapse>.sb-collapse-inner {
+	opacity: 0;
+	transform: translateY(-4px);
 }

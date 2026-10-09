@@ -5,6 +5,7 @@ import { MODAL_ROUTES } from '@/shared/config/modalRoutes';
 import api from '@/shared/api/axiosInstance';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useOverlay } from '@/shared/contexts/OverlayContext';
+import GenieLogo from '@/shared/components/GenieLogo';
 import "./Sidebar.css";
 
 interface MenuItem {
@@ -101,7 +102,7 @@ const SidebarLink = forwardRef<HTMLAnchorElement, {
 
 		e.preventDefault();
 
-		const overlay = CONTEXT_OVERLAY_URLS[to];
+		const overlay = CONTEXT_OVERLAY_URLS[to.split("?")[0]];
 		if (overlay === 'addCam') {
 			openAddCam();
 			onNavigate?.();
@@ -236,10 +237,16 @@ function MenuIcon({ label, size = 16 }: { label: string; size?: number }) {
 	);
 }
 
+const inertProps = (on: boolean) => (on ? ({ inert: "" } as Record<string, string>) : {});
+
 function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigate, modalBackground, activeRef }: {
 	item: MenuItem; collapsed: boolean; depth?: number; resetKey: number; currentPath: string; onNavigate?: () => void; modalBackground: Location; activeRef: React.RefObject<HTMLElement | null>;
 }) {
 	const normalizedUrl = item.url ? normalizeUrl(item.url) : null;
+	const appendMenuId = (path: string) =>
+		path && path !== "#" && item.menu_id
+			? `${path}${path.includes("?") ? "&" : "?"}menu_id=${encodeURIComponent(item.menu_id)}`
+			: path;
 	const isActive = !!normalizedUrl && currentPath === normalizedUrl;
 	const hasChildren = !!item.children?.length;
 	const hasActiveChild = hasChildren && subtreeHasActive(item, currentPath);
@@ -255,6 +262,17 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 	useEffect(() => { if (hasActiveChild) setOpen(true); }, [currentPath]);
 	const toggle = () => setOpen(p => !p);
 
+	const liRef = useRef<HTMLLIElement>(null);
+	const flyoutRef = useRef<HTMLDivElement>(null);
+	const positionFlyout = useCallback(() => {
+		const li = liRef.current, fly = flyoutRef.current;
+		if (!li || !fly) return;
+		const r = li.getBoundingClientRect();
+		const top = Math.min(Math.max(r.top, 8), window.innerHeight - fly.offsetHeight - 8);
+		fly.style.top = top + "px";
+		fly.style.left = r.right + "px";
+	}, []);
+
 	if (depth === 0) {
 		const row = (
 			<>
@@ -267,11 +285,12 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 				)}
 			</>
 		);
+		const showFlyout = collapsed && hasChildren;
 		return (
-			<li style={{ listStyle: "none" }}>
+			<li ref={liRef} style={{ listStyle: "none" }} onMouseEnter={showFlyout ? positionFlyout : undefined}>
 				{normalizedUrl && !hasChildren
 					? <SidebarLink
-						to={normalizedUrl}
+						to={appendMenuId(normalizedUrl)}
 						className={`sb-item${isActive ? " active" : ""}`}
 						dataTip={collapsed ? item.menu_desc : undefined}
 						onNavigate={onNavigate}
@@ -280,12 +299,14 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 						ref={isActive ? (activeRef as React.RefObject<HTMLAnchorElement | null>) : undefined}
 					>{row}</SidebarLink>
 					: <div className={`sb-item${isActive ? " active" : ""}`}
-						data-tip={collapsed ? item.menu_desc : undefined}
+						data-tip={(collapsed && !hasChildren) ? item.menu_desc : undefined}
 						onClick={hasChildren ? toggle : undefined}
 						ref={isActive ? (activeRef as React.RefObject<HTMLDivElement | null>) : undefined}
 						style={{ cursor: hasChildren ? "pointer" : "default" }}>{row}</div>
 				}
-				{hasChildren && open && !collapsed && (
+				{hasChildren && (
+					<div className={`sb-collapse${open ? " open" : ""}`} aria-hidden={!open || collapsed} {...inertProps(!open || collapsed)}>
+					<div className="sb-collapse-inner">
 					<div className="sb-children">
 						<ul style={{ padding: 0, margin: "2px 0" }}>
 							{item.children!.map(c => (
@@ -303,11 +324,32 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 							))}
 						</ul>
 					</div>
+					</div>
+					</div>
+				)}
+				{showFlyout && (
+					<div className="sb-flyout" ref={flyoutRef} role="menu">
+						<div className="sb-flyout-head">{item.menu_desc}</div>
+						<ul className="sb-flyout-list">
+							{item.children!.map(c => (
+								<MenuNode
+									key={c.menu_id}
+									item={c}
+									collapsed={false}
+									depth={1}
+									resetKey={resetKey}
+									currentPath={currentPath}
+									onNavigate={onNavigate}
+									modalBackground={modalBackground}
+									activeRef={activeRef}
+								/>
+							))}
+						</ul>
+					</div>
 				)}
 			</li>
 		);
 	}
-
 	const childUrl = item.url ? normalizeUrl(item.url) : "#";
 	const childActive = currentPath === childUrl;
 	return (
@@ -326,7 +368,8 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 							<path fillRule="evenodd" clipRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" />
 						</svg>
 					</div>
-					{open && (
+					<div className={`sb-collapse${open ? " open" : ""}`} aria-hidden={!open} {...inertProps(!open)}>
+					<div className="sb-collapse-inner">
 						<div className="sb-children">
 							<ul style={{ padding: "0 0 0 10px", margin: 0 }}>
 								{item.children!.map(c => (
@@ -344,11 +387,12 @@ function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigat
 								))}
 							</ul>
 						</div>
-					)}
+					</div>
+					</div>
 				</>
 			) : (
 				<SidebarLink
-					to={childUrl}
+					to={appendMenuId(childUrl)}
 					className={`sb-child-item${childActive ? " active" : ""}`}
 					title={item.menu_desc}
 					onNavigate={onNavigate}
@@ -610,6 +654,15 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 
 	const currentW = isMobile ? 0 : (collapsed ? COLLAPSED_W : sidebarWidth);
 
+	const ANIMATE_CONTENT_SHIFT = false;
+	const spacerTransition = isResizing
+		? "none"
+		: ANIMATE_CONTENT_SHIFT
+			? "width 220ms cubic-bezier(.4,0,.2,1)"
+			: collapsed
+				? "width 0s linear 220ms"
+				: "none";
+
 	const shellStyle: React.CSSProperties | undefined = isMobile
 		? undefined
 		: {
@@ -641,16 +694,8 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 			<div ref={sidebarRef} className={sidebarCls} style={shellStyle} onClick={handleShellClick}>
 
 				<div className="sb-header">
-					<Link to="/" className="sb-header-link" aria-label="Go to home" onClick={handleMobileNavigate}>
-						<div className="sb-logo" aria-hidden="true">
-							<img src="/images/new_logo_genie.png" alt=""
-								onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
-							<span className="sb-logo-fb">G</span>
-						</div>
-						<div className="sb-appname">
-							<div className="sb-appname-title">Genie</div>
-							<div className="sb-appname-sub">CAM</div>
-						</div>
+					<Link to="/" className="sb-header-link" aria-label="Genie CAM - Go to home" onClick={handleMobileNavigate}>
+						<GenieLogo height={44} />
 					</Link>
 
 					{!isMobile && (
@@ -755,7 +800,7 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 			)}
 
 			{!isMobile && (
-				<div style={{ width: currentW, flexShrink: 0, transition: isResizing ? "none" : `width 220ms cubic-bezier(.4,0,.2,1)` }} />
+				<div style={{ width: currentW, flexShrink: 0, transition: spacerTransition }} />
 			)}
 		</>
 	);

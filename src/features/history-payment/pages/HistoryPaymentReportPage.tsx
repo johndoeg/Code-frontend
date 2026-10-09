@@ -231,6 +231,13 @@ const PrintPreview: React.FC<{ reports: LeaseReport[]; onBack: () => void }> = (
 					break-after: auto;
 				}
 
+				/* Close the table frame on every edge, in case a global table/td rule strips the right border */
+				.page table.report-table,
+				.page table.report-table th,
+				.page table.report-table td {
+					border: 1px solid #000 !important;
+				}
+
 				.page::before {
 					opacity: 0.03;
 					-webkit-print-color-adjust: exact;
@@ -315,7 +322,7 @@ const PrintPreview: React.FC<{ reports: LeaseReport[]; onBack: () => void }> = (
 							</tbody>
 						</table>
 
-						<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 4 }}>
+						<table className="report-table" style={{ width: "100%", borderCollapse: "collapse", marginBottom: 4 }}>
 							<thead>
 								<tr style={{ backgroundColor: "#f0f0f0", textAlign: "center" }}>
 									{["No.", "Giro No.", "Date Due", "Bank", "Amount", "OD Days", "Sts", "Payment Date", "Penalty Charge", "Remark"].map(h => (
@@ -344,15 +351,11 @@ const PrintPreview: React.FC<{ reports: LeaseReport[]; onBack: () => void }> = (
 									<td style={{ ...td, textAlign: "right" }}><strong>{fmt(rpt.totAmount)}</strong></td>
 									<td colSpan={3} style={td} />
 									<td style={{ ...td, textAlign: "right" }}><strong>{fmt(rpt.totPenalty)}</strong></td>
-									<td style={{ ...td, textAlign: "right" }}><strong>{fmt(rpt.totShortage)}</strong></td>
-									<td style={{ ...td, textAlign: "right" }}><strong>{fmt(rpt.totInkaso)}</strong></td>
-									<td style={td} />
+									<td style={{ ...td, textAlign: "right" }} />
 								</tr>
 								<tr>
 									<td colSpan={8} style={{ ...td, textAlign: "right" }}><strong>TOTAL PAYMENT</strong></td>
 									<td style={{ ...td, textAlign: "right" }}><strong>{fmt(rpt.penaltyPayment)}</strong></td>
-									<td style={{ ...td, textAlign: "right" }}><strong>{fmt(rpt.shortagePay)}</strong></td>
-									<td style={{ ...td, textAlign: "right" }}><strong>{fmt(rpt.inkasoPay)}</strong></td>
 									<td style={td} />
 								</tr>
 							</tbody>

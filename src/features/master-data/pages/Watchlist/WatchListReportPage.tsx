@@ -136,6 +136,8 @@ type CustomerDetail = PRDetail | PTDetail;
 
 const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
 
+const SHOW_CUSTOMER_LINK = false;
+
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
 	<div className="border border-[var(--app-border)] rounded-lg px-3 py-2">
 		<div className="text-xs font-medium text-[var(--app-muted)]">{label}</div>
@@ -486,17 +488,6 @@ const WatchlistReportPage: React.FC = () => {
 						</button>
 
 						<button
-							onClick={() => handleExport('word')}
-							disabled={exportingWord}
-							className="bg-gradient-to-r from-sky-600 to-blue-700
-							           hover:from-sky-700 hover:to-blue-800
-							           text-white px-4 py-2 text-sm rounded-lg font-medium
-							           shadow-md hover:shadow-lg transition-all disabled:opacity-60"
-						>
-							{exportingWord ? 'Exporting…' : 'Export to Word'}
-						</button>
-
-						<button
 							onClick={() => handleExport('excel')}
 							disabled={exportingExcel}
 							className="bg-gradient-to-r from-green-600 to-emerald-700
@@ -572,12 +563,16 @@ const WatchlistReportPage: React.FC = () => {
 												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.no}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1">{row.name}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1">
-													<button
-														onClick={() => openDetail(row)}
-														className="text-blue-600 hover:underline print:no-underline print:text-inherit"
-													>
-														{row.customer_no}
-													</button>
+													{SHOW_CUSTOMER_LINK ? (
+														<button
+															onClick={() => openDetail(row)}
+															className="text-blue-600 hover:underline print:no-underline print:text-inherit"
+														>
+															{row.customer_no}
+														</button>
+													) : (
+														row.customer_no
+													)}
 												</td>
 												<td className="border border-[var(--app-border)] px-2 py-1">{row.address}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1">{row.identitas}</td>

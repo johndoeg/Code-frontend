@@ -413,7 +413,7 @@ const InsuranceEntryPage: React.FC = () => {
                 if (r.data.success) {
                     setMode("Edit"); setCurrentCd(company.ins_cd);
                     setCompMsg({ type: "success", text: "Insurance saved successfully." });
-                    navigate(`/insurance-entry?id=Edit&ins_cd=${company.ins_cd}&akses=${akses0}`, { replace: true });
+                    navigate("/insurance", { replace: true });
                 } else { setCompMsg({ type: "error", text: r.data.message || "Save failed." }); }
             } else {
                 const r = await api.put(`/MasterData/insurance/${currentCd}`, company);

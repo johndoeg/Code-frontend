@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 
@@ -11,6 +11,9 @@ const BOC_OTHER_VALUE = '10';
 const LOCKED_REASONS = ['4', '8'];
 const MAX_FILE_SIZE = 2_000_000;
 const IMAGE_TYPES = ['image/jpeg', 'image/pjpeg', 'image/png', 'image/x-png', 'image/gif'];
+
+const NPWP_SEGMENTS = [2, 3, 3, 1, 3, 4];
+const NPWP_SEPS = ['.', '.', '.', '-', '.'];
 
 interface ApiMember {
 	id_blacklist: number;
@@ -56,6 +59,10 @@ interface EditForm {
 	reason_category: string;
 	reason_other: string;
 	remark: string;
+	create_user: string;
+	create_date: string;
+	last_user: string;
+	last_update: string;
 }
 
 interface Reason { value: string; label: string; disabled: boolean; }
@@ -90,19 +97,85 @@ function formatISODate(date: Date | null): string {
 	return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+function toDisplayDate(value: string): string {
+	const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value || "");
+	return m ? `${m[3]}-${m[2]}-${m[1]}` : (value || "");
+}
+
+function npwpSegments(npwp: string): string[] {
+	const digits = (npwp || "").replace(/\D/g, "");
+	const out: string[] = [];
+	let pos = 0;
+	for (const len of NPWP_SEGMENTS) {
+		out.push(digits.substr(pos, len));
+		pos += len;
+	}
+	return out;
+}
+
 const emptyMember = (): MemberRow => ({
 	key: newKey(), id_blacklist: null, name: "", bod_position: "", boc_position: "",
 	other: "", id_card: "", address: "", city: "", image: "", file: null,
 });
 
 const Field = ({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) => (
-	<div>
-		<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
+	<div className="flex items-start gap-3">
+		<label className="w-40 flex-shrink-0 pt-2 text-sm font-medium text-[var(--app-text)]">
 			{label}{required && <span className="text-red-500 ml-0.5">*</span>}
 		</label>
-		{children}
+		<div className="flex-1 min-w-0">{children}</div>
 	</div>
 );
+
+function NpwpInput({ value, disabled, onChange }: { value: string; disabled?: boolean; onChange: (v: string) => void }) {
+	const [segs, setSegs] = useState<string[]>(() => npwpSegments(value));
+	const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+	useEffect(() => {
+		if (value !== segs.join("")) setSegs(npwpSegments(value));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [value]);
+
+	const setSeg = (i: number, v: string) => {
+		const digits = v.replace(/\D/g, "").slice(0, NPWP_SEGMENTS[i]);
+		const next = [...segs];
+		next[i] = digits;
+		setSegs(next);
+		onChange(next.join(""));
+		if (digits.length === NPWP_SEGMENTS[i] && i < NPWP_SEGMENTS.length - 1) {
+			refs.current[i + 1]?.focus();
+		}
+	};
+
+	const onKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Backspace" && segs[i] === "" && i > 0) {
+			e.preventDefault();
+			refs.current[i - 1]?.focus();
+		}
+	};
+
+	return (
+		<div className="flex items-center gap-1 flex-wrap">
+			{segs.map((s, i) => (
+				<React.Fragment key={i}>
+					<input
+						ref={(el) => { refs.current[i] = el; }}
+						type="text"
+						inputMode="numeric"
+						value={s}
+						disabled={disabled}
+						maxLength={NPWP_SEGMENTS[i]}
+						onChange={e => setSeg(i, e.target.value)}
+						onKeyDown={e => onKeyDown(i, e)}
+						className={`${inputCls} text-center px-2`}
+						style={{ width: `${NPWP_SEGMENTS[i] * 18 + 28}px`, flex: "0 0 auto" }}
+					/>
+					{i < NPWP_SEPS.length && <span className="px-0.5 text-sm font-bold text-[var(--app-text)]">{NPWP_SEPS[i]}</span>}
+				</React.Fragment>
+			))}
+		</div>
+	);
+}
 
 const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) => {
 	const [custType, setCustType] = useState<CustomerType>("PR");
@@ -116,6 +189,7 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 	const [loadError, setLoadError] = useState("");
 	const [errors, setErrors] = useState<string[]>([]);
 	const [saving, setSaving] = useState(false);
+	const [showBodBoc, setShowBodBoc] = useState(false);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -135,6 +209,8 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 					npwp: data.npwp, contact_person: data.contact_person, contact_address: data.contact_address,
 					group_code: data.group_code, es_birth: data.es_birth, reason_category: category,
 					reason_other: data.reason_other, remark: data.remark,
+					create_user: data.create_user ?? "", create_date: data.create_date ?? "",
+					last_user: data.last_user ?? "", last_update: data.last_update ?? "",
 				});
 				setMembers(
 					(data.members || [])
@@ -258,15 +334,22 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 	};
 
 	const reasonLocked = LOCKED_REASONS.includes(storedCategory);
+	const isPR = custType === "PR";
+
+	const ReadOnlyRow = ({ label, value }: { label: string; value: string }) => (
+		<Field label={label}>
+			<input type="text" value={value} readOnly className={`${inputCls} bg-[var(--app-surface)]`} />
+		</Field>
+	);
 
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-			<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-5xl my-8">
+			<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-8xl my-8">
 
 				<div className="flex justify-between items-center px-6 py-5 border-b">
 					<div>
 						<h2 className="text-xl font-bold text-[var(--app-text)]">Edit Watchlist Entry</h2>
-						<p className="text-sm text-[var(--app-muted)] mt-0.5">{form?.name || "\u00a0"}</p>
+						<p className="text-sm text-[var(--app-muted)] mt-0.5">{form?.name || " "}</p>
 					</div>
 					<button onClick={onClose} className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-2xl leading-none">×</button>
 				</div>
@@ -289,56 +372,54 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 						<div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-600">{loadError}</div>
 					) : form && (
 						<>
-							<div className="mb-6 flex items-center gap-3">
-								<span className="text-sm font-semibold text-[var(--app-text)]">Customer Type</span>
-								<span
-									style={{
-										fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-										background: custType === "PR" ? "#dbeafe" : "#fef3c7",
-										color: custType === "PR" ? "#1e40af" : "#92400e",
-									}}
-								>
-									{custType === "PR" ? "Individual" : "Corporate"}
-								</span>
-							</div>
+							<h3 className="text-sm font-bold text-[var(--app-text)] mb-4">WATCHLIST</h3>
 
-							<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-								<div className="space-y-4">
-									<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
-										{custType === "PR" ? "Personal Information" : "Company Information"}
-									</h3>
-
-									<Field label="Name" required>
-										<input type="text" value={form.name} onChange={e => setField("name", e.target.value)} className={inputCls} />
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+								<div className="space-y-3">
+									<Field label="Customer Type" required>
+										<div className="flex gap-4 pt-1">
+											{(["PR", "PT"] as CustomerType[]).map(t => (
+												<label key={t} className="flex items-center gap-2 text-sm text-[var(--app-text)]">
+													<input type="radio" name="edit_customer_type" checked={custType === t} disabled readOnly className="accent-amber-600" />
+													{t === "PR" ? "Individual" : "Corporate"}
+												</label>
+											))}
+										</div>
 									</Field>
 
-									{custType === "PR" && (
+									<Field label="Name" required>
+										<input type="text" value={form.name} onChange={e => setField("name", e.target.value)} className={inputCls} placeholder="Full name" />
+									</Field>
+
+									{isPR && (
 										<Field label="Alias Name">
-											<input type="text" value={form.alias_name} onChange={e => setField("alias_name", e.target.value)} className={inputCls} />
+											<input type="text" value={form.alias_name} onChange={e => setField("alias_name", e.target.value)} className={inputCls} placeholder="Alias / other name" />
 										</Field>
 									)}
 
 									<Field label="Address" required>
-										<textarea value={form.address} onChange={e => setField("address", e.target.value)} className={`${inputCls} resize-none`} rows={3} />
+										<textarea value={form.address} onChange={e => setField("address", e.target.value)} className={`${inputCls} resize-none`} rows={3} placeholder="Full address" />
 									</Field>
 
 									<Field label="Phone">
-										<input type="tel" value={form.phone} onChange={e => setField("phone", e.target.value.replace(/\D/g, ""))} className={inputCls} />
+										<input type="tel" value={form.phone} onChange={e => setField("phone", e.target.value.replace(/\D/g, ""))} className={inputCls} placeholder="08xx-xxxx-xxxx" />
 									</Field>
 
-									{custType === "PR" ? (
+									{isPR ? (
 										<>
 											<Field label="ID Card No." required>
 												<input type="text" value={form.id_card} maxLength={16}
-													onChange={e => setField("id_card", e.target.value.replace(/\D/g, ""))} className={inputCls} />
+													onChange={e => setField("id_card", e.target.value.replace(/\D/g, ""))} className={inputCls} placeholder="16-digit KTP" />
 											</Field>
-											<AsOfDatePicker
-												label="Date of Birth" format="DD-MM-YYYY" placeholder="dd-mm-yyyy" maxDate={new Date()}
-												value={parseISODate(form.birth)} onChange={d => setField("birth", formatISODate(d))}
-											/>
+											<Field label="Date of Birth">
+												<AsOfDatePicker
+												label=""
+													format="DD-MM-YYYY" placeholder="dd-mm-yyyy" maxDate={new Date()}
+													value={parseISODate(form.birth)} onChange={d => setField("birth", formatISODate(d))}
+												/>
+											</Field>
 											<Field label="NPWP">
-												<input type="text" value={form.npwp} maxLength={16}
-													onChange={e => setField("npwp", e.target.value.replace(/\D/g, ""))} className={inputCls} />
+												<NpwpInput value={form.npwp} onChange={v => setField("npwp", v)} />
 											</Field>
 											<Field label="Spouse Name">
 												<input type="text" value={form.spouse_name} onChange={e => setField("spouse_name", e.target.value)} className={inputCls} />
@@ -350,28 +431,24 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 									) : (
 										<>
 											<Field label="NPWP" required>
-												<input type="text" value={form.npwp} maxLength={16}
-													onChange={e => setField("npwp", e.target.value.replace(/\D/g, ""))} className={inputCls} />
+												<NpwpInput value={form.npwp} onChange={v => setField("npwp", v)} />
 											</Field>
-											<AsOfDatePicker
-												label="Establishment Date" format="DD-MM-YYYY" placeholder="dd-mm-yyyy" maxDate={new Date()}
-												value={parseISODate(form.es_birth)} onChange={d => setField("es_birth", formatISODate(d))}
-											/>
-										</>
-									)}
-								</div>
+											<Field label="Establishment Date">
+												<AsOfDatePicker
+												label=""
+													format="DD-MM-YYYY" placeholder="dd-mm-yyyy" maxDate={new Date()}
+													value={parseISODate(form.es_birth)} onChange={d => setField("es_birth", formatISODate(d))}
+												/>
+											</Field>
 
-								<div className="space-y-4">
-									<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
-										{custType === "PT" ? "Contact Person" : "Case Information"}
-									</h3>
+											<div className="pt-2 pb-1">
+												<span className="text-sm font-bold text-[var(--app-text)] underline">Contact person</span>
+											</div>
 
-									{custType === "PT" && (
-										<>
-											<Field label="Contact Person Name">
+											<Field label="Name">
 												<input type="text" value={form.contact_person} onChange={e => setField("contact_person", e.target.value)} className={inputCls} />
 											</Field>
-											<Field label="Contact Person Address">
+											<Field label="Address">
 												<textarea value={form.contact_address} onChange={e => setField("contact_address", e.target.value)} className={`${inputCls} resize-none`} rows={3} />
 											</Field>
 											<Field label="Group">
@@ -380,9 +457,20 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 													{groups.map(g => <option key={g.code} value={g.code} style={optionStyle}>{g.name}</option>)}
 												</select>
 											</Field>
+											<Field label="Composition of BOD / BOC">
+												<button
+													type="button"
+													onClick={() => setShowBodBoc(s => !s)}
+													className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-1.5 rounded-md text-sm font-medium"
+												>
+													{showBodBoc ? "Hide" : "View"}
+												</button>
+											</Field>
 										</>
 									)}
+								</div>
 
+								<div className="space-y-3">
 									<Field label="Reason" required>
 										<select
 											value={form.reason_category}
@@ -400,17 +488,26 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 
 									{form.reason_category === "5" && (
 										<Field label="Reason Other" required>
-											<textarea value={form.reason_other} onChange={e => setField("reason_other", e.target.value)} className={`${inputCls} resize-none`} rows={2} />
+											<textarea value={form.reason_other} onChange={e => setField("reason_other", e.target.value)} className={`${inputCls} resize-none`} rows={2} placeholder="Specify other reason…" />
 										</Field>
 									)}
 
 									<Field label="Remark">
 										<textarea value={form.remark} onChange={e => setField("remark", e.target.value)} className={`${inputCls} resize-none`} rows={3} maxLength={1000} />
 									</Field>
+
+									<ReadOnlyRow label="Create By" value={form.create_user} />
+									<ReadOnlyRow label="Create Date" value={toDisplayDate(form.create_date)} />
+									{(form.last_user || form.last_update) && (
+										<>
+											<ReadOnlyRow label="Update by" value={form.last_user} />
+											<ReadOnlyRow label="Last Update" value={toDisplayDate(form.last_update)} />
+										</>
+									)}
 								</div>
 							</div>
 
-							{custType === "PT" && (
+							{!isPR && showBodBoc && (
 								<div className="mt-8">
 									<div className="flex items-center justify-between mb-3">
 										<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
@@ -442,10 +539,12 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 															</button>
 														</div>
 														<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-															<Field label="Name">
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Name</label>
 																<input type="text" value={m.name} onChange={e => updateMember(idx, { name: e.target.value })} className={inputCls} />
-															</Field>
-															<Field label="BOD">
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOD</label>
 																<select
 																	value={m.bod_position}
 																	disabled={!!m.boc_position}
@@ -459,8 +558,9 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 																	<option value="" style={optionStyle}>Select</option>
 																	{bodOptions.map(o => <option key={o.value} value={o.value} style={optionStyle}>{o.label}</option>)}
 																</select>
-															</Field>
-															<Field label="BOC">
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOC</label>
 																<select
 																	value={m.boc_position}
 																	disabled={!!m.bod_position}
@@ -474,21 +574,26 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 																	<option value="" style={optionStyle}>Select</option>
 																	{bocOptions.map(o => <option key={o.value} value={o.value} style={optionStyle}>{o.label}</option>)}
 																</select>
-															</Field>
-															<Field label="Other">
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Other</label>
 																<input type="text" value={m.other} disabled={!otherEnabled}
 																	onChange={e => updateMember(idx, { other: e.target.value })} className={inputCls} />
-															</Field>
-															<Field label="ID Card">
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">ID Card</label>
 																<input type="text" value={m.id_card} onChange={e => updateMember(idx, { id_card: e.target.value })} className={inputCls} />
-															</Field>
-															<Field label="Address">
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Address</label>
 																<input type="text" value={m.address} onChange={e => updateMember(idx, { address: e.target.value })} className={inputCls} />
-															</Field>
-															<Field label="City">
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">City</label>
 																<input type="text" value={m.city} onChange={e => updateMember(idx, { city: e.target.value })} className={inputCls} />
-															</Field>
-															<Field label="Image (max 2 MB)">
+															</div>
+															<div>
+																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Image (max 2 MB)</label>
 																{m.image && !m.file && m.id_blacklist !== null ? (
 																	<div className="flex items-center gap-2 flex-wrap">
 																		<button type="button" onClick={() => openStoredImage(m.id_blacklist!)}
@@ -512,7 +617,7 @@ const WatchlistEditModal: React.FC<Props> = ({ no, groups, onClose, onSaved }) =
 																		onChange={e => handleMemberFile(idx, e.target.files?.[0] || null)}
 																		className="text-xs w-full" />
 																)}
-															</Field>
+															</div>
 														</div>
 													</div>
 												);

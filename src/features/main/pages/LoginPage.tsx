@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import GenieLogo from '@/shared/components/GenieLogo';
 
 type Stage = "credentials" | "pin";
 
@@ -175,8 +176,9 @@ export default function LoginPage() {
 	const pinProgressPct = Math.max(0, Math.min(100, (secondsLeft / pinTtlTotal) * 100));
 
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4">
-			<div className="w-full max-w-md backdrop-blur-xl bg-[var(--app-card)]/40 border border-white/60 dark:border-slate-700/60 rounded-3xl shadow-2xl p-8 animate-fadeIn">
+		<div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4">
+			<GenieLogo height={125} width={600} className="relative z-10 -mb-9 select-none" />
+			<div className="w-full max-w-md backdrop-blur-xl bg-[var(--app-card)]/40 border border-white/60 dark:border-slate-700/60 rounded-3xl shadow-2xl px-8 pb-8 pt-14 animate-fadeIn">
 				{stage === "credentials" ? (
 					<>
 						<h2 className="text-3xl font-extrabold text-center mb-8 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">

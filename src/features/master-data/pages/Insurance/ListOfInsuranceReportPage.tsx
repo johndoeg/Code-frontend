@@ -134,6 +134,19 @@ const ListOfInsuranceReportPage: React.FC = () => {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
+			<style>{`
+				@media print {
+					@page { size: landscape; margin: 10mm; }
+					body * { visibility: hidden !important; }
+					.print-area, .print-area * { visibility: visible !important; }
+					.print-area {
+						position: absolute; left: 0; top: 0; width: 100%;
+						margin: 0; border: none !important; border-radius: 0 !important;
+						overflow: visible !important;
+					}
+					.print-area table { width: 100%; border-collapse: collapse; }
+				}
+			`}</style>
 			<div className="max-w-full mx-auto">
 
 				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 print:hidden">
@@ -273,7 +286,7 @@ const ListOfInsuranceReportPage: React.FC = () => {
 						)}
 
 						{reportType === "premi" && premiRows.length > 0 && (
-							<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
+							<div className="print-area overflow-x-auto rounded-xl border border-[var(--app-border)]">
 								<table className="w-full text-sm">
 									<thead>
 										<tr>
@@ -305,7 +318,7 @@ const ListOfInsuranceReportPage: React.FC = () => {
 						)}
 
 						{reportType === "tpl" && tplRows.length > 0 && (
-							<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
+							<div className="print-area overflow-x-auto rounded-xl border border-[var(--app-border)]">
 								<table className="w-full text-sm">
 									<thead>
 										<tr>

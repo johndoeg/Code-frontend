@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, Suspense, lazy } from "react";
 import api from '@/shared/api/axiosInstance';
 import * as XLSX from "xlsx";
 interface Branch {
@@ -21,6 +21,50 @@ interface DealerDeletedRow {
 
 type SearchType = "1" | "2" | "";
 
+const SupplierEntryLazy = lazy(() => import("@/features/master-data/pages/Dealer/SupplierEntryPage"));
+
+class ModalBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
+	state: { error: Error | null } = { error: null };
+	static getDerivedStateFromError(error: Error) { return { error }; }
+	componentDidCatch(error: Error, info: React.ErrorInfo) { console.error("Supplier Entry modal crashed:", error, info); }
+	render() {
+		if (this.state.error) {
+			return (
+				<div className="p-6 text-sm text-red-600">
+					<p className="font-semibold">Supplier Entry failed to load</p>
+					<p className="mt-1 break-words text-[var(--app-muted)]">{this.state.error.message || String(this.state.error)}</p>
+				</div>
+			);
+		}
+		return this.props.children;
+	}
+}
+
+function DealerDetailModal({ supp, onClose }: { supp: string; onClose: () => void }) {
+	useEffect(() => {
+		const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [onClose]);
+	return (
+		<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-2 md:p-4 no-print" onClick={onClose}>
+			<div className="relative flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-[var(--app-card)] shadow-2xl" onClick={e => e.stopPropagation()}>
+				<div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2">
+					<span className="text-sm font-semibold text-[var(--app-text)]">Dealer — {supp}</span>
+					<button type="button" onClick={onClose} aria-label="Close" className="rounded px-2 py-1 text-lg leading-none text-[var(--app-muted)] hover:bg-[var(--app-card)]">✕</button>
+				</div>
+				<div className="flex-1 overflow-auto">
+					<ModalBoundary>
+						<Suspense fallback={<div className="p-10 text-center text-[var(--app-muted)]">Loading…</div>}>
+							<SupplierEntryLazy suppId={supp} mode="View" onClose={onClose} />
+						</Suspense>
+					</ModalBoundary>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 const DealerDeletedReportPage: React.FC = () => {
 	const [branches, setBranches] = useState<Branch[]>([]);
 	const [selectedBranch, setSelectedBranch] = useState<string>("");
@@ -31,6 +75,7 @@ const DealerDeletedReportPage: React.FC = () => {
 	const [searched, setSearched] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const printRef = useRef<HTMLDivElement>(null);
+	const [dealerModal, setDealerModal] = useState<string | null>(null);
 
 	const isConsolidate = selectedBranch === "000";
 
@@ -99,6 +144,10 @@ const DealerDeletedReportPage: React.FC = () => {
 
 	const handlePrint = () => window.print();
 
+	const openDealer = (supp: string) => {
+		if (supp) setDealerModal(supp);
+	};
+
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<style>{`
@@ -122,6 +171,10 @@ const DealerDeletedReportPage: React.FC = () => {
 				}
 				.print-only { display: none; }
 			`}</style>
+
+				{dealerModal && (
+					<DealerDetailModal supp={dealerModal} onClose={() => setDealerModal(null)} />
+				)}
 
 			<div className="max-w-full mx-auto">
 				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6 no-print">
@@ -382,9 +435,16 @@ const DealerDeletedReportPage: React.FC = () => {
 												{isConsolidate && (
 													<td className="py-3 px-4 text-[var(--app-text)]">{row.branch_name}</td>
 												)}
-												<td className="py-3 px-4 font-semibold text-[var(--app-text)]">
-													{row.supp}
-												</td>
+												<td className="py-3 px-4 font-semibold">
+											<button
+												type="button"
+												onClick={() => openDealer(row.supp)}
+												title="Open dealer detail"
+												className="text-blue-600 hover:text-blue-800 hover:underline font-semibold print:text-[var(--app-text)] print:no-underline"
+											>
+												{row.supp}
+											</button>
+										</td>
 												<td className="py-3 px-4 text-[var(--app-text)]">{row.name}</td>
 												<td className="py-3 px-4 text-[var(--app-muted)] max-w-xs">{row.address}</td>
 												<td className="py-3 px-4 text-[var(--app-muted)]">{row.created_by}</td>

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 type LesseeType = 'PR' | 'PT';
 type SearchBy = '' | '1' | '2' | '3';
@@ -96,6 +97,101 @@ const emptyEntry = (): EntryDetail => ({
 const attachmentUrl = (filename: string) =>
 	`/MasterData/files/ppatk/${encodeURIComponent(filename)}`;
 
+const CORSEC_REASON = '8';
+const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
+const selectStyle: React.CSSProperties = { colorScheme: 'light' };
+const inputCls =
+	'w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none transition-shadow disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)]';
+const selectCls = `${inputCls} bg-white text-[var(--app-text)]`;
+
+interface Group { code: string; name: string; }
+
+const NPWP_SEGMENTS = [2, 3, 3, 1, 3, 4];
+const NPWP_SEPS = ['.', '.', '.', '-', '.'];
+
+function npwpSegments(npwp: string): string[] {
+	const digits = (npwp || '').replace(/\D/g, '');
+	const out: string[] = [];
+	let pos = 0;
+	for (const len of NPWP_SEGMENTS) {
+		out.push(digits.substr(pos, len));
+		pos += len;
+	}
+	return out;
+}
+
+const FormField = ({ label, required, children }: { label: React.ReactNode; required?: boolean; children: React.ReactNode }) => (
+	<div className="flex items-start gap-2">
+		<label className="w-44 flex-shrink-0 pt-2 text-sm font-medium text-[var(--app-text)]">
+			{label}{required && <span className="text-red-500 ml-0.5">*</span>}
+		</label>
+		<span className="pt-2 text-sm text-[var(--app-muted)]">:</span>
+		<div className="flex-1 min-w-0">{children}</div>
+	</div>
+);
+
+function NpwpInput({ value, disabled, onChange }: { value: string; disabled?: boolean; onChange: (v: string) => void }) {
+	const [segs, setSegs] = useState<string[]>(() => npwpSegments(value));
+	const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+	useEffect(() => {
+		if (value !== segs.join('')) setSegs(npwpSegments(value));
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [value]);
+
+	const setSeg = (i: number, v: string) => {
+		const digits = v.replace(/\D/g, '').slice(0, NPWP_SEGMENTS[i]);
+		const next = [...segs];
+		next[i] = digits;
+		setSegs(next);
+		onChange(next.join(''));
+		if (digits.length === NPWP_SEGMENTS[i] && i < NPWP_SEGMENTS.length - 1) refs.current[i + 1]?.focus();
+	};
+
+	const onKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === 'Backspace' && segs[i] === '' && i > 0) {
+			e.preventDefault();
+			refs.current[i - 1]?.focus();
+		}
+	};
+
+	return (
+		<div className="flex items-center gap-1 flex-nowrap w-full">
+			{segs.map((sg, i) => (
+				<React.Fragment key={i}>
+					<input
+						ref={(el) => { refs.current[i] = el; }}
+						type="text"
+						inputMode="numeric"
+						value={sg}
+						disabled={disabled}
+						maxLength={NPWP_SEGMENTS[i]}
+						onChange={(e) => setSeg(i, e.target.value)}
+						onKeyDown={(e) => onKeyDown(i, e)}
+						className={`${inputCls} text-center px-2`}
+						style={{ flex: `${NPWP_SEGMENTS[i]} 1 ${NPWP_SEGMENTS[i] * 18 + 28}px`, minWidth: 0 }}
+					/>
+					{i < NPWP_SEPS.length && <span className="px-0.5 text-sm font-bold text-[var(--app-text)]">{NPWP_SEPS[i]}</span>}
+				</React.Fragment>
+			))}
+		</div>
+	);
+}
+
+const TypeBadge = ({ type }: { type: string }) => {
+	const isPR = type === 'PR';
+	return (
+		<span
+			style={{
+				fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
+				background: isPR ? '#dbeafe' : '#fef3c7', color: isPR ? '#1e40af' : '#92400e',
+			}}
+		>
+			{isPR ? 'Individual' : 'Corporate'}
+		</span>
+	);
+};
+
 const SpinnerIcon: React.FC = () => (
 	<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
 		<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -104,6 +200,12 @@ const SpinnerIcon: React.FC = () => (
 );
 
 const WatchListEntryByCorsec: React.FC = () => {
+	const { user } = useAuth();
+	const currentUser = user?.username ?? '';
+	const nowD = new Date();
+	const todayDisplay = `${String(nowD.getDate()).padStart(2, '0')}-${String(nowD.getMonth() + 1).padStart(2, '0')}-${nowD.getFullYear()}`;
+	const [groups, setGroups] = useState<Group[]>([]);
+	const [reasonLabel, setReasonLabel] = useState('');
 	const [searchBy, setSearchBy] = useState<SearchBy>('');
 	const [searchVal, setSearchVal] = useState('');
 	const [results, setResults] = useState<EntrySummary[]>([]);
@@ -122,6 +224,9 @@ const WatchListEntryByCorsec: React.FC = () => {
 	const [formError, setFormError] = useState<string[] | string | null>(null);
 	const [attachments, setAttachments] = useState<string[]>([]);
 	const [uploading, setUploading] = useState(false);
+
+	const MAX_FILES = 3;
+	const [slots, setSlots] = useState<(File | null)[]>([null]);
 
 	const [pickerOpen, setPickerOpen] = useState(false);
 	const [pickerQuery, setPickerQuery] = useState('');
@@ -153,6 +258,20 @@ const WatchListEntryByCorsec: React.FC = () => {
 
 	useEffect(() => { fetchList(1); }, []);
 
+	useEffect(() => {
+		(async () => {
+			try {
+				const [g, r] = await Promise.all([
+					api.get('/MasterData/watchlist/groups'),
+					api.get('/MasterData/watchlist/reasons'),
+				]);
+				setGroups(g.data || []);
+				const m = (r.data || []).find((x: { value: string; label: string }) => x.value === CORSEC_REASON);
+				setReasonLabel(m?.label || '');
+			} catch {}
+		})();
+	}, []);
+
 	const handleSearch = () => fetchList(1);
 
 	const handleClearSearch = () => {
@@ -165,6 +284,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 		setFormData(emptyEntry());
 		setLockedFromPicker(false);
 		setAttachments([]);
+		setSlots([null]);
 		setFormError(null);
 		setFormOpen(true);
 	};
@@ -182,6 +302,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 			]);
 			setFormData({ ...detailRes.data, no });
 			setAttachments(attachRes.data);
+			setSlots(attachRes.data.length ? [] : [null]);
 		} catch (err) {
 			console.error('Load entry error:', err);
 			setFormError('Failed to load this entry. Please try again.');
@@ -197,11 +318,24 @@ const WatchListEntryByCorsec: React.FC = () => {
 	};
 
 	const handleSave = async () => {
+		if (attachments.length + slots.filter(Boolean).length < 1) {
+			setFormError('Attach at least 1 file (max 3, 2 MB each).');
+			return;
+		}
 		setFormSaving(true);
 		setFormError(null);
 		try {
 			if (formMode === 'create') {
 				const response = await api.post('/MasterData/watchlist-corsec', formData);
+				const newNo = response.data?.no ?? response.data?.id;
+				const staged = slots.filter((f): f is File => !!f);
+				if (newNo && staged.length) {
+					const body = new FormData();
+					staged.forEach((f) => body.append('files', f));
+					await api.post(`/MasterData/watchlist-corsec/${newNo}/attachments`, body, {
+						headers: { 'Content-Type': 'multipart/form-data' },
+					});
+				}
 				setFormOpen(false);
 				fetchList(page);
 				return response.data;
@@ -241,7 +375,9 @@ const WatchListEntryByCorsec: React.FC = () => {
 		if (!formData.no) return;
 		try {
 			await api.delete(`/MasterData/watchlist-corsec/${formData.no}/attachments/${encodeURIComponent(filename)}`);
-			setAttachments((prev) => prev.filter((f) => f !== filename));
+			const remaining = attachments.filter((f) => f !== filename);
+			setAttachments(remaining);
+			if (remaining.length + slots.length === 0) setSlots([null]);
 		} catch (err) {
 			console.error('Remove attachment error:', err);
 			alert('Failed to remove attachment.');
@@ -252,13 +388,14 @@ const WatchListEntryByCorsec: React.FC = () => {
 		setPickerQuery('');
 		setPickerResults([]);
 		setPickerOpen(true);
+		runPickerSearch('');
 	};
 
-	const runPickerSearch = async () => {
+	const runPickerSearch = async (query: string = pickerQuery) => {
 		setPickerLoading(true);
 		try {
 			const response = await api.get<{ data: CustomerLookupRow[] }>('/MasterData/customers', {
-				params: { name: pickerQuery, lessee_type: formData.lessee_type },
+				params: { name: query, lessee_type: formData.lessee_type },
 			});
 			setPickerResults(response.data.data);
 		} catch (err) {
@@ -305,21 +442,32 @@ const WatchListEntryByCorsec: React.FC = () => {
 	};
 
 	const readOnly = formMode === 'view';
+	const awaitingPick = formMode === 'create' && !lockedFromPicker;
+	const off = readOnly || awaitingPick;
+	const pickLabel = (text: string) =>
+		formMode === 'create' ? (
+			<button type="button" onClick={openPicker} className="text-blue-600 underline hover:text-blue-800 text-left">{text}</button>
+		) : text;
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Watchlist Entry</h1>
+						<div>
+							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Watchlist Entry</h1>
+							<p className="text-[var(--app-muted)] mt-1 text-sm">
+								Manage watchlisted customers (Individual &amp; Corporate)
+							</p>
+						</div>
 						<div className="flex items-center gap-3">
-							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+							<span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-medium">
 								Total: {total}
 							</span>
 							<button
 								onClick={openCreate}
-								className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium
-								           flex items-center gap-2 transition-colors"
+								className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors"
 							>
 								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -329,36 +477,34 @@ const WatchListEntryByCorsec: React.FC = () => {
 						</div>
 					</div>
 
-					<div className="flex flex-wrap gap-2 mb-6">
+					<div className="flex flex-col sm:flex-row gap-3 mb-6">
 						<select
 							value={searchBy}
 							onChange={(e) => { setSearchBy(e.target.value as SearchBy); setSearchVal(''); }}
-							className="border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+							style={selectStyle}
+							className="border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
 						>
-							<option value="" className="bg-white text-[var(--app-text)]">All</option>
-							<option value="1" className="bg-white text-[var(--app-text)]">ID Card</option>
-							<option value="2" className="bg-white text-[var(--app-text)]">Name</option>
-							<option value="3" className="bg-white text-[var(--app-text)]">NPWP</option>
+							<option value="" style={optionStyle}>All</option>
+							<option value="1" style={optionStyle}>ID Card</option>
+							<option value="2" style={optionStyle}>Name</option>
+							<option value="3" style={optionStyle}>NPWP</option>
 						</select>
-						<div className="relative flex-1 min-w-[200px]">
+						<div className="relative flex-1">
 							<input
 								type="text"
 								value={searchVal}
 								onChange={(e) => setSearchVal(e.target.value)}
 								onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
 								disabled={searchBy === ''}
-								placeholder={searchBy === '' ? 'Showing all active entries' : 'Search value'}
-								className="w-full border border-[var(--app-border)] rounded-lg pl-3 pr-10 py-2 text-sm
-								           focus:ring-2 focus:ring-blue-500 focus:outline-none
-								           disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)]"
+								placeholder={searchBy === '' ? 'Showing all active entries' : 'Search…'}
+								className="w-full border border-[var(--app-border)] rounded-lg pl-3 pr-10 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)]"
 							/>
 							{searchVal && (
 								<button
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
-									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-									           text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -368,9 +514,10 @@ const WatchListEntryByCorsec: React.FC = () => {
 						</div>
 						<button
 							onClick={handleSearch}
-							className="bg-gray-800 hover:bg-gray-900 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+							disabled={loading}
+							className="px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 disabled:opacity-75 shadow-sm transition-all"
 						>
-							Search
+							{loading ? 'Searching…' : 'Search'}
 						</button>
 					</div>
 
@@ -380,46 +527,61 @@ const WatchListEntryByCorsec: React.FC = () => {
 						</div>
 					)}
 
-					<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
-						<table className="w-full text-sm">
-							<thead className="bg-[var(--app-surface)]">
+					<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
+						<table className="w-full">
+							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">ID Card / NPWP</th>
-									<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Name</th>
-									<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Address</th>
-									<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase whitespace-nowrap w-px">Action</th>
+									{['No.', 'ID Card / NPWP', 'Name', 'Address', 'Type', 'Action'].map((h) => (
+										<th
+											key={h}
+											className={`py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider ${h === 'Action' ? 'whitespace-nowrap w-px' : ''}`}
+										>
+											{h}
+										</th>
+									))}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{loading ? (
-									<tr><td colSpan={4} className="py-10 text-center">
-										<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto" />
+									<tr><td colSpan={6} className="py-16 text-center">
+										<div className="flex justify-center">
+											<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+										</div>
 									</td></tr>
 								) : results.length === 0 ? (
-									<tr><td colSpan={4} className="py-8 text-center text-[var(--app-muted)]">No records found.</td></tr>
+									<tr><td colSpan={6} className="py-16 text-center text-[var(--app-muted)] text-sm">No records found</td></tr>
 								) : (
-									results.map((row) => (
-										<tr key={row.no} className="hover:bg-[var(--app-surface)]">
-											<td className="py-2 px-3">{row.identitas}</td>
-											<td className="py-2 px-3">{row.name}</td>
-											<td className="py-2 px-3">{row.address}</td>
-											<td className="py-2 px-3 whitespace-nowrap">
+									results.map((row, i) => (
+										<tr
+											key={row.no}
+											className={`hover:bg-amber-50/30 transition-colors ${i % 2 === 0 ? 'bg-[var(--app-card)]' : 'bg-[var(--app-surface)]/50'}`}
+										>
+											<td className="py-3 px-4 text-sm text-[var(--app-muted)] text-center">
+												{(page - 1) * PAGE_SIZE + i + 1}
+											</td>
+											<td className="py-3 px-4 text-sm font-mono text-[var(--app-text)]">{row.identitas}</td>
+											<td className="py-3 px-4 text-sm font-medium text-[var(--app-text)]">{row.name}</td>
+											<td className="py-3 px-4 text-sm text-[var(--app-muted)] max-w-xs truncate">{row.address}</td>
+											<td className="py-3 px-4">
+												<TypeBadge type={row.lessee_type} />
+											</td>
+											<td className="py-3 px-4 whitespace-nowrap">
 												<div className="flex flex-nowrap items-center gap-2">
 													<button
 														onClick={() => loadEntry(row.no, 'edit')}
-														className="shrink-0 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
+														className="shrink-0 whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
 													>
 														Edit
 													</button>
 													<button
 														onClick={() => loadEntry(row.no, 'view')}
-														className="shrink-0 bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
+														className="shrink-0 whitespace-nowrap bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
 													>
 														View
 													</button>
 													<button
 														onClick={() => openDeleteModal(row.no)}
-														className="shrink-0 bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
+														className="shrink-0 whitespace-nowrap bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
 													>
 														Delete
 													</button>
@@ -446,267 +608,247 @@ const WatchListEntryByCorsec: React.FC = () => {
 			</div>
 
 			{formOpen && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-						<div className="flex justify-between items-center p-6 border-b">
-							<h2 className="text-xl font-bold text-[var(--app-text)]">
-								{formMode === 'create' ? 'Add Watchlist Entry' : formMode === 'edit' ? 'Edit Watchlist Entry' : 'View Watchlist Entry'}
-							</h2>
-							<button onClick={closeForm} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] transition-colors">
-								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-								</svg>
-							</button>
+				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-8xl my-8">
+
+						<div className="flex justify-between items-center px-6 py-5 border-b">
+							<div>
+								<h2 className="text-xl font-bold text-[var(--app-text)]">
+									{formMode === 'create' ? 'Add Watchlist Entry' : formMode === 'edit' ? 'Edit Watchlist Entry' : 'View Watchlist Entry'}
+								</h2>
+								<p className="text-sm text-[var(--app-muted)] mt-0.5">
+									{formMode === 'create' ? 'Fill in all required fields' : (formData.name || ' ')}
+								</p>
+							</div>
+							<button onClick={closeForm} className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-2xl leading-none">×</button>
 						</div>
 
-						<div className="p-6 overflow-y-auto flex-grow min-h-0 space-y-4">
+						<div className="p-6">
 							{formLoading ? (
-								<div className="flex justify-center py-10">
-									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
+								<div className="flex justify-center py-16">
+									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
 								</div>
 							) : (
 								<>
 									{formError && (
-										<div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+										<div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-4 text-sm text-red-600">
 											{Array.isArray(formError) ? (
-												<ul className="list-disc pl-5">
+												<ul className="list-disc pl-4 m-0">
 													{formError.map((e) => <li key={e}>{e}</li>)}
 												</ul>
 											) : formError}
 										</div>
 									)}
 
-									<div className="flex gap-6">
-										<label className="flex items-center gap-2 text-sm">
-											<input
-												type="radio"
-												checked={formData.lessee_type === 'PR'}
-												disabled={readOnly || formMode === 'edit'}
-												onChange={() => updateField('lessee_type', 'PR')}
-											/>
-											Individual
-										</label>
-										<label className="flex items-center gap-2 text-sm">
-											<input
-												type="radio"
-												checked={formData.lessee_type === 'PT'}
-												disabled={readOnly || formMode === 'edit'}
-												onChange={() => updateField('lessee_type', 'PT')}
-											/>
-											Corporate
-										</label>
+									<h3 className="text-sm font-bold text-[var(--app-text)] mb-4">WATCHLIST</h3>
 
-										{formMode === 'create' && (
-											<button
-												onClick={openPicker}
-												className="ml-auto text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-											>
-												Pick existing customer…
-											</button>
-										)}
-									</div>
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-										<div className="md:col-span-2">
-											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Name</label>
-											<input
-												type="text"
-												value={formData.name}
-												disabled={readOnly || lockedFromPicker}
-												onChange={(e) => updateField('name', e.target.value)}
-												className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-											/>
+										<div className="space-y-3">
+											<FormField label="Customer Type" required>
+												<div className="flex gap-4 pt-1">
+													{(['PR', 'PT'] as LesseeType[]).map((t) => (
+														<label key={t} className="flex items-center gap-2 text-sm text-[var(--app-text)] cursor-pointer">
+															<input
+																type="radio"
+																name="corsec_customer_type"
+																checked={formData.lessee_type === t}
+																disabled={readOnly || formMode === 'edit'}
+																onChange={() => updateField('lessee_type', t)}
+																className="accent-amber-600"
+															/>
+															{t === 'PR' ? 'Individual' : 'Corporate'}
+														</label>
+													))}
+												</div>
+											</FormField>
+
+											<FormField label={pickLabel(formData.lessee_type === 'PR' ? 'Name in ID Card' : 'Name in Akta')} required>
+												<input type="text" value={formData.name} disabled={off || lockedFromPicker}
+													onChange={(e) => updateField('name', e.target.value)} className={inputCls} placeholder="Full name" />
+											</FormField>
+
+											{formData.lessee_type === 'PR' && (
+												<FormField label="Alias Name">
+													<input type="text" value={formData.alias_name} disabled={off}
+														onChange={(e) => updateField('alias_name', e.target.value)} className={inputCls} placeholder="Alias / other name" />
+												</FormField>
+											)}
+
+											<FormField label="Address" required>
+												<textarea value={formData.address} disabled={off || lockedFromPicker} rows={3}
+													onChange={(e) => updateField('address', e.target.value)} className={`${inputCls} resize-none`} placeholder="Full address" />
+											</FormField>
+
+											<FormField label="Phone">
+												<input type="text" value={formData.phone} disabled={off || lockedFromPicker}
+													onChange={(e) => updateField('phone', e.target.value)} className={inputCls} placeholder="08xx-xxxx-xxxx" />
+											</FormField>
+
+											{formData.lessee_type === 'PR' ? (
+												<>
+													<FormField label="ID Card No." required>
+														<input type="text" value={formData.id_card} maxLength={16} disabled={off || lockedFromPicker}
+															onChange={(e) => updateField('id_card', e.target.value.replace(/\D/g, ''))} className={inputCls} placeholder="16-digit KTP" />
+													</FormField>
+													<FormField label="Date of Birth">
+														<AsOfDatePicker
+															label=""
+															format="DD-MM-YYYY"
+															placeholder="dd-mm-yyyy"
+															disabled={off}
+															maxDate={new Date()}
+															value={parseDDMMYYYY(formData.date_of_birth)}
+															onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
+														/>
+													</FormField>
+													<FormField label="NPWP">
+														<NpwpInput value={formData.npwp} disabled={off} onChange={(v) => updateField('npwp', v)} />
+													</FormField>
+													<FormField label="Spouse Name">
+														<input type="text" value={formData.spouse_name} disabled={off}
+															onChange={(e) => updateField('spouse_name', e.target.value)} className={inputCls} />
+													</FormField>
+													<FormField label="Mother's Maiden Name">
+														<input type="text" value={formData.mothers_maiden_name} disabled={off}
+															onChange={(e) => updateField('mothers_maiden_name', e.target.value)} className={inputCls} />
+													</FormField>
+												</>
+											) : (
+												<>
+													<FormField label="NPWP" required>
+														<NpwpInput value={formData.npwp} disabled={off || lockedFromPicker} onChange={(v) => updateField('npwp', v)} />
+													</FormField>
+													<FormField label="Establishment Date">
+														<AsOfDatePicker
+															label=""
+															format="DD-MM-YYYY"
+															placeholder="dd-mm-yyyy"
+															disabled={off}
+															maxDate={new Date()}
+															value={parseDDMMYYYY(formData.date_of_birth)}
+															onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
+														/>
+													</FormField>
+
+													<div className="pt-2 pb-1">
+														<span className="text-sm font-bold text-[var(--app-text)] underline">Contact person</span>
+													</div>
+
+													<FormField label="Name">
+														<input type="text" value={formData.contact_person} disabled={off}
+															onChange={(e) => updateField('contact_person', e.target.value)} className={inputCls} />
+													</FormField>
+													<FormField label="Address">
+														<textarea value={formData.contact_address} disabled={off} rows={3}
+															onChange={(e) => updateField('contact_address', e.target.value)} className={`${inputCls} resize-none`} />
+													</FormField>
+													<FormField label="Group">
+														<select value={formData.contact_group_code} disabled={off}
+															onChange={(e) => updateField('contact_group_code', e.target.value)} style={selectStyle} className={selectCls}>
+															<option value="" style={optionStyle}>— Select —</option>
+															{groups.map((g) => <option key={g.code} value={g.code} style={optionStyle}>{g.name}</option>)}
+														</select>
+													</FormField>
+												</>
+											)}
 										</div>
 
-										{formData.lessee_type === 'PR' && (
-											<div>
-												<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Alias Name</label>
-												<input
-													type="text"
-													value={formData.alias_name}
-													disabled={readOnly}
-													onChange={(e) => updateField('alias_name', e.target.value)}
-													className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-												/>
-											</div>
-										)}
+										<div className="space-y-3">
+											<FormField label="Reason" required>
+												<select value={CORSEC_REASON} disabled style={selectStyle} className={selectCls}>
+													<option value={CORSEC_REASON} style={optionStyle}>{reasonLabel || CORSEC_REASON}</option>
+												</select>
+											</FormField>
 
-										<div className="md:col-span-2">
-											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Address</label>
-											<textarea
-												value={formData.address}
-												disabled={readOnly || lockedFromPicker}
-												onChange={(e) => updateField('address', e.target.value)}
-												className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-											/>
-										</div>
+											<FormField label="Remark">
+												<textarea value={formData.remark} disabled={readOnly} rows={3} maxLength={1000}
+													onChange={(e) => updateField('remark', e.target.value)} className={`${inputCls} resize-none`} />
+											</FormField>
 
-										<div>
-											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Phone</label>
-											<input
-												type="text"
-												value={formData.phone}
-												disabled={readOnly || lockedFromPicker}
-												onChange={(e) => updateField('phone', e.target.value)}
-												className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-											/>
-										</div>
-
-										{formData.lessee_type === 'PR' ? (
-											<>
-												<div>
-													<label className="block text-sm font-medium text-[var(--app-text)] mb-1">ID Card No.</label>
-													<input
-														type="text"
-														value={formData.id_card}
-														disabled={readOnly || lockedFromPicker}
-														onChange={(e) => updateField('id_card', e.target.value)}
-														className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-													/>
-												</div>
-												<AsOfDatePicker
-													label="Date of Birth"
-													format="DD-MM-YYYY"
-													placeholder="dd-mm-yyyy"
-													disabled={readOnly}
-													maxDate={new Date()}
-													value={parseDDMMYYYY(formData.date_of_birth)}
-													onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
-												/>
-												<div>
-													<label className="block text-sm font-medium text-[var(--app-text)] mb-1">NPWP</label>
-													<input
-														type="text"
-														value={formData.npwp}
-														disabled={readOnly}
-														onChange={(e) => updateField('npwp', e.target.value)}
-														className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-													/>
-												</div>
-												<div>
-													<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Spouse Name</label>
-													<input
-														type="text"
-														value={formData.spouse_name}
-														disabled={readOnly}
-														onChange={(e) => updateField('spouse_name', e.target.value)}
-														className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-													/>
-												</div>
-												<div>
-													<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Mother's Maiden Name</label>
-													<input
-														type="text"
-														value={formData.mothers_maiden_name}
-														disabled={readOnly}
-														onChange={(e) => updateField('mothers_maiden_name', e.target.value)}
-														className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-													/>
-												</div>
-											</>
-										) : (
-											<>
-												<div>
-													<label className="block text-sm font-medium text-[var(--app-text)] mb-1">NPWP</label>
-													<input
-														type="text"
-														value={formData.npwp}
-														disabled={readOnly || lockedFromPicker}
-														onChange={(e) => updateField('npwp', e.target.value)}
-														className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-													/>
-												</div>
-												<AsOfDatePicker
-													label="Establishment Date"
-													format="DD-MM-YYYY"
-													placeholder="dd-mm-yyyy"
-													disabled={readOnly}
-													maxDate={new Date()}
-													value={parseDDMMYYYY(formData.date_of_birth)}
-													onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
-												/>
-												<div>
-													<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Contact Person</label>
-													<input
-														type="text"
-														value={formData.contact_person}
-														disabled={readOnly}
-														onChange={(e) => updateField('contact_person', e.target.value)}
-														className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-													/>
-												</div>
-												<div>
-													<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Contact Address</label>
-													<textarea
-														value={formData.contact_address}
-														disabled={readOnly}
-														onChange={(e) => updateField('contact_address', e.target.value)}
-														className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-													/>
-												</div>
-											</>
-										)}
-
-										<div className="md:col-span-2">
-											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Remark</label>
-											<textarea
-												value={formData.remark}
-												disabled={readOnly}
-												onChange={(e) => updateField('remark', e.target.value)}
-												maxLength={1000}
-												className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm disabled:bg-[var(--app-surface)]"
-											/>
-										</div>
-									</div>
-
-									{(formData.create_user || formData.last_user) && (
-										<div className="text-xs text-[var(--app-muted)] grid grid-cols-2 gap-2 border-t pt-3">
-											<div>Create by: {formData.create_user} ({formData.create_date})</div>
+											<FormField label="Create By">
+												<input type="text" readOnly value={formMode === 'create' ? currentUser : (formData.create_user ?? '')}
+													className={`${inputCls} bg-[var(--app-surface)]`} />
+											</FormField>
+											<FormField label="Create Date">
+												<input type="text" readOnly value={formMode === 'create' ? todayDisplay : (formData.create_date ?? '')}
+													className={`${inputCls} bg-[var(--app-surface)]`} />
+											</FormField>
 											{formData.last_user && (
-												<div>Last update by: {formData.last_user} ({formData.last_update})</div>
+												<>
+													<FormField label="Update by">
+														<input type="text" readOnly value={formData.last_user} className={`${inputCls} bg-[var(--app-surface)]`} />
+													</FormField>
+													<FormField label="Last Update">
+														<input type="text" readOnly value={formData.last_update ?? ''} className={`${inputCls} bg-[var(--app-surface)]`} />
+													</FormField>
+												</>
 											)}
-										</div>
-									)}
 
-									<div className="border-t pt-4">
-										<div className="flex items-center justify-between mb-2">
-											<label className="text-sm font-medium text-[var(--app-text)]">Supporting Documents</label>
-											{!readOnly && formData.no && (
-												<label className="text-xs text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer">
-													{uploading ? 'Uploading…' : '+ Add file'}
-													<input
-														type="file"
-														className="hidden"
-														disabled={uploading}
-														onChange={(e) => handleUploadFiles(e.target.files)}
-													/>
-												</label>
-											)}
+											<FormField label="Attachment">
+												<div className="space-y-2">
+													{attachments.map((f) => (
+														<div key={f} className="flex items-center justify-between text-sm bg-[var(--app-surface)] rounded px-3 py-2">
+															<a href={attachmentUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline truncate">{f}</a>
+															{!readOnly && (
+																<button type="button" onClick={() => handleRemoveAttachment(f)} className="text-red-600 hover:text-red-800 text-xs ml-2">Remove</button>
+															)}
+														</div>
+													))}
+													{!readOnly && slots.map((f, idx) => (
+															<div key={idx} className="flex items-center gap-2 bg-[var(--app-surface)] rounded px-2 py-2">
+																<input
+																	type="file"
+																	disabled={uploading}
+																	className="text-sm flex-1 min-w-0"
+																	onChange={async (e) => {
+																		const file = e.target.files?.[0] ?? null;
+																		if (file && file.size > 2_000_000) {
+																			setFormError('File size exceeds 2 MB.');
+																			e.target.value = '';
+																			return;
+																		}
+																		setFormError(null);
+																		if (formData.no && file) {
+																			await handleUploadFiles(e.target.files);
+																			setSlots((prev) => prev.filter((_, j) => j !== idx));
+																		} else {
+																			setSlots((prev) => prev.map((x, j) => (j === idx ? file : x)));
+																		}
+																	}}
+																/>
+																{attachments.length + slots.length > 1 && (
+																	<button
+																		type="button"
+																		title="Remove"
+																		aria-label="Remove file slot"
+																		onClick={() => setSlots((prev) => prev.filter((_, j) => j !== idx))}
+																		className="shrink-0 w-6 h-6 rounded-full bg-red-500 hover:bg-red-600 text-white text-lg leading-none flex items-center justify-center"
+																	>
+																		−
+																	</button>
+																)}
+															</div>
+														))}
+														{!readOnly && attachments.length + slots.length < MAX_FILES && (
+															<button
+																type="button"
+																onClick={() => setSlots((prev) => [...prev, null])}
+																className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+															>
+																+ Add file
+															</button>
+														)}
+														<p className="text-xs text-[var(--app-muted)]">Min 1, max 3 files. Document file max. 2 MB</p>
+												</div>
+											</FormField>
 										</div>
-										{!formData.no && (
-											<p className="text-xs text-[var(--app-muted)]">Save the entry first to attach supporting documents.</p>
-										)}
-										<ul className="space-y-1">
-											{attachments.map((f) => (
-												<li key={f} className="flex items-center justify-between text-sm bg-[var(--app-surface)] rounded px-3 py-1.5">
-													<a href={attachmentUrl(f)} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 hover:underline transition-colors truncate">
-														{f}
-													</a>
-													{!readOnly && (
-														<button onClick={() => handleRemoveAttachment(f)} className="text-red-600 hover:text-red-800 transition-colors text-xs ml-2">
-															Remove
-														</button>
-													)}
-												</li>
-											))}
-										</ul>
-										<p className="text-xs text-[var(--app-muted)] mt-1">Max 3 files, 2MB each.</p>
 									</div>
 								</>
 							)}
 						</div>
 
-						<div className="p-4 border-t flex justify-end gap-3">
+						<div className="flex justify-end gap-3 px-6 py-4 border-t bg-[var(--app-surface)] rounded-b-2xl">
 							<button
 								onClick={closeForm}
 								className="px-5 py-2 border border-[var(--app-border)] rounded-lg text-sm text-[var(--app-text)] hover:bg-[var(--app-surface-alt)] transition-colors"
@@ -717,11 +859,10 @@ const WatchListEntryByCorsec: React.FC = () => {
 								<button
 									onClick={handleSave}
 									disabled={formSaving || formLoading}
-									className={`px-5 py-2 rounded-lg text-sm text-white font-medium transition-colors flex items-center gap-2 ${formSaving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
-										}`}
+									className={`px-6 py-2 rounded-lg text-sm text-white font-medium transition-colors flex items-center gap-2 ${formSaving ? 'bg-amber-400 cursor-not-allowed' : 'bg-amber-600 hover:bg-amber-700'}`}
 								>
 									{formSaving && <SpinnerIcon />}
-									{formSaving ? 'Saving…' : 'Save'}
+									{formSaving ? 'Saving…' : 'Save Entry'}
 								</button>
 							)}
 						</div>
@@ -744,14 +885,14 @@ const WatchListEntryByCorsec: React.FC = () => {
 									type="text"
 									value={pickerQuery}
 									onChange={(e) => setPickerQuery(e.target.value)}
-									onKeyDown={(e) => e.key === 'Enter' && runPickerSearch()}
-									placeholder="Search by name"
+									onKeyDown={(e) => e.key === 'Enter' && runPickerSearch(pickerQuery)}
+									placeholder="Search by name (optional)"
 									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 								/>
 								{pickerQuery && (
 									<button
 										type="button"
-										onClick={() => { setPickerQuery(''); setPickerResults([]); }}
+										onClick={() => { setPickerQuery(''); runPickerSearch(''); }}
 										aria-label="Clear search"
 										className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
 										           text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
@@ -763,7 +904,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 								)}
 							</div>
 							<button
-								onClick={runPickerSearch}
+								onClick={() => runPickerSearch(pickerQuery)}
 								className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 							>
 								Search
@@ -787,7 +928,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 											</tr>
 										))}
 										{pickerResults.length === 0 && (
-											<tr><td className="py-8 text-center text-[var(--app-muted)] text-sm">Search for a customer above.</td></tr>
+											<tr><td className="py-8 text-center text-[var(--app-muted)] text-sm">No customers found.</td></tr>
 										)}
 									</tbody>
 								</table>

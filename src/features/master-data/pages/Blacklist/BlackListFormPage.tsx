@@ -419,7 +419,7 @@ const BlackListFormPage: React.FC = () => {
                         {isPR ? (
                             <>
                                 <Field label="Date of Birth">
-                                    <AsOfDatePickerComponent value={dob} onChange={(d: Date | null) => setDob(d)} />
+                                    <AsOfDatePickerComponent label="" value={dob} onChange={(d: Date | null) => setDob(d)} />
                                 </Field>
                                 <Field label="Spouse Name">
                                     <input type="text" value={spouseName} disabled={!editable}

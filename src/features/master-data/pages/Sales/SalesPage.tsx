@@ -41,6 +41,8 @@ interface SalesResponse {
 
 const SALES_API = "/MasterData/sales";
 
+const SHOW_COPY_TV = false;
+
 function CopyTvModal({
 	info,
 	onConfirm,
@@ -377,20 +379,20 @@ const SalesPage: React.FC = () => {
 														{canEdit(s) ? (
 															<button
 																onClick={() => handleEdit(s)}
-																className="rounded px-3 py-1 text-xs bg-[var(--app-surface)]0 text-white hover:bg-blue-600"
+																className="rounded px-3 py-1 text-xs bg-blue-500 text-white hover:bg-blue-600"
 															>
 																Edit
 															</button>
 														) : (
 															<button
 																onClick={() => handleView(s)}
-																className="rounded px-3 py-1 text-xs bg-[var(--app-surface)]0 text-white hover:bg-gray-600"
+																className="rounded px-3 py-1 text-xs bg-gray-500 text-white hover:bg-gray-600"
 															>
 																View
 															</button>
 														)}
 
-														{akses === "9" && !s.IsSalesTV && (
+														{SHOW_COPY_TV && akses === "9" && !s.IsSalesTV && (
 															s.CopiedToSalesNo ? (
 																<button
 																	onClick={() => handleAlreadyCopied(s.CopiedToSalesNo)}

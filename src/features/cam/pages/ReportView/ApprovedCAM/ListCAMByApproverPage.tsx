@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
 
 interface BranchOption {
     branch_cd: string;
@@ -136,6 +137,14 @@ const ListCAMByApproverPage: React.FC = () => {
     const [hasSearched, setHasSearched] = useState(false);
     const [exporting, setExporting] = useState(false);
 
+    const [printing, setPrinting] = useState(false);
+    const [printData, setPrintData] = useState<{
+        sections: Section[];
+        grandTotal: { net_finance: number; units: number };
+        periodLabel: string;
+        branchLabel: string;
+    } | null>(null);
+
     const [commentsOpen, setCommentsOpen] = useState(false);
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [comments, setComments] = useState<CommentsResponse | null>(null);
@@ -186,14 +195,27 @@ const ListCAMByApproverPage: React.FC = () => {
         }
     };
 
-    const handlePrint = () => {
+    const handlePrint = async () => {
         if (!startDate && !endDate && !branchCd) {
             alert('Please Fill The Field');
             return;
         }
-        const params = new URLSearchParams(buildParams());
-        const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '');
-        window.open(`${baseURL}/CAM/Approved/cam-by-approver/print?${params.toString()}`, '_blank');
+        setPrinting(true);
+        setError(null);
+        try {
+            const res = await api.get<ListResponse>('/CAM/Approved/cam-by-approver/list', { params: buildParams() });
+            setPrintData({
+                sections: res.data.sections,
+                grandTotal: res.data.grand_total,
+                periodLabel: startDate && endDate ? `Period : ${startDate.toLocaleDateString('en-GB')} - ${endDate.toLocaleDateString('en-GB')}` : '',
+                branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+            });
+        } catch (err) {
+            console.error('Print error:', err);
+            setError('Failed to prepare print. Please try again.');
+        } finally {
+            setPrinting(false);
+        }
     };
 
     const handleExport = async () => {
@@ -286,9 +308,10 @@ const ListCAMByApproverPage: React.FC = () => {
                         </button>
                         <button
                             onClick={handlePrint}
-                            className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                            disabled={printing}
+                            className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                         >
-                            Print
+                            {printing ? 'Preparing…' : 'Print'}
                         </button>
                         <button
                             onClick={handleExport}
@@ -430,6 +453,70 @@ const ListCAMByApproverPage: React.FC = () => {
                     </div>
                 </div>
             )}
+        {printData && (
+            <ReportPrintModal
+                title="LIST CAM BY APPROVER"
+                leftHeader={printData.branchLabel ? `${printData.branchLabel} Branch` : 'All Branches'}
+                periodLabel={printData.periodLabel}
+                summaryText={`${printData.sections.reduce((n, s) => n + s.rows.length, 0)} records`}
+                onClose={() => setPrintData(null)}
+            >
+                <table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+                    <thead>
+                        <tr>
+                            {['No.', 'Branch', 'Customer Name', 'CAM No.', 'Approved Date', 'Model', 'Brand/Type', 'Car Status', 'Contract Status', 'Outstanding', 'Net Finance', 'Total Outstanding', 'CMO'].map((h) => (
+                                <th key={h} style={PRINT_HEAD}>{h}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {printData.sections.map((section) => (
+                            <React.Fragment key={section.role_code}>
+                                <tr>
+                                    <td colSpan={13} style={{ ...PRINT_CELL, fontWeight: 'bold', backgroundColor: '#f3f4f6' }}>
+                                        Approved by : {section.role_label}
+                                    </td>
+                                </tr>
+                                {section.rows.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={13} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+                                    </tr>
+                                ) : (
+                                    section.rows.map((row) => (
+                                        <tr key={row.appl_no}>
+                                            <td style={{ ...PRINT_CELL, textAlign: 'center' }}>{row.no}</td>
+                                            <td style={PRINT_CELL}>{row.branch_name}</td>
+                                            <td style={PRINT_CELL}>{row.customer_name}</td>
+                                            <td style={PRINT_CELL}>{row.cam_no}</td>
+                                            <td style={PRINT_CELL}>{row.approved_date}</td>
+                                            <td style={PRINT_CELL}>{row.model}</td>
+                                            <td style={PRINT_CELL}>{row.brand_type}</td>
+                                            <td style={PRINT_CELL}>{row.car_status}</td>
+                                            <td style={PRINT_CELL}>{row.contract_status}</td>
+                                            <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.outstanding_old_cam)}</td>
+                                            <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance_new_cam)}</td>
+                                            <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.total_outstanding)}</td>
+                                            <td style={PRINT_CELL}>{row.cmo}</td>
+                                        </tr>
+                                    ))
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </tbody>
+                </table>
+
+                <div className="rpt-keep">
+                    <div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
+                        Grand Total*{printData.periodLabel ? ` (${printData.periodLabel.replace('Period : ', '')})` : ''}:
+                    </div>
+                    <div>Net Finance : {fmt(printData.grandTotal.net_finance)}</div>
+                    <div>Units : {fmt(printData.grandTotal.units)}</div>
+                    <div style={{ fontSize: 10, fontStyle: 'italic', marginTop: 4 }}>
+                        *Grand Total Amount and Unit Exclude CAM Revision
+                    </div>
+                </div>
+            </ReportPrintModal>
+        )}
         </div>
     );
 };

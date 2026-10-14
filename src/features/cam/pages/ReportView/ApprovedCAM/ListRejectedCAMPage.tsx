@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD, fetchAllResponses } from '@/features/cam/components/ReportPrintModal';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
@@ -49,7 +50,7 @@ interface ListResponse {
 	search_branch: string;
 }
 
-const REJECTED_BY_OPTIONS = ['CMH', 'BM', 'CRH', 'Maryanna', 'Fendy.K', 'Christian.H'];
+const REJECTED_BY_OPTIONS = ['CMH', 'BM', 'CRH', 'Arya.M', 'Maryanna', 'Fendy.K', 'Christian.H'];
 const CASCADING_ROLES = new Set(['CMH', 'CRH', 'BM']);
 
 const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
@@ -99,6 +100,14 @@ const ListRejectedCAMPage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [hasSearched, setHasSearched] = useState(false);
 	const [exporting, setExporting] = useState(false);
+
+	const [printing, setPrinting] = useState(false);
+	const [printData, setPrintData] = useState<{
+		rows: DetailRow[];
+		grandTotal: GrandTotal;
+		periodLabel: string;
+		branchLabel: string;
+	} | null>(null);
 
 	const [activeCam, setActiveCam] = useState<{ ctx: CamCtx } | null>(null);
 
@@ -177,16 +186,32 @@ const ListRejectedCAMPage: React.FC = () => {
 	const handlePreview = () => runSearch(1);
 	const handlePageChange = (nextPage: number) => runSearch(nextPage);
 
-	const handlePrint = () => {
+	const handlePrint = async () => {
 		if (!rejectDetail) {
 			alert('Please select who rejected the CAM');
 			return;
 		}
-		const params = new URLSearchParams(
-			Object.entries(buildParams(1)).reduce((acc, [k, v]) => ({ ...acc, [k]: String(v) }), {} as Record<string, string>)
-		);
-		const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '');
-		window.open(`${baseURL}/CAM/Approved/rejected-cam/print?${params.toString()}`, '_blank');
+		setPrinting(true);
+		setError(null);
+		try {
+			const pages = await fetchAllResponses(
+				(n) => api.get<ListResponse>('/CAM/Approved/rejected-cam/list', { params: buildParams(n) }).then((r) => r.data),
+				(first) => Math.ceil(first.total_count / PAGE_SIZE),
+			);
+			const rejLabel = rejectDetailOptions.find((o) => o.value === rejectDetail)?.label ?? rejectDetail;
+			const per = startDate && endDate ? `Period : ${startDate.toLocaleDateString('en-GB')} - ${endDate.toLocaleDateString('en-GB')}` : '';
+			setPrintData({
+				rows: pages.flatMap((p) => p.data),
+				grandTotal: pages[0].grand_total,
+				periodLabel: [per, `Rejected By : ${rejLabel}`].filter(Boolean).join('   '),
+				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+			});
+		} catch (err) {
+			console.error('Print error:', err);
+			setError('Failed to prepare print. Please try again.');
+		} finally {
+			setPrinting(false);
+		}
 	};
 
 	const handleExport = async () => {
@@ -290,9 +315,10 @@ const ListRejectedCAMPage: React.FC = () => {
 						</button>
 						<button
 							onClick={handlePrint}
-							className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+							disabled={printing}
+							className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 						>
-							Print
+							{printing ? 'Preparing…' : 'Print'}
 						</button>
 						<button
 							onClick={handleExport}
@@ -447,6 +473,86 @@ const ListRejectedCAMPage: React.FC = () => {
 						</div>
 					</div>
 				</div>
+			)}
+			{printData && (
+				<ReportPrintModal
+					title="LIST REJECTED CAM"
+					leftHeader={printData.branchLabel ? `${printData.branchLabel} Branch` : 'All Branches'}
+					periodLabel={printData.periodLabel}
+					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
+					onClose={() => setPrintData(null)}
+				>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+						<thead>
+							<tr>
+								{['Rejected Date', 'CAM No.', 'Customer Name', 'Net Finance', 'Rejected By'].map((h) => (
+									<th key={h} style={PRINT_HEAD}>{h}</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{printData.rows.length === 0 ? (
+								<tr>
+									<td colSpan={5} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+								</tr>
+							) : (
+								printData.rows.map((row) => (
+									<tr key={row.appl_no}>
+										<td style={PRINT_CELL}>{row.rejected_date}</td>
+										<td style={PRINT_CELL}>{row.cons_leas} - {row.appl_no}</td>
+										<td style={PRINT_CELL}>{row.customer_name}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance)}</td>
+										<td style={PRINT_CELL}>{row.rejected_by}</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+
+					<div className="rpt-keep">
+						<div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
+							Grand Total* (based on latest revised CAM, if any):
+						</div>
+						<table className="rpt-table" style={{ borderCollapse: 'collapse', width: '45%' }}>
+							<thead>
+								<tr>
+									{['Type', 'Condition', 'Net Finance', 'Units'].map((h) => <th key={h} style={PRINT_HEAD}>{h}</th>)}
+								</tr>
+							</thead>
+							<tbody>
+								<tr>
+									<td style={PRINT_CELL}>Passenger</td>
+									<td style={PRINT_CELL}>New</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotal.passenger_new.net_finance)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{printData.grandTotal.passenger_new.units}</td>
+								</tr>
+								<tr>
+									<td style={PRINT_CELL}>Passenger</td>
+									<td style={PRINT_CELL}>Used</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotal.passenger_used.net_finance)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{printData.grandTotal.passenger_used.units}</td>
+								</tr>
+								<tr>
+									<td style={PRINT_CELL}>Commercial</td>
+									<td style={PRINT_CELL}>New</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotal.commercial_new.net_finance)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{printData.grandTotal.commercial_new.units}</td>
+								</tr>
+								<tr>
+									<td style={PRINT_CELL}>Commercial</td>
+									<td style={PRINT_CELL}>Used</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotal.commercial_used.net_finance)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{printData.grandTotal.commercial_used.units}</td>
+								</tr>
+								<tr style={{ fontWeight: 'bold', backgroundColor: '#e5e7eb' }}>
+									<td colSpan={2} style={{ ...PRINT_CELL, textAlign: 'center' }}>Grand Total</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotal.grand_total.net_finance)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{printData.grandTotal.grand_total.units}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</ReportPrintModal>
 			)}
 		</div>
 	);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD, fetchAllResponses } from '@/features/cam/components/ReportPrintModal';
 import Pagination from '@/helpers/Pagination';
 
 interface BranchOption {
@@ -91,6 +92,14 @@ const ListInProgressCAMPage: React.FC = () => {
 	const [hasSearched, setHasSearched] = useState(false);
 	const [exporting, setExporting] = useState(false);
 
+	const [printing, setPrinting] = useState(false);
+	const [printData, setPrintData] = useState<{
+		rows: DetailRow[];
+		grandTotals: GrandTotals;
+		periodLabel: string;
+		branchName: string;
+	} | null>(null);
+
 	useEffect(() => {
 		(async () => {
 			try {
@@ -116,14 +125,6 @@ const ListInProgressCAMPage: React.FC = () => {
 		branch: branch,
 		page: pageOverride ?? page,
 	});
-
-	const toQueryString = (obj: Record<string, string | number>): URLSearchParams => {
-		const stringEntries: Record<string, string> = {};
-		Object.entries(obj).forEach(([key, value]) => {
-			stringEntries[key] = String(value);
-		});
-		return new URLSearchParams(stringEntries);
-	};
 
 	const fetchPage = async (pageNum: number) => {
 		setLoading(true);
@@ -162,10 +163,30 @@ const ListInProgressCAMPage: React.FC = () => {
 		fetchPage(newPage);
 	};
 
-	const handlePrint = () => {
-		const params = toQueryString(buildParams(1));
-		const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '');
-		window.open(`${baseURL}/CAM/Approved/in-progress-cam/print?${params.toString()}`, '_blank');
+	const handlePrint = async () => {
+		if (isFilterEmpty()) {
+			alert('Please Fill The Field');
+			return;
+		}
+		setPrinting(true);
+		setError(null);
+		try {
+			const pages = await fetchAllResponses(
+				(n) => api.get<ListResponse>('/CAM/Approved/in-progress-cam/list', { params: buildParams(n) }).then((r) => r.data),
+				(first) => first.total_pages,
+			);
+			setPrintData({
+				rows: pages.flatMap((p) => p.rows),
+				grandTotals: pages[0].grand_totals,
+				periodLabel: pages[0].period_label,
+				branchName: pages[0].branch_name,
+			});
+		} catch (err) {
+			console.error('Print error:', err);
+			setError('Failed to prepare print. Please try again.');
+		} finally {
+			setPrinting(false);
+		}
 	};
 
 	const handleExport = async () => {
@@ -259,9 +280,10 @@ const ListInProgressCAMPage: React.FC = () => {
 						</button>
 						<button
 							onClick={handlePrint}
-							className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+							disabled={printing}
+							className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 						>
-							Print
+							{printing ? 'Preparing…' : 'Print'}
 						</button>
 						<button
 							onClick={handleExport}
@@ -395,6 +417,82 @@ const ListInProgressCAMPage: React.FC = () => {
 					)}
 				</div>
 			</div>
+			{printData && (
+				<ReportPrintModal
+					title="LIST IN PROGRESS CAM"
+					leftHeader={printData.branchName ? `${printData.branchName} Branch` : 'All Branches'}
+					periodLabel={printData.periodLabel}
+					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
+					onClose={() => setPrintData(null)}
+				>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+						<thead>
+							<tr>
+								{['No.', 'CAM No.', 'Customer Name', 'Brand/Type', 'Net Finance', 'Total Outstanding', 'Interest (%)', 'Tenor (Month)', 'Create Date', 'CMO', 'Status'].map((h) => (
+									<th key={h} style={PRINT_HEAD}>{h}</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{printData.rows.length === 0 ? (
+								<tr>
+									<td colSpan={11} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+								</tr>
+							) : (
+								printData.rows.map((row, i) => (
+									<tr key={row.appl_no}>
+										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{i + 1}</td>
+										<td style={PRINT_CELL}>{row.cam_no}{row.is_revision ? ' (Revised)' : ''}</td>
+										<td style={PRINT_CELL}>{row.customer_name}</td>
+										<td style={PRINT_CELL}>{row.brand_type}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.total_outstanding)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{row.interest.toFixed(4)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{row.tenor}</td>
+										<td style={PRINT_CELL}>{row.create_date}</td>
+										<td style={PRINT_CELL}>{row.cmo}</td>
+										<td style={PRINT_CELL}>{row.status}</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+
+					<div className="rpt-keep">
+						<div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
+							Grand Total* ({printData.periodLabel.replace('Period : ', '') || 'All Dates'}):
+						</div>
+						<table className="rpt-table" style={{ borderCollapse: 'collapse', width: '45%' }}>
+							<thead>
+								<tr>
+									{['Type', 'Condition', 'Net Finance', 'Units'].map((h) => <th key={h} style={PRINT_HEAD}>{h}</th>)}
+								</tr>
+							</thead>
+							<tbody>
+								{SEGMENT_ROWS.map((seg) => {
+									const m = printData.grandTotals[seg.key];
+									return (
+										<tr key={seg.key}>
+											<td style={PRINT_CELL}>{seg.type}</td>
+											<td style={PRINT_CELL}>{seg.condition}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(m.net_finance)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(m.units)}</td>
+										</tr>
+									);
+								})}
+								<tr style={{ fontWeight: 'bold', backgroundColor: '#e5e7eb' }}>
+									<td colSpan={2} style={{ ...PRINT_CELL, textAlign: 'center' }}>Grand Total</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotals.grand_total.net_finance)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotals.grand_total.units)}</td>
+								</tr>
+							</tbody>
+						</table>
+						<div style={{ fontSize: 10, fontStyle: 'italic', marginTop: 4 }}>
+							*Grand Total Net Finance and Unit based on latest revised CAM (if any)
+						</div>
+					</div>
+				</ReportPrintModal>
+			)}
 		</div>
 	);
 };

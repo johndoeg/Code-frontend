@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD, fetchAllResponses } from '@/features/cam/components/ReportPrintModal';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
@@ -99,6 +100,17 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 	const [hasSearched, setHasSearched] = useState(false);
 	const [exporting, setExporting] = useState(false);
 
+	const [printing, setPrinting] = useState(false);
+	const [printData, setPrintData] = useState<{
+		rows: DetailRow[];
+		summary: Summary;
+		showBranch: boolean;
+		showDealer: boolean;
+		periodLabel: string;
+		branchLabel: string;
+		dealerLabel: string;
+	} | null>(null);
+
 	const [pickerOpen, setPickerOpen] = useState(false);
 	const [pickerSearch, setPickerSearch] = useState('');
 	const [pickerResults, setPickerResults] = useState<Dealer[]>([]);
@@ -155,12 +167,29 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 	const handlePreview = () => runSearch(1);
 	const handlePageChange = (nextPage: number) => runSearch(nextPage);
 
-	const handlePrint = () => {
-		const params = new URLSearchParams(
-			Object.entries(buildParams(1)).reduce((acc, [k, v]) => ({ ...acc, [k]: String(v) }), {} as Record<string, string>)
-		);
-		const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '');
-		window.open(`${baseURL}/CAM/Approved/cam-by-dealer/print?${params.toString()}`, '_blank');
+	const handlePrint = async () => {
+		setPrinting(true);
+		setError(null);
+		try {
+			const pages = await fetchAllResponses(
+				(n) => api.get<ListResponse>('/CAM/Approved/cam-by-dealer/list', { params: buildParams(n) }).then((r) => r.data),
+				(first) => Math.ceil(first.total_count / PAGE_SIZE),
+			);
+			setPrintData({
+				rows: pages.flatMap((p) => p.data),
+				summary: pages[0].summary,
+				showBranch: pages[0].show_branch_column,
+				showDealer: pages[0].show_dealer_column,
+				periodLabel: startDate && endDate ? `Period : ${startDate.toLocaleDateString('en-GB')} - ${endDate.toLocaleDateString('en-GB')}` : '',
+				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+				dealerLabel: dealerNickname,
+			});
+		} catch (err) {
+			console.error('Print error:', err);
+			setError('Failed to prepare print. Please try again.');
+		} finally {
+			setPrinting(false);
+		}
 	};
 
 	const handleExport = async () => {
@@ -288,9 +317,10 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 						</button>
 						<button
 							onClick={handlePrint}
-							className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+							disabled={printing}
+							className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 						>
-							Print
+							{printing ? 'Preparing…' : 'Print'}
 						</button>
 						<button
 							onClick={handleExport}
@@ -499,6 +529,74 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 					</div>
 				</div>
 			)}
+			{printData && (() => {
+				const colCount = 5 + (printData.showBranch ? 1 : 0) + (printData.showDealer ? 1 : 0);
+				return (
+					<ReportPrintModal
+						title="LIST APPROVED CAM BY DEALER PER DISBURSEMENT DATE"
+						leftHeader={[printData.branchLabel && `${printData.branchLabel} Branch`, printData.dealerLabel && `Dealer : ${printData.dealerLabel}`].filter(Boolean).join(' / ')}
+						periodLabel={printData.periodLabel}
+						summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
+						onClose={() => setPrintData(null)}
+					>
+						<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+							<thead>
+								<tr>
+									<th style={PRINT_HEAD}>No.</th>
+									<th style={PRINT_HEAD}>CAM No.</th>
+									<th style={PRINT_HEAD}>Customer Name</th>
+									{printData.showDealer && <th style={PRINT_HEAD}>Dealer Nickname</th>}
+									{printData.showBranch && <th style={PRINT_HEAD}>Branch</th>}
+									<th style={PRINT_HEAD}>Disbursement Date</th>
+									<th style={PRINT_HEAD}>CMO</th>
+								</tr>
+							</thead>
+							<tbody>
+								{printData.rows.length === 0 ? (
+									<tr>
+										<td colSpan={colCount} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+									</tr>
+								) : (
+									printData.rows.map((row, i) => (
+										<tr key={row.appl_no}>
+											<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{i + 1}</td>
+											<td style={PRINT_CELL}>{row.cons_leas} - {row.appl_no}{row.revision_suffix}</td>
+											<td style={PRINT_CELL}>{row.customer_name}</td>
+											{printData.showDealer && <td style={PRINT_CELL}>{row.dealer_nickname}</td>}
+											{printData.showBranch && <td style={PRINT_CELL}>{row.branch_name}</td>}
+											<td style={PRINT_CELL}>{row.disbursement_date}</td>
+											<td style={PRINT_CELL}>{row.cmo_name}</td>
+										</tr>
+									))
+								)}
+							</tbody>
+						</table>
+
+						<table className="rpt-keep" style={{ fontSize: 12 }}>
+							<tbody>
+								<tr>
+									<td style={{ paddingRight: 16 }}>New CAM</td>
+									<td style={{ paddingRight: 32 }}>= {fmt(printData.summary.new_cam_count)}</td>
+									<td style={{ paddingRight: 16 }}>Net Finance</td>
+									<td>= {fmt(printData.summary.new_cam_net_finance)}</td>
+								</tr>
+								<tr>
+									<td style={{ paddingRight: 16 }}>Revisi</td>
+									<td style={{ paddingRight: 32 }}>= {fmt(printData.summary.revised_count)}</td>
+									<td style={{ paddingRight: 16 }}>Net Finance</td>
+									<td>= {fmt(printData.summary.revised_net_finance)}</td>
+								</tr>
+								<tr style={{ fontWeight: 'bold' }}>
+									<td style={{ paddingRight: 16 }}>Total</td>
+									<td style={{ paddingRight: 32 }}>= {fmt(printData.summary.grand_count)}</td>
+									<td style={{ paddingRight: 16 }}>Total Net Finance</td>
+									<td>= {fmt(printData.summary.grand_net_finance)}</td>
+								</tr>
+							</tbody>
+						</table>
+					</ReportPrintModal>
+				);
+			})()}
 		</div>
 	);
 };

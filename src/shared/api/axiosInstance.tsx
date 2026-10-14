@@ -1,10 +1,28 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 import type { MaintenanceInfo } from '@/shared/types/maintenance';
+
+const DEFAULT_TIMEOUT = 15_000;
+const HEAVY_TIMEOUT = 90_000;
+
+const HEAVY_URL = /\/(list|export|print|report|download|search)(\/|\?|$)/i;
+
+const pickTimeout = (config: InternalAxiosRequestConfig): number => {
+	const url = config.url ?? "";
+	if (config.responseType === "blob") return HEAVY_TIMEOUT;
+	if (HEAVY_URL.test(url)) return HEAVY_TIMEOUT;
+	return DEFAULT_TIMEOUT;
+};
 
 const api = axios.create({
 	baseURL: import.meta.env.VITE_API_URL,
 	withCredentials: true,
-	timeout: 15000,
+});
+
+api.interceptors.request.use((config) => {
+	if (!config.timeout) {
+		config.timeout = pickTimeout(config);
+	}
+	return config;
 });
 
 api.interceptors.response.use(

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
 
 interface BranchOption {
 	branch_cd: string;
@@ -72,6 +73,15 @@ const ListCAMByCarConditionPage: React.FC = () => {
 	const [hasSearched, setHasSearched] = useState(false);
 	const [exporting, setExporting] = useState(false);
 
+	const [printing, setPrinting] = useState(false);
+	const [printData, setPrintData] = useState<{
+		rows: DetailRow[];
+		summary: Summary;
+		hasData: boolean;
+		periodLabel: string;
+		branchLabel: string;
+	} | null>(null);
+
 	useEffect(() => {
 		(async () => {
 			try {
@@ -119,14 +129,28 @@ const ListCAMByCarConditionPage: React.FC = () => {
 		}
 	};
 
-	const handlePrint = () => {
+	const handlePrint = async () => {
 		if (!startDate || !endDate || !branchCd) {
 			alert('Please fill in all required fields');
 			return;
 		}
-		const params = new URLSearchParams(buildParams());
-		const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '');
-		window.open(`${baseURL}/CAM/Approved/cam-by-car-condition/print?${params.toString()}`, '_blank');
+		setPrinting(true);
+		setError(null);
+		try {
+			const res = await api.get<ListResponse>('/CAM/Approved/cam-by-car-condition/list', { params: buildParams() });
+			setPrintData({
+				rows: res.data.data,
+				summary: res.data.summary,
+				hasData: res.data.has_data,
+				periodLabel: `Period : ${startDate.toLocaleDateString('en-GB')} - ${endDate.toLocaleDateString('en-GB')}`,
+				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+			});
+		} catch (err) {
+			console.error('Print error:', err);
+			setError('Failed to prepare print. Please try again.');
+		} finally {
+			setPrinting(false);
+		}
 	};
 
 	const handleExport = async () => {
@@ -230,9 +254,10 @@ const ListCAMByCarConditionPage: React.FC = () => {
 						</button>
 						<button
 							onClick={handlePrint}
-							className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+							disabled={printing}
+							className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 						>
-							Print
+							{printing ? 'Preparing…' : 'Print'}
 						</button>
 						<button
 							onClick={handleExport}
@@ -343,6 +368,98 @@ const ListCAMByCarConditionPage: React.FC = () => {
 					)}
 				</div>
 			</div>
+			{printData && (
+				<ReportPrintModal
+					title="LIST APPROVED CAM BY CAR'S CONDITION"
+					leftHeader={printData.branchLabel ? `${printData.branchLabel} Branch` : ''}
+					periodLabel={printData.periodLabel}
+					summaryText={printData.hasData ? `${printData.rows.length} row${printData.rows.length !== 1 ? 's' : ''}` : 'No data'}
+					onClose={() => setPrintData(null)}
+				>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+						<thead>
+							<tr>
+								<th style={PRINT_HEAD} rowSpan={3}>Approval Date</th>
+								<th style={PRINT_HEAD} colSpan={4}>NEW</th>
+								<th style={PRINT_HEAD} colSpan={4}>USED</th>
+							</tr>
+							<tr>
+								{['Non Truck', 'Truck', 'Non Truck', 'Truck'].map((h, i) => (
+									<th key={i} style={PRINT_HEAD} colSpan={2}>{h}</th>
+								))}
+							</tr>
+							<tr>
+								{[0, 1, 2, 3].flatMap((g) => ['Unit', 'Net Finance'].map((h) => (
+									<th key={`${g}-${h}`} style={PRINT_HEAD}>{h}</th>
+								)))}
+							</tr>
+						</thead>
+						<tbody>
+							{!printData.hasData ? (
+								<tr>
+									<td colSpan={9} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+								</tr>
+							) : (
+								<>
+									{printData.rows.map((row, idx) => (
+										<tr key={idx}>
+											<td style={PRINT_CELL}>{row.approval_date}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.new_nontruck_unit)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.new_nontruck_amt)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.new_truck_unit)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.new_truck_amt)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.used_nontruck_unit)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.used_nontruck_amt)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.used_truck_unit)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.used_truck_amt)}</td>
+										</tr>
+									))}
+									<tr style={{ fontWeight: 'bold', backgroundColor: '#e5e7eb' }}>
+										<td style={PRINT_CELL}></td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.new_nontruck_unit)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.new_nontruck_amt)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.new_truck_unit)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.new_truck_amt)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.used_nontruck_unit)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.used_nontruck_amt)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.used_truck_unit)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.summary.totals_row.used_truck_amt)}</td>
+									</tr>
+								</>
+							)}
+						</tbody>
+					</table>
+
+					{printData.hasData && (
+						<div className="rpt-keep" style={{ display: 'flex', gap: 32 }}>
+							{([
+								['By Condition', [['New', printData.summary.by_condition.new], ['Used', printData.summary.by_condition.used], ['Total', printData.summary.by_condition.total]]],
+								['By Type', [['Non Truck', printData.summary.by_type.non_truck], ['Truck', printData.summary.by_type.truck], ['Total', printData.summary.by_type.total]]],
+							] as [string, [string, Bucket][]][]).map(([title, spec]) => (
+								<table key={title} className="rpt-table" style={{ borderCollapse: 'collapse', width: '35%' }}>
+									<thead>
+										<tr>
+											<th style={PRINT_HEAD}>{title}</th>
+											{['Unit', '%', 'Net Finance', '%'].map((h, i) => <th key={i} style={PRINT_HEAD}>{h}</th>)}
+										</tr>
+									</thead>
+									<tbody>
+										{spec.map(([label, b]) => (
+											<tr key={label} style={label === 'Total' ? { fontWeight: 'bold', backgroundColor: '#f3f4f6' } : undefined}>
+												<td style={PRINT_CELL}>{label}</td>
+												<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(b.units)}</td>
+												<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{b.pct_units}%</td>
+												<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(b.net_finance)}</td>
+												<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{b.pct_net_finance}%</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							))}
+						</div>
+					)}
+				</ReportPrintModal>
+			)}
 		</div>
 	);
 };

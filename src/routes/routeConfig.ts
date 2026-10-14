@@ -123,6 +123,7 @@ export const INSURANCE_INVOICE_ROUTES: RouteTuple[] = [
     ["/invoice-gps", () => import("@/features/gps/pages/InvoiceGPSPage")],
     ["/va-list", () => import("@/features/espay/pages/VAListPage")],
     ["/espay-invoice", () => import("@/features/espay/pages/EspayInvoicePage")],
+    ["/settle-espay", () => import("@/features/espay/pages/SettleEspayPage")],
     ["/delima-invoice", () => import("@/features/delima/pages/InvoicePage")],
     ["/report-list-fiducia", () => import("@/features/delima/pages/FiduciaReportPage")],
 ];

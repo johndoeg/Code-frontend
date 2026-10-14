@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD, fetchAllResponses } from '@/features/cam/components/ReportPrintModal';
 import Pagination from '@/helpers/Pagination';
 
 interface BranchOption {
@@ -204,6 +205,14 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 	const [hasSearched, setHasSearched] = useState(false);
 	const [exporting, setExporting] = useState(false);
 
+	const [printing, setPrinting] = useState(false);
+	const [printData, setPrintData] = useState<{
+		rows: DetailRow[];
+		grandTotals: GrandTotals;
+		periodLabel: string;
+		branchLabel: string;
+	} | null>(null);
+
 	const [commentsOpen, setCommentsOpen] = useState(false);
 	const [commentsLoading, setCommentsLoading] = useState(false);
 	const [comments, setComments] = useState<CommentsResponse | null>(null);
@@ -272,22 +281,30 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 		fetchPage(newPage);
 	};
 
-	const toQueryString = (obj: Record<string, string | number>): URLSearchParams => {
-		const stringEntries: Record<string, string> = {};
-		Object.entries(obj).forEach(([key, value]) => {
-			stringEntries[key] = String(value);
-		});
-		return new URLSearchParams(stringEntries);
-	};
-
-	const handlePrint = () => {
+	const handlePrint = async () => {
 		if (isFilterEmpty()) {
 			alert('Please Fill The Field');
 			return;
 		}
-		const params = toQueryString(buildParams(1));
-		const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '');
-		window.open(`${baseURL}/CAM/Approved/cam-by-app-date/print?${params.toString()}`, '_blank');
+		setPrinting(true);
+		setError(null);
+		try {
+			const pages = await fetchAllResponses(
+				(n) => api.get<ListResponse>('/CAM/Approved/cam-by-app-date/list', { params: buildParams(n) }).then((r) => r.data),
+				(first) => first.total_pages,
+			);
+			setPrintData({
+				rows: pages.flatMap((p) => p.rows),
+				grandTotals: pages[0].grand_totals,
+				periodLabel: pages[0].period_label,
+				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+			});
+		} catch (err) {
+			console.error('Print error:', err);
+			setError('Failed to prepare print. Please try again.');
+		} finally {
+			setPrinting(false);
+		}
 	};
 
 	const handleExport = async () => {
@@ -401,9 +418,10 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 						</button>
 						<button
 							onClick={handlePrint}
-							className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+							disabled={printing}
+							className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 						>
-							Print
+							{printing ? 'Preparing…' : 'Print'}
 						</button>
 						<button
 							onClick={handleExport}
@@ -569,6 +587,104 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 						</div>
 					</div>
 				</div>
+			)}
+			{printData && (
+				<ReportPrintModal
+					title="LIST CAM BY APPROVAL DATE"
+					leftHeader={printData.branchLabel ? `${printData.branchLabel} Branch` : 'All Branches'}
+					periodLabel={printData.periodLabel}
+					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
+					onClose={() => setPrintData(null)}
+				>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+						<thead>
+							<tr>
+								{['No.', 'CAM No.', 'Customer Name', 'Brand/Type', 'Net Finance', '%IRR', 'Tenor (Month)', 'Approval Date', 'CMO', 'Approved by'].map((h) => (
+									<th key={h} style={PRINT_HEAD}>{h}</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{printData.rows.length === 0 ? (
+								<tr>
+									<td colSpan={10} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+								</tr>
+							) : (
+								printData.rows.map((row, i) => (
+									<tr key={row.appl_no}>
+										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{i + 1}</td>
+										<td style={PRINT_CELL}>{row.cam_no}{row.is_revision ? ' (Revised)' : ''}</td>
+										<td style={PRINT_CELL}>{row.customer_name}</td>
+										<td style={PRINT_CELL}>{row.brand_type}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{row.irr.toFixed(2)}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{row.tenor}</td>
+										<td style={PRINT_CELL}>{row.approval_date}</td>
+										<td style={PRINT_CELL}>{row.cmo}</td>
+										<td style={PRINT_CELL}>{row.approved_by}</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+
+					<div className="rpt-keep">
+						<div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
+							Grand Total* ({printData.periodLabel.replace('Period : ', '') || 'All Dates'}):
+						</div>
+						<table className="rpt-table" style={{ borderCollapse: 'collapse', width: '70%' }}>
+							<thead>
+								<tr>
+									{['Contract Type', 'Type', 'Condition', 'Net Finance', 'Units', 'Avg. IRR', 'Avg. Tenor', 'Avg. Net Finance'].map((h) => (
+										<th key={h} style={PRINT_HEAD}>{h}</th>
+									))}
+								</tr>
+							</thead>
+							<tbody>
+								{([['SL', printData.grandTotals.sl], ['IF', printData.grandTotals.if]] as [string, GroupTotals][]).map(([label, group]) => (
+									<React.Fragment key={label}>
+										{SEGMENT_ROWS.map((seg, idx) => {
+											const m = group[seg.key];
+											return (
+												<tr key={seg.key}>
+													{idx === 0 && (
+														<td rowSpan={5} style={{ ...PRINT_CELL, verticalAlign: 'top', fontWeight: 'bold' }}>{label}</td>
+													)}
+													<td style={PRINT_CELL}>{seg.type}</td>
+													<td style={PRINT_CELL}>{seg.condition}</td>
+													<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(m.net_finance)}</td>
+													<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(m.units)}</td>
+													<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{m.avg_irr}</td>
+													<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(m.avg_tenor)}</td>
+													<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(m.avg_net_finance)}</td>
+												</tr>
+											);
+										})}
+										<tr style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
+											<td colSpan={2} style={{ ...PRINT_CELL, textAlign: 'right' }}>Grand Total {label}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(group.total.net_finance)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(group.total.units)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{group.total.avg_irr}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(group.total.avg_tenor)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(group.total.avg_net_finance)}</td>
+										</tr>
+									</React.Fragment>
+								))}
+								<tr style={{ fontWeight: 'bold', backgroundColor: '#e5e7eb' }}>
+									<td colSpan={3} style={{ ...PRINT_CELL, textAlign: 'right' }}>Grand Total</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotals.grand_total.net_finance)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotals.grand_total.units)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{printData.grandTotals.grand_total.avg_irr}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotals.grand_total.avg_tenor)}</td>
+									<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(printData.grandTotals.grand_total.avg_net_finance)}</td>
+								</tr>
+							</tbody>
+						</table>
+						<div style={{ fontSize: 10, fontStyle: 'italic', marginTop: 4 }}>
+							*Grand Total Net Finance and Unit based on latest revised CAM (if any)
+						</div>
+					</div>
+				</ReportPrintModal>
 			)}
 		</div>
 	);

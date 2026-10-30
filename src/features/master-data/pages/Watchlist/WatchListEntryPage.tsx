@@ -49,6 +49,9 @@ interface AddForm {
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 const selectStyle: React.CSSProperties = { colorScheme: 'light' };
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 function parseISODate(value: string): Date | null {
 	if (!value) return null;
 	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -136,9 +139,9 @@ const ErrorBanner = ({
 );
 
 const inputCls =
-	"w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none transition-shadow";
+	"w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none transition-shadow";
 
-const selectCls = `${inputCls} bg-white text-[var(--app-text)]`;
+const selectCls = `${inputCls} bg-white text-slate-900`;
 
 const Field = ({
 	label,
@@ -443,14 +446,14 @@ const WatchlistEntryPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 								Watchlist Entry
 							</h1>
-							<p className="text-[var(--app-muted)] mt-1 text-sm">
+							<p className="text-[var(--app-text)] mt-1 text-sm">
 								Manage watchlisted customers (Individual &amp; Corporate)
 							</p>
 						</div>
@@ -475,7 +478,7 @@ const WatchlistEntryPage: React.FC = () => {
 							value={searchBy}
 							onChange={(e) => setSearchBy(e.target.value)}
 							style={selectStyle}
-							className="border border-[var(--app-border)] text-[var(--app-text)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+							className="border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
 						>
 							<option value="1" style={optionStyle}>ID Card</option>
 							<option value="2" style={optionStyle}>Name</option>
@@ -488,7 +491,7 @@ const WatchlistEntryPage: React.FC = () => {
 								onChange={(e) => setSearchVal(e.target.value)}
 								onKeyDown={handleSearchKey}
 								placeholder="Search…"
-								className="w-full border border-[var(--app-border)] rounded-lg pl-3 pr-10 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+								className="w-full border border-[var(--app-border)] rounded-lg pl-3 pr-10 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400"
 							/>
 							{searchVal && (
 								<button
@@ -496,7 +499,7 @@ const WatchlistEntryPage: React.FC = () => {
 									onClick={handleClearSearch}
 									aria-label="Clear search"
 									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-                             text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+                             text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -524,7 +527,7 @@ const WatchlistEntryPage: React.FC = () => {
 									{["No.", "ID Card / NPWP", "Name", "Address", "Type", "Action"].map((h) => (
 										<th
 											key={h}
-											className={`py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider ${h === "Action" ? "whitespace-nowrap w-px" : ""}`}
+											className={`py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider ${h === "Action" ? "whitespace-nowrap w-px" : ""}`}
 										>
 											{h}
 										</th>
@@ -542,7 +545,7 @@ const WatchlistEntryPage: React.FC = () => {
 									</tr>
 								) : entries.length === 0 ? (
 									<tr>
-										<td colSpan={6} className="py-16 text-center text-[var(--app-muted)] text-sm">
+										<td colSpan={6} className="py-16 text-center text-[var(--app-text)] text-sm">
 											No records found
 										</td>
 									</tr>
@@ -554,7 +557,7 @@ const WatchlistEntryPage: React.FC = () => {
 												key={entry.no}
 												className={`hover:bg-amber-50/30 transition-colors ${i % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]/50"}`}
 											>
-												<td className="py-3 px-4 text-sm text-[var(--app-muted)] text-center">
+												<td className="py-3 px-4 text-sm text-[var(--app-text)] text-center">
 													{(page - 1) * limit + i + 1}
 												</td>
 												<td className="py-3 px-4 text-sm font-mono text-[var(--app-text)]">
@@ -563,7 +566,7 @@ const WatchlistEntryPage: React.FC = () => {
 												<td className="py-3 px-4 text-sm font-medium text-[var(--app-text)]">
 													{entry.name}
 												</td>
-												<td className="py-3 px-4 text-sm text-[var(--app-muted)] max-w-xs truncate">
+												<td className="py-3 px-4 text-sm text-[var(--app-text)] max-w-xs truncate">
 													{entry.address}
 												</td>
 												<td className="py-3 px-4">
@@ -611,16 +614,16 @@ const WatchlistEntryPage: React.FC = () => {
 
 			{addOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-8xl my-8">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-8xl my-8">
 
-						<div className="flex justify-between items-center px-6 py-5 border-b">
+						<div className="flex justify-between items-center px-6 py-5 border-b border-[var(--app-border)]">
 							<div>
 								<h2 className="text-xl font-bold text-[var(--app-text)]">Add Watchlist Entry</h2>
-								<p className="text-sm text-[var(--app-muted)] mt-0.5">Fill in all required fields</p>
+								<p className="text-sm text-[var(--app-text)] mt-0.5">Fill in all required fields</p>
 							</div>
 							<button
 								onClick={() => setAddOpen(false)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-2xl leading-none"
+								className="text-[var(--app-text)] hover:text-[var(--app-text)] text-2xl leading-none"
 							>
 								×
 							</button>
@@ -678,7 +681,9 @@ const WatchlistEntryPage: React.FC = () => {
 												<input type="text" value={addForm.id_card} onChange={(e) => setField("id_card", e.target.value.replace(/\D/g, ""))} className={inputCls} placeholder="16-digit KTP" maxLength={16} />
 											</AddField>
 											<AddField label="Date of Birth">
-												<AsOfDatePicker format="DD-MM-YYYY" label="" placeholder="dd-mm-yyyy" maxDate={new Date()} value={parseISODate(addForm.birth)} onChange={(d) => setField("birth", formatISODate(d))} />
+												<div className={dateFieldClass}>
+													<AsOfDatePicker format="DD-MM-YYYY" label="" placeholder="dd-mm-yyyy" maxDate={new Date()} value={parseISODate(addForm.birth)} onChange={(d) => setField("birth", formatISODate(d))} />
+												</div>
 											</AddField>
 											<AddField label="NPWP">
 												<NpwpInput value={addForm.npwp} onChange={(v) => setField("npwp", v)} />
@@ -696,7 +701,9 @@ const WatchlistEntryPage: React.FC = () => {
 												<NpwpInput value={addForm.npwp} onChange={(v) => setField("npwp", v)} />
 											</AddField>
 											<AddField label="Establishment Date">
-												<AsOfDatePicker format="DD-MM-YYYY" label="" placeholder="dd-mm-yyyy" maxDate={new Date()} value={parseISODate(addForm.es_birth)} onChange={(d) => setField("es_birth", formatISODate(d))} />
+												<div className={dateFieldClass}>
+													<AsOfDatePicker format="DD-MM-YYYY" label="" placeholder="dd-mm-yyyy" maxDate={new Date()} value={parseISODate(addForm.es_birth)} onChange={(d) => setField("es_birth", formatISODate(d))} />
+												</div>
 											</AddField>
 
 											<div className="pt-2 pb-1">
@@ -747,10 +754,10 @@ const WatchlistEntryPage: React.FC = () => {
 									</AddField>
 
 									<AddField label="Create By">
-										<input type="text" value={currentUser} readOnly className={`${inputCls} bg-[var(--app-surface)]`} />
+										<input type="text" value={currentUser} readOnly className={`${inputCls} !bg-slate-100 !text-slate-600`} />
 									</AddField>
 									<AddField label="Create Date">
-										<input type="text" value={todayDisplay} readOnly className={`${inputCls} bg-[var(--app-surface)]`} />
+										<input type="text" value={todayDisplay} readOnly className={`${inputCls} !bg-slate-100 !text-slate-600`} />
 									</AddField>
 								</div>
 							</div>
@@ -758,7 +765,7 @@ const WatchlistEntryPage: React.FC = () => {
 							{custType === "PT" && showBodBoc && (
 								<div className="mt-8">
 									<div className="flex items-center justify-between mb-3">
-										<h3 className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<h3 className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Composition of BOD / BOC &amp; Management Detail
 										</h3>
 										<button type="button" onClick={addMember} className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium">
@@ -767,7 +774,7 @@ const WatchlistEntryPage: React.FC = () => {
 									</div>
 
 									{members.length === 0 ? (
-										<div className="text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-lg p-6 text-center">
+										<div className="text-sm text-[var(--app-text)] border border-dashed border-[var(--app-border)] rounded-lg p-6 text-center">
 											No members
 										</div>
 									) : (
@@ -782,11 +789,11 @@ const WatchlistEntryPage: React.FC = () => {
 														</div>
 														<div className="grid grid-cols-1 md:grid-cols-4 gap-3">
 															<div>
-																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Name</label>
+																<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Name</label>
 																<input type="text" value={m.name} onChange={(e) => updateMember(idx, { name: e.target.value })} className={inputCls} />
 															</div>
 															<div>
-																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOD</label>
+																<label className="block text-xs font-medium text-[var(--app-text)] mb-1">BOD</label>
 																<select value={m.bod_position} disabled={!!m.boc_position}
 																	onChange={(e) => updateMember(idx, { bod_position: e.target.value, other: e.target.value === BOD_OTHER_VALUE ? m.other : "" })}
 																	style={selectStyle} className={selectCls}>
@@ -795,7 +802,7 @@ const WatchlistEntryPage: React.FC = () => {
 																</select>
 															</div>
 															<div>
-																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">BOC</label>
+																<label className="block text-xs font-medium text-[var(--app-text)] mb-1">BOC</label>
 																<select value={m.boc_position} disabled={!!m.bod_position}
 																	onChange={(e) => updateMember(idx, { boc_position: e.target.value, other: e.target.value === BOC_OTHER_VALUE ? m.other : "" })}
 																	style={selectStyle} className={selectCls}>
@@ -804,19 +811,19 @@ const WatchlistEntryPage: React.FC = () => {
 																</select>
 															</div>
 															<div>
-																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Other</label>
+																<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Other</label>
 																<input type="text" value={m.other} disabled={!otherEnabled} onChange={(e) => updateMember(idx, { other: e.target.value })} className={inputCls} />
 															</div>
 															<div>
-																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">ID Card</label>
+																<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ID Card</label>
 																<input type="text" value={m.id_card} onChange={(e) => updateMember(idx, { id_card: e.target.value })} className={inputCls} />
 															</div>
 															<div>
-																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Address</label>
+																<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Address</label>
 																<input type="text" value={m.address} onChange={(e) => updateMember(idx, { address: e.target.value })} className={inputCls} />
 															</div>
 															<div>
-																<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">City</label>
+																<label className="block text-xs font-medium text-[var(--app-text)] mb-1">City</label>
 																<input type="text" value={m.city} onChange={(e) => updateMember(idx, { city: e.target.value })} className={inputCls} />
 															</div>
 														</div>
@@ -829,7 +836,7 @@ const WatchlistEntryPage: React.FC = () => {
 							)}
 						</div>
 
-						<div className="flex justify-end gap-3 px-6 py-4 border-t bg-[var(--app-surface)] rounded-b-2xl">
+						<div className="flex justify-end gap-3 px-6 py-4 border-t border-[var(--app-border)] bg-[var(--app-surface)] rounded-b-2xl">
 							<button
 								onClick={() => setAddOpen(false)}
 								className="px-5 py-2 border border-[var(--app-border)] rounded-lg text-sm text-[var(--app-text)] hover:bg-[var(--app-surface-alt)] transition-colors"
@@ -856,16 +863,16 @@ const WatchlistEntryPage: React.FC = () => {
 
 			{deleteOpen && deleteTarget && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-md">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-md">
 
-						<div className="flex justify-between items-center px-6 py-5 border-b">
+						<div className="flex justify-between items-center px-6 py-5 border-b border-[var(--app-border)]">
 							<div>
 								<h2 className="text-lg font-bold text-[var(--app-text)]">Delete Watchlist Entry</h2>
-								<p className="text-sm text-[var(--app-muted)] mt-0.5 font-mono">{deleteTarget.name}</p>
+								<p className="text-sm text-[var(--app-text)] mt-0.5 font-mono">{deleteTarget.name}</p>
 							</div>
 							<button
 								onClick={() => setDeleteOpen(false)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-2xl leading-none"
+								className="text-[var(--app-text)] hover:text-[var(--app-text)] text-2xl leading-none"
 							>
 								×
 							</button>
@@ -925,7 +932,7 @@ const WatchlistEntryPage: React.FC = () => {
 											</button>
 										</div>
 									) : (
-										<div className="text-[var(--app-muted)] text-sm">
+										<div className="text-[var(--app-text)] text-sm">
 											<svg className="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
 											</svg>
@@ -936,7 +943,7 @@ const WatchlistEntryPage: React.FC = () => {
 							</Field>
 						</div>
 
-						<div className="flex justify-end gap-3 px-6 py-4 border-t bg-[var(--app-surface)] rounded-b-2xl">
+						<div className="flex justify-end gap-3 px-6 py-4 border-t border-[var(--app-border)] bg-[var(--app-surface)] rounded-b-2xl">
 							<button
 								onClick={() => setDeleteOpen(false)}
 								className="px-5 py-2 border border-[var(--app-border)] rounded-lg text-sm text-[var(--app-text)] hover:bg-[var(--app-surface-alt)] transition-colors"

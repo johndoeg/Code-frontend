@@ -76,6 +76,52 @@ function getFieldConfig(paymentFor: string): FieldConfig {
 
 const digitsOnly = (val: string) => val.replace(/[^0-9]/g, '');
 
+const toRawAmount = (val: string | number | null | undefined): string => {
+	const raw = String(val ?? '').trim();
+	if (!raw) return '';
+	const asNumber = Number(raw);
+	if (Number.isFinite(asNumber)) return String(Math.round(asNumber));
+	return raw.replace(/[^0-9]/g, '');
+};
+
+const formatAmount = (raw: string): string =>
+	raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
+
+const normaliseAmountInput = (val: string): string => {
+	const trimmed = digitsOnly(val).replace(/^0+(?=\d)/, '');
+	return trimmed === '' ? '0' : trimmed;
+};
+
+const parseDateString = (val: string): Date | null => {
+	const raw = String(val ?? '').trim();
+	if (!raw) return null;
+	const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(raw);
+	const dmy = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(raw);
+	let year: number, month: number, day: number;
+	if (iso) {
+		year = Number(iso[1]); month = Number(iso[2]); day = Number(iso[3]);
+	} else if (dmy) {
+		day = Number(dmy[1]); month = Number(dmy[2]); year = Number(dmy[3]);
+	} else {
+		return null;
+	}
+	const date = new Date(year, month - 1, day);
+	if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+		return null;
+	}
+	return date;
+};
+
+const toIsoDateString = (val: string): string => {
+	const raw = String(val ?? '').trim();
+	if (!raw) return '';
+	if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+	const m = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(raw);
+	if (!m) return raw;
+	const [, dd, mm, yyyy] = m;
+	return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+};
+
 const toApiDate = (date: Date | null): string => {
 	if (!date) return '';
 	const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -95,6 +141,9 @@ const addMonths = (date: Date, months: number): Date => {
 	next.setMonth(next.getMonth() + months);
 	return next;
 };
+
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
 
 const esc = (v: unknown) =>
 	String(v ?? '')
@@ -274,13 +323,13 @@ const EspayInvoicePage: React.FC = () => {
 			const data = response.data;
 			setLesseeName(data.customer_name);
 			setDueDate(data.due_dt);
-			setTotInv(data.nominal);
+			setTotInv(toRawAmount(data.nominal));
 			setOdPeriod(data.overdue);
 			setPeriod(data.period);
 			setEtDate(data.due_dt);
-			setEtAmt(data.overdue);
-			setEtPaid(data.et_paid);
-			setEtLeft(data.nominal);
+			setEtAmt(toRawAmount(data.overdue));
+			setEtPaid(toRawAmount(data.et_paid));
+			setEtLeft(toRawAmount(data.nominal));
 			setModalError(null);
 		} catch (err) {
 			clearContractFields();
@@ -288,9 +337,20 @@ const EspayInvoicePage: React.FC = () => {
 		}
 	}, []);
 
-	const handleLeaseNoBlur = () => {
-		if (paymentFor && paymentFor !== 'MULTIPLE') {
-			fetchContractData(leaseNo, paymentFor);
+	const loadContract = () => {
+		const lease = leaseNo.trim();
+		if (!lease || paymentFor === 'MULTIPLE') return;
+		if (!paymentFor) {
+			setModalError('Select Payment For to load this contract.');
+			return;
+		}
+		fetchContractData(lease, paymentFor);
+	};
+
+	const handleLeaseNoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			loadContract();
 		}
 	};
 
@@ -370,7 +430,7 @@ const EspayInvoicePage: React.FC = () => {
 			const response = await api.post('/Espay/invoice/overdue', {
 				od_period: value, lease_no: leaseNo, period
 			});
-			setTotInv(response.data?.nominal ?? '');
+			setTotInv(toRawAmount(response.data?.nominal));
 			setModalError(null);
 		} catch (err) {
 			setTotInv('');
@@ -405,7 +465,7 @@ const EspayInvoicePage: React.FC = () => {
 				payment_for: paymentFor,
 				period,
 				od_period: odPeriod,
-				et_date: etDate,
+				et_date: toIsoDateString(etDate),
 				tot_inv: totInv,
 				et_amt: etAmt,
 			});
@@ -432,7 +492,7 @@ const EspayInvoicePage: React.FC = () => {
 			const response = await api.post('/Espay/invoice/multiple', {
 				rows: multiRows.map(r => ({
 					lease_no: r.lease_no,
-					due_dt: r.due_dt,
+					due_dt: toIsoDateString(r.due_dt),
 					total: r.amount,
 					period: r.period,
 				})),
@@ -560,16 +620,16 @@ const EspayInvoicePage: React.FC = () => {
 				};
 
 	const canPrintOrExport = hasSearched && rows.length > 0;
-	const inputCls = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-card)] text-[var(--app-text)]";
+	const inputCls = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900";
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">ESPAY Invoice</h1>
-							<p className="text-[var(--app-muted)] mt-1">Search, review, and manage ESPAY invoice records</p>
+							<p className="text-[var(--app-text)] mt-1">Search, review, and manage ESPAY invoice records</p>
 						</div>
 						<button
 							onClick={openAddModal}
@@ -610,28 +670,28 @@ const EspayInvoicePage: React.FC = () => {
 
 							{searchBy === '3' && (
 								<>
-									<div>
+									<div className={dateFieldClass}>
+										<label className="block text-sm font-medium text-[var(--app-text)] mb-1">From <span className="text-red-500">*</span></label>
 										<AsOfDatePicker
-											label="From"
+											label=""
 											format="DD-MM-YYYY"
 											placeholder="dd-mm-yyyy"
 											value={searchDateFrom}
 											onChange={(d) => { setSearchDateFrom(d); setSearchDateTo(null); }}
-											required
 										/>
 									</div>
-									<div>
+									<div className={dateFieldClass}>
+										<label className="block text-sm font-medium text-[var(--app-text)] mb-1">To <span className="text-red-500">*</span></label>
 										<AsOfDatePicker
-											label="To"
+											label=""
 											format="DD-MM-YYYY"
 											placeholder="dd-mm-yyyy"
 											value={searchDateTo}
 											onChange={setSearchDateTo}
 											minDate={searchDateFrom ?? undefined}
 											maxDate={searchDateFrom ? addMonths(searchDateFrom, 1) : undefined}
-											required
 										/>
-										<p className="text-xs text-[var(--app-muted)] mt-1">Range can't exceed one month.</p>
+										<p className="text-xs text-[var(--app-text)] mt-1">Range can't exceed one month.</p>
 									</div>
 								</>
 							)}
@@ -669,14 +729,14 @@ const EspayInvoicePage: React.FC = () => {
 							)}
 
 							{searchBy === '6' && (
-								<div>
+								<div className={dateFieldClass}>
+									<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Date <span className="text-red-500">*</span></label>
 									<AsOfDatePicker
-										label="Date"
+										label=""
 										format="DD-MM-YYYY"
 										placeholder="dd-mm-yyyy"
 										value={searchDateFrom}
 										onChange={setSearchDateFrom}
-										required
 									/>
 								</div>
 							)}
@@ -721,23 +781,23 @@ const EspayInvoicePage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Invoice / Due / ET Date</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Contract No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Customer Name</th>
-									<th className="py-3 px-4 text-right text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Amount</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Expired Date</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Payment Type</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Period</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Status</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Payment Date</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider"></th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">No.</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Invoice / Due / ET Date</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Contract No.</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Customer Name</th>
+									<th className="py-3 px-4 text-right text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Amount</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Expired Date</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Payment Type</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Period</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Status</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Payment Date</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider"></th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{loading ? (
 									<tr>
-										<td colSpan={11} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={11} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex justify-center">
 												<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
 											</div>
@@ -745,13 +805,11 @@ const EspayInvoicePage: React.FC = () => {
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={11} className="py-10 px-6 text-center text-[var(--app-muted)]">
-											Run a search to see invoice records.
-										</td>
+										<td colSpan={11} className="py-10 px-6 text-center text-[var(--app-text)]"></td>
 									</tr>
 								) : paginatedRows.length === 0 ? (
 									<tr>
-										<td colSpan={11} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={11} className="py-10 px-6 text-center text-[var(--app-text)]">
 											No invoice records found
 										</td>
 									</tr>
@@ -806,10 +864,10 @@ const EspayInvoicePage: React.FC = () => {
 
 			{modalOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-6 border-b border-[var(--app-border)]">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">Add Invoice</h2>
-							<button onClick={closeModal} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={closeModal} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
 								</svg>
@@ -826,32 +884,33 @@ const EspayInvoicePage: React.FC = () => {
 							{fieldConfig.showContract && (
 								<div className="grid grid-cols-2 gap-3">
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Contract No.</label>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Contract No.</label>
 										<input
 											type="text"
 											maxLength={15}
 											value={leaseNo}
 											onChange={(e) => setLeaseNo(digitsOnly(e.target.value))}
-											onBlur={handleLeaseNoBlur}
+											onBlur={loadContract}
+											onKeyDown={handleLeaseNoKeyDown}
 											placeholder="Enter contract no."
 											className={inputCls}
 										/>
 									</div>
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Customer Name</label>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Customer Name</label>
 										<input
 											type="text"
 											readOnly
 											value={lesseeName}
 											placeholder="Customer name"
-											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface)] text-[var(--app-muted)]"
+											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600"
 										/>
 									</div>
 								</div>
 							)}
 
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Payment For</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Payment For</label>
 								<select
 									value={paymentFor}
 									onChange={(e) => handlePaymentForChange(e.target.value)}
@@ -866,20 +925,20 @@ const EspayInvoicePage: React.FC = () => {
 
 							{fieldConfig.showDueDate && (
 								<div>
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Due Date</label>
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Due Date</label>
 									<input
 										type="text"
 										readOnly={fieldConfig.dueDateReadOnly}
 										value={dueDate}
 										onChange={(e) => setDueDate(e.target.value)}
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface)] text-[var(--app-text)]"
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600"
 									/>
 								</div>
 							)}
 
 							{fieldConfig.showOdPeriod && (
 								<div>
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Overdue Period</label>
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Overdue Period</label>
 									<input
 										type="text"
 										value={odPeriod}
@@ -893,30 +952,33 @@ const EspayInvoicePage: React.FC = () => {
 							{fieldConfig.showEt && (
 								<div className="grid grid-cols-3 gap-3">
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">ET Date</label>
-										<input
-											type="text"
-											readOnly={fieldConfig.etReadOnly}
-											value={etDate}
-											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface)] text-[var(--app-text)]"
-										/>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET Date</label>
+										<div className={dateFieldClass}>
+											<AsOfDatePicker
+												label=""
+												format="DD-MM-YYYY"
+												placeholder="dd-mm-yyyy"
+												value={parseDateString(etDate)}
+												onChange={(d) => setEtDate(d ? toApiDate(d) : '')}
+											/>
+										</div>
 									</div>
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">ET Pay</label>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET Pay</label>
 										<input
 											type="text"
 											readOnly={fieldConfig.etReadOnly}
 											value={etAmt}
-											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface)] text-[var(--app-text)]"
+											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600"
 										/>
 									</div>
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">ET Pay Received</label>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET Pay Received</label>
 										<input
 											type="text"
 											readOnly={fieldConfig.etReadOnly}
 											value={etPaid}
-											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface)] text-[var(--app-text)]"
+											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600"
 										/>
 									</div>
 								</div>
@@ -924,7 +986,7 @@ const EspayInvoicePage: React.FC = () => {
 
 							{fieldConfig.showMulti && (
 								<div>
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Contracts</label>
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Contracts</label>
 									<table className="w-full border border-[var(--app-border)] rounded-lg overflow-hidden text-sm">
 										<thead className="bg-[var(--app-surface)]">
 											<tr>
@@ -950,10 +1012,10 @@ const EspayInvoicePage: React.FC = () => {
 																fetchMultiContractRow(multiEntry, multiRows);
 															}
 														}}
-														className="w-full border border-[var(--app-border)] rounded px-2 py-1 bg-[var(--app-card)] text-[var(--app-text)]"
+														className="w-full border border-[var(--app-border)] rounded px-2 py-1 bg-white text-slate-900"
 													/>
 												</td>
-												<td className="px-2 py-2 text-[var(--app-muted)]" colSpan={3}>
+												<td className="px-2 py-2 text-[var(--app-text)]" colSpan={3}>
 													{multiLoading ? 'Loading…' : 'Press Enter to fetch'}
 												</td>
 												<td></td>
@@ -985,13 +1047,14 @@ const EspayInvoicePage: React.FC = () => {
 
 							{fieldConfig.showTotInv && (
 								<div>
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Total Amount</label>
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Total Amount</label>
 									<input
 										type="text"
 										readOnly={fieldConfig.totInvReadOnly}
-										value={totInv}
-										onChange={(e) => setTotInv(digitsOnly(e.target.value))}
-										className={`w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm text-[var(--app-text)] ${fieldConfig.totInvReadOnly ? 'bg-[var(--app-surface)]' : 'bg-[var(--app-card)]'}`}
+										inputMode="numeric"
+										value={formatAmount(totInv)}
+										onChange={(e) => setTotInv(normaliseAmountInput(e.target.value))}
+										className={`w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm ${fieldConfig.totInvReadOnly ? 'bg-slate-100 text-slate-600' : 'bg-white text-slate-900'}`}
 									/>
 								</div>
 							)}

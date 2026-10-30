@@ -8,6 +8,19 @@ const toISO = (d: Date): string => d.toISOString().split('T')[0];
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const fmtDisplayDate = (iso: string): string => {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '');
+	if (!m) return iso ?? '';
+	const monthIdx = Number(m[2]) - 1;
+	if (monthIdx < 0 || monthIdx > 11) return iso;
+	return `${m[3]}-${MONTHS_SHORT[monthIdx]}-${m[1]}`;
+};
+
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 interface InvoiceSummary {
 	asof: string;
 	disb_month: string;
@@ -164,12 +177,12 @@ const InvoiceGPSPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Invoice GPS</h1>
-							<p className="text-[var(--app-muted)] mt-1">View and manage your invoice records</p>
+							<p className="text-[var(--app-text)] mt-1">View and manage your invoice records</p>
 						</div>
 						<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium self-start md:self-auto">
 							Total: {total}
@@ -215,11 +228,11 @@ const InvoiceGPSPage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)] sticky top-0">
 								<tr>
-									<th className="py-3 px-4 text-left   text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>No.</th>
-									<th className="py-3 px-4 text-left   text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}>Disbursement Month</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '20%' }}>Total Invoice</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '20%' }}>Total System</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>
+									<th className="py-3 px-4 text-left   text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>No.</th>
+									<th className="py-3 px-4 text-left   text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}>Disbursement Month</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '20%' }}>Total Invoice</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '20%' }}>Total System</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>
 										<button
 											onClick={() => setUploadModalOpen(true)}
 											disabled={!selectedVendor}
@@ -246,7 +259,7 @@ const InvoiceGPSPage: React.FC = () => {
 									</tr>
 								) : invoiceSummaries.length === 0 ? (
 									<tr>
-										<td colSpan={5} className="py-10 text-center text-[var(--app-muted)]">
+										<td colSpan={5} className="py-10 text-center text-[var(--app-text)]">
 											<svg className="w-16 h-16 text-gray-300 mb-3 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 											</svg>
@@ -290,13 +303,13 @@ const InvoiceGPSPage: React.FC = () => {
 
 			{uploadModalOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-2xl">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-2xl">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">
 								Upload Invoice{' '}
 								<span className="text-blue-600">({getVendorName(selectedVendor)})</span>
 							</h2>
-							<button onClick={() => { setUploadModalOpen(false); clearFile(); }} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={() => { setUploadModalOpen(false); clearFile(); }} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
 								</svg>
@@ -304,12 +317,14 @@ const InvoiceGPSPage: React.FC = () => {
 						</div>
 
 						<form onSubmit={handleUpload} className="p-6 space-y-5">
-							<AsOfDatePicker
-								label="As of"
-								value={uploadDate}
-								onChange={(date) => { if (date) setUploadDate(date); }}
-								required
-							/>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker
+									label="As of"
+									value={uploadDate}
+									onChange={(date) => { if (date) setUploadDate(date); }}
+									required
+								/>
+							</div>
 
 							<div>
 								<label className="block text-sm font-medium text-[var(--app-text)] mb-2">Select File</label>
@@ -329,7 +344,7 @@ const InvoiceGPSPage: React.FC = () => {
 									Select Excel File
 								</label>
 								<div className="mt-2 flex items-center gap-3 flex-wrap">
-									<span className="text-sm text-[var(--app-muted)] italic">
+									<span className="text-sm text-[var(--app-text)] italic">
 										{selectedFile ? selectedFile.name : 'No file selected'}
 									</span>
 									{selectedFile && (
@@ -373,12 +388,12 @@ const InvoiceGPSPage: React.FC = () => {
 
 			{detailModalOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">
-								Invoice Details — {currentInvoiceNo}
+								Invoice Details — {fmtDisplayDate(currentInvoiceNo)}
 							</h2>
-							<button onClick={() => setDetailModalOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={() => setDetailModalOpen(false)} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
 								</svg>
@@ -390,7 +405,7 @@ const InvoiceGPSPage: React.FC = () => {
 								<thead className="bg-[var(--app-surface)] sticky top-0">
 									<tr>
 										{['No.', 'Contract No.', 'Customer Name', 'Disbursement Date', 'Invoice', 'System', 'Remark'].map(h => (
-											<th key={h} className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">
+											<th key={h} className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">
 												{h}
 											</th>
 										))}
@@ -399,7 +414,7 @@ const InvoiceGPSPage: React.FC = () => {
 								<tbody className="divide-y divide-[var(--app-border)]">
 									{invoiceDetails.length === 0 ? (
 										<tr>
-											<td colSpan={7} className="py-10 text-center text-[var(--app-muted)]">No details found</td>
+											<td colSpan={7} className="py-10 text-center text-[var(--app-text)]">No details found</td>
 										</tr>
 									) : (
 										invoiceDetails.map((d, idx) => {

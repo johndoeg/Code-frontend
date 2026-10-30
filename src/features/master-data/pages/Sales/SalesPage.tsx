@@ -59,24 +59,24 @@ function CopyTvModal({
 			className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
 			onClick={e => { if (e.target === e.currentTarget) onClose(); }}
 		>
-			<div className="w-full max-w-lg rounded-2xl bg-[var(--app-card)] p-6 shadow-2xl">
+			<div className="w-full max-w-lg rounded-2xl bg-[var(--app-card)] text-[var(--app-text)] p-6 shadow-2xl">
 				<h2 className="mb-4 text-lg font-bold text-[var(--app-text)]">Copy Sales TV</h2>
 				<table className="w-full text-sm">
 					<tbody>
-						<tr className="border-b">
-							<td className="py-2 pr-4 text-[var(--app-muted)]">Created By</td>
+						<tr className="border-b border-[var(--app-border)]">
+							<td className="py-2 pr-4 text-[var(--app-text)]">Created By</td>
 							<td className="py-2 font-medium">{info.created_by}</td>
 						</tr>
-						<tr className="border-b">
-							<td className="py-2 pr-4 text-[var(--app-muted)]">Initial Sales No.</td>
+						<tr className="border-b border-[var(--app-border)]">
+							<td className="py-2 pr-4 text-[var(--app-text)]">Initial Sales No.</td>
 							<td className="py-2 font-medium">{info.initial_sales_no}</td>
-							<td className="py-2 pr-4 text-[var(--app-muted)] pl-6">Copied Sales No.</td>
+							<td className="py-2 pr-4 text-[var(--app-text)] pl-6">Copied Sales No.</td>
 							<td className="py-2 font-medium">{info.new_sales_no}</td>
 						</tr>
 						<tr>
-							<td className="py-2 pr-4 text-[var(--app-muted)]">Initial Name</td>
+							<td className="py-2 pr-4 text-[var(--app-text)]">Initial Name</td>
 							<td className="py-2 font-medium">{info.initial_name}</td>
-							<td className="py-2 pr-4 text-[var(--app-muted)] pl-6">Copied Name</td>
+							<td className="py-2 pr-4 text-[var(--app-text)] pl-6">Copied Name</td>
 							<td className="py-2 font-medium">{info.new_name}</td>
 						</tr>
 					</tbody>
@@ -207,12 +207,12 @@ const SalesPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="mb-6 rounded-2xl bg-[var(--app-card)] p-6 shadow-lg">
+				<div className="mb-6 rounded-2xl bg-[var(--app-card)] text-[var(--app-text)] p-6 shadow-lg">
 
 					<div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
 						<div>
 							<h1 className="text-2xl font-bold text-[var(--app-text)] md:text-3xl">Sales</h1>
-							<p className="mt-1 text-[var(--app-muted)]">View and manage your sales records</p>
+							<p className="mt-1 text-[var(--app-text)]">View and manage your sales records</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<span className="rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-800">
@@ -236,10 +236,10 @@ const SalesPage: React.FC = () => {
 						<select
 							value={searchBy}
 							onChange={e => setSearchBy(e.target.value as SearchBy)}
-							className="border border-[var(--app-border)] text-[var(--app-text)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+							className="border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
 						>
 							{SEARCH_BY_OPTIONS.map(o => (
-								<option key={o.value} value={o.value} className="bg-white text-[var(--app-text)]">
+								<option key={o.value} value={o.value} className="bg-white text-slate-900">
 									{o.label}
 								</option>
 							))}
@@ -247,7 +247,7 @@ const SalesPage: React.FC = () => {
 
 						<div className="relative flex-1">
 							<svg
-								className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--app-muted)]"
+								className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400"
 								viewBox="0 0 24 24" fill="none" aria-hidden="true"
 							>
 								<path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="currentColor" />
@@ -262,14 +262,14 @@ const SalesPage: React.FC = () => {
 								value={searchInput}
 								onChange={e => setSearchInput(e.target.value)}
 								onKeyDown={handleKeyDown}
-								className="w-full rounded-lg border border-[var(--app-border)] py-3 pl-10 pr-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+								className="w-full rounded-lg border border-[var(--app-border)] bg-white text-slate-900 placeholder:text-slate-400 py-3 pl-10 pr-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
 							/>
 							{searchInput && (
 								<button
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
-									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -318,7 +318,7 @@ const SalesPage: React.FC = () => {
 									{["Sales No", "Name", "Address", "ID Card", "Status", "Actions"].map(h => (
 										<th
 											key={h}
-											className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-[var(--app-muted)]"
+											className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-[var(--app-text)]"
 										>
 											{h}
 										</th>
@@ -328,7 +328,7 @@ const SalesPage: React.FC = () => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{sales.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={6} className="px-6 py-10 text-center text-[var(--app-muted)]">
+										<td colSpan={6} className="px-6 py-10 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center justify-center">
 												<svg
 													className="mb-4 h-16 w-16 text-gray-300"
@@ -360,10 +360,10 @@ const SalesPage: React.FC = () => {
 														</span>
 													)}
 												</td>
-												<td className="max-w-xs truncate px-6 py-4 text-sm text-[var(--app-muted)]">
+												<td className="max-w-xs truncate px-6 py-4 text-sm text-[var(--app-text)]">
 													{s.ADDRESS}
 												</td>
-												<td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--app-muted)]">
+												<td className="whitespace-nowrap px-6 py-4 text-sm text-[var(--app-text)]">
 													{s.IDCARD}
 												</td>
 												<td className="whitespace-nowrap px-6 py-4">
@@ -396,7 +396,7 @@ const SalesPage: React.FC = () => {
 															s.CopiedToSalesNo ? (
 																<button
 																	onClick={() => handleAlreadyCopied(s.CopiedToSalesNo)}
-																	className="rounded px-3 py-1 text-xs bg-gray-200 text-[var(--app-muted)] hover:bg-gray-300"
+																	className="rounded px-3 py-1 text-xs bg-gray-200 text-slate-700 hover:bg-gray-300"
 																	title={`Already copied as ${s.CopiedToSalesNo}`}
 																>
 																	Copied

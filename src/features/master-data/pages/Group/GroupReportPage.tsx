@@ -179,7 +179,7 @@ const GroupReportPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">Group Report</h1>
 
 					<div className="mb-6">
@@ -194,7 +194,7 @@ const GroupReportPage: React.FC = () => {
 							}}
 							onKeyDown={(e) => { if (e.key === "Enter") handlePreview(); }}
 							placeholder="Enter group name to search..."
-							className="w-full md:w-96 border border-[var(--app-border)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+							className="w-full md:w-96 border border-[var(--app-border)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
 						/>
 					</div>
 
@@ -248,11 +248,11 @@ const GroupReportPage: React.FC = () => {
 				</div>
 
 				{previewed && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<div className="flex items-center justify-between mb-4">
 							<div>
 								<h2 className="text-lg font-semibold text-[var(--app-text)]">Results</h2>
-								<p className="text-sm text-[var(--app-muted)] mt-0.5">
+								<p className="text-sm text-[var(--app-text)] mt-0.5">
 									Group: <span className="font-medium">{appliedGrpname}</span>
 								</p>
 							</div>
@@ -277,10 +277,10 @@ const GroupReportPage: React.FC = () => {
 							<table className="w-full">
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider w-14">No.</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Group Member</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Address</th>
-										<th className="py-4 px-6 text-right text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Outstanding</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-14">No.</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Group Member</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Address</th>
+										<th className="py-4 px-6 text-right text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Outstanding</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[var(--app-border)]">
@@ -297,7 +297,7 @@ const GroupReportPage: React.FC = () => {
 													key={row.APLESS || idx}
 													className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
 												>
-													<td className="py-4 px-6 text-sm text-[var(--app-muted)]">
+													<td className="py-4 px-6 text-sm text-[var(--app-text)]">
 														{(page - 1) * limit + idx + 1}
 													</td>
 													<td className="py-4 px-6 text-sm font-medium text-[var(--app-text)]">{row.LESSEE_NM}</td>

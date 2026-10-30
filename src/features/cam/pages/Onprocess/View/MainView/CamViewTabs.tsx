@@ -1,36 +1,39 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 
-import CustomerDetailView from '@/features/cam/pages/Onprocess/View/Customer/CustomerDetailView';
-import CorporateDetailView from '@/features/cam/pages/Onprocess/View/Customer/CorporateDetailView';
-import GuarantorDetailView from '@/features/cam/pages/Onprocess/View/Customer/GuarantorDetailView';
-import FinancialInfoView from '@/features/cam/pages/Onprocess/View/Customer/FinancialInfoView';
-import BusinessHistoryView from '@/features/cam/pages/Onprocess/View/Customer/BusinessHistoryView';
-import BusinessProfileView from '@/features/cam/pages/Onprocess/View/Customer/BusinessProfileView';
-import CustomerSurveyFileView from '@/features/cam/pages/Onprocess/View/Customer/CustomerSurveyFileView';
+const CustomerDetailView = lazy(() => import('@/features/cam/pages/Onprocess/View/Customer/CustomerDetailView'));
+const CorporateDetailView = lazy(() => import('@/features/cam/pages/Onprocess/View/Customer/CorporateDetailView'));
+const GuarantorDetailView = lazy(() => import('@/features/cam/pages/Onprocess/View/Customer/GuarantorDetailView'));
+const FinancialInfoView = lazy(() => import('@/features/cam/pages/Onprocess/View/Customer/FinancialInfoView'));
+const BusinessHistoryView = lazy(() => import('@/features/cam/pages/Onprocess/View/Customer/BusinessHistoryView'));
+const BusinessProfileView = lazy(() => import('@/features/cam/pages/Onprocess/View/Customer/BusinessProfileView'));
+const CustomerSurveyFileView = lazy(() => import('@/features/cam/pages/Onprocess/View/Customer/CustomerSurveyFileView'));
 
-import EquipmentView from '@/features/cam/pages/Onprocess/View/Equipment/EquipmentView';
-import EquipmentSurveyFileView from '@/features/cam/pages/Onprocess/View/Equipment/EquipmentSurveyFileView';
+const EquipmentView = lazy(() => import('@/features/cam/pages/Onprocess/View/Equipment/EquipmentView'));
+const EquipmentSurveyFileView = lazy(() => import('@/features/cam/pages/Onprocess/View/Equipment/EquipmentSurveyFileView'));
 
-import FinancingView from '@/features/cam/pages/Onprocess/View/Financing/FinancingView';
+const FinancingView = lazy(() => import('@/features/cam/pages/Onprocess/View/Financing/FinancingView'));
 
-import DeviationView from '@/features/cam/pages/Onprocess/View/Deviation/DeviationView';
+const DeviationView = lazy(() => import('@/features/cam/pages/Onprocess/View/Deviation/DeviationView'));
 
-import SurveyView from '@/features/cam/pages/Onprocess/View/Survey/SurveyView';
+const SurveyView = lazy(() => import('@/features/cam/pages/Onprocess/View/Survey/SurveyView'));
 
-import ApuPptView from '@/features/cam/pages/Onprocess/View/APUPPT/ApuPptView';
+const ApuPptView = lazy(() => import('@/features/cam/pages/Onprocess/View/APUPPT/ApuPptView'));
 
-import { CamNotesView, OtherNotesView } from '@/features/cam/pages/Onprocess/View/Other/NotesView';
+const CamNotesView = lazy(() =>
+	import('@/features/cam/pages/Onprocess/View/Other/NotesView').then(m => ({ default: m.CamNotesView })));
+const OtherNotesView = lazy(() =>
+	import('@/features/cam/pages/Onprocess/View/Other/NotesView').then(m => ({ default: m.OtherNotesView })));
 
-import HistoryPaymentView from '@/features/cam/pages/Onprocess/View/HistoryPayment/HistoryPaymentView';
+const HistoryPaymentView = lazy(() => import('@/features/cam/pages/Onprocess/View/HistoryPayment/HistoryPaymentView'));
 
-import ReportCamView from '@/features/cam/pages/Onprocess/View/ReportCAM/ReportCAMView';
+const ReportCamView = lazy(() => import('@/features/cam/pages/Onprocess/View/ReportCAM/ReportCAMView'));
 
-import AllFilesView from '@/features/cam/pages/Onprocess/View/AllFiles/AllFilesView';
+const AllFilesView = lazy(() => import('@/features/cam/pages/Onprocess/View/AllFiles/AllFilesView'));
 
-import ApprovalView from '@/features/cam/pages/Onprocess/View/Approval/ApprovalView';
-import CreditRecommendationView from '@/features/cam/pages/Onprocess/View/Approval/CreditRecomendationView';
+const ApprovalView = lazy(() => import('@/features/cam/pages/Onprocess/View/Approval/ApprovalView'));
+const CreditRecommendationView = lazy(() => import('@/features/cam/pages/Onprocess/View/Approval/CreditRecomendationView'));
 
 export interface CamCtx {
 	finType: string;
@@ -176,6 +179,15 @@ const IMPLEMENTED_VIEWS: Partial<Record<ViewKey, React.FC<{ ctx: CamCtx }>>> = {
 };
 
 const ALL_VIEW_KEYS = Object.keys(IMPLEMENTED_VIEWS) as ViewKey[];
+
+function TabLoading() {
+	return (
+		<div className="rounded-2xl bg-[var(--app-card)] p-10 text-center shadow">
+			<div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[var(--app-border)] border-t-blue-600" />
+			<p className="mt-3 text-sm text-[var(--app-text)]">Loading…</p>
+		</div>
+	);
+}
 
 function readCtxFromUrl(): CamCtx {
 	const params = new URLSearchParams(window.location.search);
@@ -339,7 +351,9 @@ export default function CamViewTabs({ ctx: ctxProp, initialMenu, initialSubmenu,
 						const isActive = activeSubmenu?.view === key;
 						return (
 							<div key={key} style={{ display: isActive ? 'block' : 'none' }}>
-								<Comp ctx={ctx} />
+								<Suspense fallback={<TabLoading />}>
+									<Comp ctx={ctx} />
+								</Suspense>
 							</div>
 						);
 					})}

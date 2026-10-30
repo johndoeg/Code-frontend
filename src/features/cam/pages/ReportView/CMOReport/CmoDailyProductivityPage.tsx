@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import Pagination from '@/helpers/Pagination';
@@ -59,6 +60,18 @@ const toISO = (d: Date): string => {
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
+const parseIsoDate = (raw: string | null): Date | null => {
+	if (!raw) return null;
+	const [y, m, d] = raw.split('-').map(Number);
+	if (!y || !m || !d) return null;
+	return new Date(y, m - 1, d);
+};
+
+const sameCode = (a: string, b: string) =>
+	String(a).trim().replace(/^0+/, '') === String(b).trim().replace(/^0+/, '');
+
 const CmoDailyProductivityPage: React.FC = () => {
 	const [context, setContext] = useState<ContextData | null>(null);
 	const [rejectStatusOptions, setRejectStatusOptions] = useState<RejectStatusOption[]>([]);
@@ -88,6 +101,9 @@ const CmoDailyProductivityPage: React.FC = () => {
 	const [formCustName, setFormCustName] = useState('');
 	const [formStatus, setFormStatus] = useState('');
 
+	const [searchParams] = useSearchParams();
+	const qs = searchParams.toString();
+
 	useEffect(() => {
 		(async () => {
 			try {
@@ -99,14 +115,11 @@ const CmoDailyProductivityPage: React.FC = () => {
 				setContext(ctx);
 				setRejectStatusOptions(statusRes.data);
 
-				const params = new URLSearchParams(window.location.search);
-				const lemparStart = params.get('lempar_start_dt');
-				const lemparEnd = params.get('lempar_end_dt');
-				const lemparBranch = params.get('lempar_branch');
-				const lemparCmo = params.get('lempar_cmo');
+				const lemparBranch = searchParams.get('lempar_branch');
+				const lemparCmo = searchParams.get('lempar_cmo');
 
-				const initialStart = lemparStart ? new Date(lemparStart) : null;
-				const initialEnd = lemparEnd ? new Date(lemparEnd) : null;
+				const initialStart = parseIsoDate(searchParams.get('lempar_start_dt'));
+				const initialEnd = parseIsoDate(searchParams.get('lempar_end_dt'));
 				setStartDate(initialStart);
 				setEndDate(initialEnd);
 
@@ -114,27 +127,31 @@ const CmoDailyProductivityPage: React.FC = () => {
 				let cmoToSearch = '';
 
 				if (ctx.is_hq) {
-					branchToSearch = lemparBranch || '000';
+					const matchedBranch = lemparBranch
+						? ctx.branches.find((b) => sameCode(b.branch_cd, lemparBranch))
+						: undefined;
+					branchToSearch = matchedBranch?.branch_cd ?? '000';
 					setSelectedBranch(branchToSearch);
 					if (branchToSearch !== '000') {
 						const cmoRes = await api.get<CmoOption[]>(
 							'/CAM/CMO/daily-productivity-detail/cmos-by-branch',
 							{ params: { branch: branchToSearch } }
 						);
-						setHqCmoOptions(cmoRes.data);
-						const match = cmoRes.data.find((c) => c.employee_id === lemparCmo);
+						const cmoList = cmoRes.data ?? [];
+						setHqCmoOptions(cmoList);
+						const match = lemparCmo ? cmoList.find((c) => sameCode(c.employee_id, lemparCmo)) : undefined;
 						cmoToSearch = match ? match.employee_id : '000';
 						setSelectedCmo(cmoToSearch);
 					}
 				} else if (ctx.own_branch) {
 					branchToSearch = ctx.own_branch.branch_cd;
 					setSelectedBranch(branchToSearch);
-					const match = ctx.cmos.find((c) => c.employee_id === lemparCmo);
+					const match = lemparCmo ? ctx.cmos.find((c) => sameCode(c.employee_id, lemparCmo)) : undefined;
 					cmoToSearch = match && ctx.own_branch.branch_cd !== '000' ? match.employee_id : (ctx.cmos[0]?.employee_id ?? '');
 					setSelectedCmo(cmoToSearch);
 				}
 
-				if (lemparBranch && initialStart && initialEnd && branchToSearch) {
+				if (initialStart && initialEnd && branchToSearch) {
 					await runSearch(initialStart, initialEnd, branchToSearch, cmoToSearch, ctx.access_level);
 				}
 			} catch (err) {
@@ -142,7 +159,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 			}
 		})();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [qs]);
 
 	const handleBranchChange = async (branchCd: string) => {
 		setSelectedBranch(branchCd);
@@ -275,7 +292,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="mb-6">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">
 							Detail of Credit Marketing Officer Daily Productivity Report
@@ -284,15 +301,19 @@ const CmoDailyProductivityPage: React.FC = () => {
 
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 text-sm items-end">
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Start Date</label>
-							<AsOfDatePicker label="" value={startDate} onChange={setStartDate} required />
+							<label className="text-[var(--app-text)] block mb-1">Start Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={startDate} onChange={setStartDate} required />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">End Date</label>
-							<AsOfDatePicker label="" value={endDate} onChange={setEndDate} required />
+							<label className="text-[var(--app-text)] block mb-1">End Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={endDate} onChange={setEndDate} required />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Branch</label>
+							<label className="text-[var(--app-text)] block mb-1">Branch</label>
 							{context?.is_hq ? (
 								<select
 									value={selectedBranch}
@@ -309,7 +330,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 								<select
 									value={selectedBranch}
 									disabled
-									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-[var(--app-surface)]"
+									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-slate-100 text-slate-500"
 								>
 									{context?.own_branch && (
 										<option value={context.own_branch.branch_cd} style={optionStyle}>{context.own_branch.branch_name}</option>
@@ -318,7 +339,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 							)}
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">CMO Name</label>
+							<label className="text-[var(--app-text)] block mb-1">CMO Name</label>
 							<select
 								value={selectedCmo}
 								onChange={(e) => setSelectedCmo(e.target.value)}
@@ -379,13 +400,11 @@ const CmoDailyProductivityPage: React.FC = () => {
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-muted)]">
-											Choose a period, branch, and CMO, then click Search.
-										</td>
+										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : pageRows.length === 0 ? (
 									<tr>
-										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-muted)]">
+										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-text)] opacity-70">
 											No records found for this period.
 										</td>
 									</tr>
@@ -471,33 +490,35 @@ const CmoDailyProductivityPage: React.FC = () => {
 
 			{modalOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
 						<div className="flex justify-between items-center p-4 border-b">
 							<h3 className="font-bold text-[var(--app-text)]">Application Information</h3>
-							<button onClick={() => setModalOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">
+							<button onClick={() => setModalOpen(false)} className="text-[var(--app-text)] opacity-70 hover:opacity-100 text-2xl leading-none">
 								×
 							</button>
 						</div>
 						<div className="p-4 space-y-3 text-sm">
 							<div>
-								<label className="text-[var(--app-muted)] block mb-1">Date</label>
-								<AsOfDatePicker label="" value={formDate} onChange={setFormDate} required />
+								<label className="text-[var(--app-text)] block mb-1">Date</label>
+								<div className={dateFieldClass}>
+									<AsOfDatePicker label="" value={formDate} onChange={setFormDate} required />
+								</div>
 							</div>
 							<div>
-								<label className="text-[var(--app-muted)] block mb-1">Customer Name</label>
+								<label className="text-[var(--app-text)] block mb-1">Customer Name</label>
 								<div className="relative">
 									<input
 										type="text"
 										value={formCustName}
 										onChange={(e) => setFormCustName(e.target.value)}
-										className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none pr-8"
+										className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none pr-8"
 									/>
 									{formCustName && (
 										<button
 											type="button"
 											onClick={() => setFormCustName('')}
 											aria-label="Clear customer name"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none"
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none"
 										>
 											&times;
 										</button>
@@ -505,7 +526,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 								</div>
 							</div>
 							<div>
-								<label className="text-[var(--app-muted)] block mb-1">Status</label>
+								<label className="text-[var(--app-text)] block mb-1">Status</label>
 								<select
 									value={formStatus}
 									onChange={(e) => setFormStatus(e.target.value)}

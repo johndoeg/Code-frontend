@@ -157,12 +157,12 @@ const ModelEntryPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 					<div className="flex items-center justify-between mb-6">
 						<div>
 							<h1 className="text-2xl font-bold text-[var(--app-text)]">Model</h1>
-							<p className="text-[var(--app-muted)] text-sm mt-0.5">
+							<p className="text-[var(--app-text)] text-sm mt-0.5">
 								View and manage vehicle model records
 							</p>
 						</div>
@@ -174,13 +174,13 @@ const ModelEntryPage: React.FC = () => {
 
 					{akses === "9" && (
 						<div className="mb-6 p-4 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
-							<h2 className="text-sm font-semibold text-[var(--app-muted)] uppercase
+							<h2 className="text-sm font-semibold text-[var(--app-text)] uppercase
                              tracking-wide mb-3">
 								Add New Model
 							</h2>
 							<div className="flex flex-col sm:flex-row gap-3">
 								<div className="sm:w-36">
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 										Model Code
 									</label>
 									<input
@@ -188,12 +188,12 @@ const ModelEntryPage: React.FC = () => {
 										readOnly
 										value={newCode}
 										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5
-                               text-sm bg-[var(--app-surface-alt)] font-mono text-center"
+                               text-sm bg-slate-100 text-slate-600 font-mono text-center"
 									/>
 								</div>
 
 								<div className="flex-1">
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 										Model Name <span className="text-red-500">*</span>
 									</label>
 									<input
@@ -203,7 +203,7 @@ const ModelEntryPage: React.FC = () => {
 										onChange={e => setNewName(e.target.value)}
 										onKeyDown={e => e.key === "Enter" && handleSave()}
 										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
 									/>
 								</div>
 
@@ -231,7 +231,7 @@ const ModelEntryPage: React.FC = () => {
 					<div className="flex gap-3 mb-5">
 						<div className="relative flex-1">
 							<svg
-								className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2"
+								className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
 								fill="none" viewBox="0 0 24 24">
 								<path fill="currentColor"
 									d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5
@@ -248,7 +248,7 @@ const ModelEntryPage: React.FC = () => {
 								onChange={e => { setSearch(e.target.value); setPage(1); }}
 								onKeyDown={e => e.key === "Enter" && fetchModels()}
 								className="w-full pl-10 pr-4 py-2.5 border border-[var(--app-border)] rounded-lg
-                           			text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           			text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
 							/>
 						</div>
 						<button
@@ -274,16 +274,16 @@ const ModelEntryPage: React.FC = () => {
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
 									<th className="py-3 px-5 text-left text-xs font-semibold
-                                 text-[var(--app-muted)] uppercase tracking-wider">
+                                 text-[var(--app-text)] uppercase tracking-wider">
 										Model Code
 									</th>
 									<th className="py-3 px-5 text-left text-xs font-semibold
-                                 text-[var(--app-muted)] uppercase tracking-wider">
+                                 text-[var(--app-text)] uppercase tracking-wider">
 										Model Name
 									</th>
 									{akses === "9" && (
 										<th className="py-3 px-5 text-left text-xs font-semibold
-                                   text-[var(--app-muted)] uppercase tracking-wider w-36">
+                                   text-[var(--app-text)] uppercase tracking-wider w-36">
 											Action
 										</th>
 									)}
@@ -293,7 +293,7 @@ const ModelEntryPage: React.FC = () => {
 								{models.length === 0 && !loading ? (
 									<tr>
 										<td colSpan={akses === "9" ? 3 : 2}
-											className="py-12 text-center text-[var(--app-muted)]">
+											className="py-12 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center gap-2">
 												<svg className="w-12 h-12 text-gray-200" fill="none"
 													stroke="currentColor" viewBox="0 0 24 24">
@@ -404,14 +404,14 @@ const ModelEntryPage: React.FC = () => {
                      bg-black/40 p-4"
 					onClick={e => e.target === e.currentTarget && setEditRow(null)}
 				>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-sm
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-sm
                           animate-in slide-in-from-top-4">
 						<div className="flex items-center justify-between px-6 py-4
                             border-b border-[var(--app-border)]">
 							<h2 className="font-semibold text-[var(--app-text)]">Edit Model</h2>
 							<button
 								onClick={() => setEditRow(null)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none"
+								className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none"
 							>
 								×
 							</button>
@@ -419,7 +419,7 @@ const ModelEntryPage: React.FC = () => {
 
 						<div className="px-6 py-5 space-y-4">
 							<div>
-								<label className="block text-sm font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
 									Model Code
 								</label>
 								<input
@@ -427,12 +427,12 @@ const ModelEntryPage: React.FC = () => {
 									readOnly
 									value={editRow.MODEL}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5
-                             text-sm bg-[var(--app-surface-alt)] font-mono"
+                             text-sm bg-slate-100 text-slate-600 font-mono"
 								/>
 							</div>
 
 							<div>
-								<label className="block text-sm font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
 									Model Name <span className="text-red-500">*</span>
 								</label>
 								<input
@@ -442,7 +442,7 @@ const ModelEntryPage: React.FC = () => {
 									onChange={e => setEditName(e.target.value)}
 									onKeyDown={e => e.key === "Enter" && handleUpdate()}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5
-                             			text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                             			text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
 								/>
 							</div>
 

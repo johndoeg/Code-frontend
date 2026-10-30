@@ -122,15 +122,15 @@ const AddCAMGuarantorForm: React.FC = () => {
 	const hasCustomerData = !!customerName.trim();
 
 	const inputBase =
-		'w-full py-2.5 border rounded-lg text-sm bg-[var(--app-card)] text-[var(--app-text)] ' +
-		'placeholder:text-[var(--app-muted)] focus:outline-none focus:ring-2 transition-all';
+		'w-full py-2.5 border rounded-lg text-sm bg-white text-slate-900 ' +
+		'placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-all';
 
 	return (
-		<div className="bg-[var(--app-card)] rounded-2xl shadow-md border border-[var(--app-border)] overflow-hidden">
+		<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-md border border-[var(--app-border)] overflow-hidden">
 
 			<div className="bg-gradient-to-br from-orange-500 to-orange-600 px-6 py-5">
 				<div className="flex items-center gap-3">
-					<div className="bg-[var(--app-card)]/20 backdrop-blur-sm rounded-xl p-2.5 shrink-0">
+					<div className="bg-white/20 backdrop-blur-sm rounded-xl p-2.5 shrink-0">
 						<svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 								d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -145,7 +145,7 @@ const AddCAMGuarantorForm: React.FC = () => {
 			<div className="px-6 py-6 space-y-5">
 
 				<div>
-					<label className="block text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider mb-2">
+					<label className="block text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider mb-2">
 						Guarantor Type
 					</label>
 					<div className="grid grid-cols-2 gap-2 p-1 bg-[var(--app-surface-alt)] rounded-lg">
@@ -155,8 +155,8 @@ const AddCAMGuarantorForm: React.FC = () => {
 								type="button"
 								onClick={() => setCustomerType(option.value)}
 								className={`py-2 px-4 rounded-md text-sm font-medium transition-all duration-150 ${customerType === option.value
-									? 'bg-[var(--app-card)] text-orange-600 shadow-sm border border-orange-100'
-									: 'text-[var(--app-muted)] hover:text-[var(--app-text)]'
+									? 'bg-[var(--app-card)] text-orange-500 shadow-sm border border-orange-400'
+									: 'text-[var(--app-text)] hover:opacity-70'
 									}`}
 							>
 								{option.label}
@@ -168,11 +168,11 @@ const AddCAMGuarantorForm: React.FC = () => {
 				<hr className="border-[var(--app-border)]" />
 
 				<div>
-					<label className="block text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider mb-2">
+					<label className="block text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider mb-2">
 						{idLabel}
 					</label>
 					<div className="relative">
-						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none">
+						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 									d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2" />
@@ -199,7 +199,7 @@ const AddCAMGuarantorForm: React.FC = () => {
 								: 'border-[var(--app-border)] focus:ring-orange-500/25 focus:border-orange-400'
 								}`}
 						/>
-						<span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums transition-colors pointer-events-none ${idCard.length === MAX_ID_LENGTH ? 'text-orange-500 font-medium' : 'text-[var(--app-muted)]'
+						<span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs tabular-nums transition-colors pointer-events-none ${idCard.length === MAX_ID_LENGTH ? 'text-orange-500 font-medium' : 'text-slate-500'
 							}`}>
 							{idCard.length}/{MAX_ID_LENGTH}
 						</span>
@@ -211,12 +211,12 @@ const AddCAMGuarantorForm: React.FC = () => {
 
 				<div>
 					<div className="flex items-center justify-between mb-2">
-						<label className="block text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+						<label className="block text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 							Guarantor Name
 						</label>
 
 						{isPrechecking && (
-							<span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-[var(--app-surface)] px-2.5 py-0.5 rounded-full">
+							<span className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-500 bg-[var(--app-surface)] px-2.5 py-0.5 rounded-full">
 								<Spinner className="w-3 h-3" />
 								Fetching…
 							</span>
@@ -231,7 +231,7 @@ const AddCAMGuarantorForm: React.FC = () => {
 						)}
 					</div>
 					<div className="relative">
-						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)] pointer-events-none">
+						<div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 									d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -242,7 +242,7 @@ const AddCAMGuarantorForm: React.FC = () => {
 							value={customerName}
 							readOnly
 							placeholder="Guarantor's Name"
-							className={`${inputBase} pl-10 pr-4 border-[var(--app-border)] bg-[var(--app-surface)] cursor-not-allowed`}
+							className={`${inputBase} pl-10 pr-4 border-[var(--app-border)] !bg-slate-100 !text-slate-600 cursor-not-allowed`}
 						/>
 					</div>
 				</div>

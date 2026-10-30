@@ -16,6 +16,8 @@ const toISO = (d: Date): string => {
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const AllCamDataPage: React.FC = () => {
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [searchBy, setSearchBy] = useState('1');
@@ -74,14 +76,14 @@ const AllCamDataPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
             <div className="max-w-full mx-auto">
-                <div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+                <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
                     <div className="mb-6">
                         <h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">All CAM Data</h1>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm items-end">
                         <div>
-                            <label className="text-[var(--app-muted)] block mb-1">Search By</label>
+                            <label className="text-[var(--app-text)] block mb-1">Search By</label>
                             <select
                                 value={searchBy}
                                 onChange={(e) => setSearchBy(e.target.value)}
@@ -92,18 +94,22 @@ const AllCamDataPage: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="text-[var(--app-muted)] block mb-1">Date From</label>
-                            <AsOfDatePicker label="" value={dateFrom} onChange={setDateFrom} required />
+                            <label className="text-[var(--app-text)] block mb-1">Date From</label>
+                            <div className={dateFieldClass}>
+                                <AsOfDatePicker label="" value={dateFrom} onChange={setDateFrom} required />
+                            </div>
                         </div>
                         <div>
-                            <label className="text-[var(--app-muted)] block mb-1">Date To</label>
-                            <AsOfDatePicker label="" value={dateTo} onChange={setDateTo} required />
+                            <label className="text-[var(--app-text)] block mb-1">Date To</label>
+                            <div className={dateFieldClass}>
+                                <AsOfDatePicker label="" value={dateTo} onChange={setDateTo} required />
+                            </div>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm items-end">
                         <div>
-                            <label className="text-[var(--app-muted)] block mb-1">Branch</label>
+                            <label className="text-[var(--app-text)] block mb-1">Branch</label>
                             <select
                                 value={branchCd}
                                 onChange={(e) => setBranchCd(e.target.value)}

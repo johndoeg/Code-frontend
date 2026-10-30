@@ -251,7 +251,7 @@ const PrintPreview: React.FC<{ reports: LeaseReport[]; onBack: () => void }> = (
 		<div className="no-print sticky top-0 z-10 bg-[var(--app-card)] border-b border-[var(--app-border)] px-6 py-3 flex items-center justify-between shadow-sm">
 			<button
 				onClick={onBack}
-				className="flex items-center gap-2 px-4 py-2 text-[var(--app-text)] bg-[var(--app-surface-alt)] hover:bg-gray-200 rounded-lg transition font-medium"
+				className="flex items-center gap-2 px-4 py-2 text-[var(--app-text)] bg-[var(--app-surface-alt)] hover:bg-[var(--app-surface)] rounded-lg transition font-medium"
 			>
 				<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -259,7 +259,7 @@ const PrintPreview: React.FC<{ reports: LeaseReport[]; onBack: () => void }> = (
 				Back to Search
 			</button>
 
-			<span className="text-sm text-[var(--app-muted)] font-medium">
+			<span className="text-sm text-[var(--app-text)] font-medium">
 				{reports.length} contract{reports.length !== 1 ? "s" : ""} — Customer History Payment Report
 			</span>
 
@@ -281,7 +281,7 @@ const PrintPreview: React.FC<{ reports: LeaseReport[]; onBack: () => void }> = (
 				const td: React.CSSProperties = { border: "1px solid #000", padding: "2px 4px" };
 
 				return (
-					<div key={rpt.leaseNo} className="page bg-[var(--app-card)] mx-auto mb-6 p-6 shadow-md"
+					<div key={rpt.leaseNo} className="page bg-white text-slate-900 mx-auto mb-6 p-6 shadow-md"
 						style={{ maxWidth: 1050, fontFamily: "Tahoma, sans-serif", fontSize: 12 }}>
 
 						<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 4 }}>
@@ -603,12 +603,12 @@ const HistoryPaymentReportPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-[1920px] mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">History Payment</h1>
-							<p className="text-[var(--app-muted)] mt-1">Search and print payment history records</p>
+							<p className="text-[var(--app-text)] mt-1">Search and print payment history records</p>
 						</div>
 						{selectedRecords.size > 0 && (
 							<div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
@@ -624,12 +624,12 @@ const HistoryPaymentReportPage: React.FC = () => {
 								<select
 									value={printBy}
 									onChange={(e) => handlePrintByChange(e.target.value)}
-									className="w-full px-3 py-3 rounded-lg border border-[var(--app-border)] bg-white text-[var(--app-text)] text-sm
+									className="w-full px-3 py-3 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm
 								           focus:outline-none focus:ring-2 focus:ring-blue-500"
 								>
-									<option value="" className="bg-white text-[var(--app-text)]">Select</option>
+									<option value="" className="bg-white text-slate-900">Select</option>
 									{printByOptions.map(opt => (
-										<option key={opt.value} value={opt.value} className="bg-white text-[var(--app-text)]">{opt.label}</option>
+										<option key={opt.value} value={opt.value} className="bg-white text-slate-900">{opt.label}</option>
 									))}
 								</select>
 							</div>
@@ -640,11 +640,11 @@ const HistoryPaymentReportPage: React.FC = () => {
 									<select
 										value={contractType}
 										onChange={(e) => setContractType(e.target.value as "1" | "2")}
-										className="w-full px-3 py-3 rounded-lg border border-[var(--app-border)] bg-white text-[var(--app-text)] text-sm
+										className="w-full px-3 py-3 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm
 								           focus:outline-none focus:ring-2 focus:ring-blue-500"
 									>
-										<option value="1" className="bg-white text-[var(--app-text)]">All Contract</option>
-										<option value="2" className="bg-white text-[var(--app-text)]">Outstanding Contract</option>
+										<option value="1" className="bg-white text-slate-900">All Contract</option>
+										<option value="2" className="bg-white text-slate-900">Outstanding Contract</option>
 									</select>
 								</div>
 							)}
@@ -663,7 +663,7 @@ const HistoryPaymentReportPage: React.FC = () => {
 												onKeyPress={(e) => handleKeyPress(e, ["2", "3", "5"].includes(printBy) ? "numeric" : "alphanumeric")}
 												onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
 												placeholder={getSearchFieldPlaceholder()}
-												className="w-full pl-3 pr-10 py-2.5 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+												className="w-full pl-3 pr-10 py-2.5 border border-[var(--app-border)] rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
 											/>
 											{searchTerm && (
 												<button
@@ -671,7 +671,7 @@ const HistoryPaymentReportPage: React.FC = () => {
 													onClick={() => setSearchTerm("")}
 													aria-label="Clear search"
 													className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-													           text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+													           text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 												>
 													<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 														<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -724,12 +724,12 @@ const HistoryPaymentReportPage: React.FC = () => {
 							<table className="w-full">
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Customer Name</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Customer No.</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">{middleCol.header}</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Address</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Phone</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Customer Name</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Customer No.</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">{middleCol.header}</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Address</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Phone</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">
 											<div className="flex items-center gap-2">
 												<input
 													type="checkbox"
@@ -750,9 +750,9 @@ const HistoryPaymentReportPage: React.FC = () => {
 										>
 											<td className="py-4 px-6 whitespace-nowrap text-sm font-medium text-[var(--app-text)]">{record.LESSEE_NM}</td>
 											<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-text)]">{record.LESSEE_NO}</td>
-											<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-muted)]">{middleCol.value(record)}</td>
-											<td className="py-4 px-6 text-sm text-[var(--app-muted)] max-w-xs truncate" title={record.ADDRESS}>{record.ADDRESS}</td>
-											<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-muted)]">{record.PHONE1}</td>
+											<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-text)]">{middleCol.value(record)}</td>
+											<td className="py-4 px-6 text-sm text-[var(--app-text)] max-w-xs truncate" title={record.ADDRESS}>{record.ADDRESS}</td>
+											<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-text)]">{record.PHONE1}</td>
 											<td className="py-4 px-6 whitespace-nowrap">
 												<input
 													type="checkbox"
@@ -781,7 +781,7 @@ const HistoryPaymentReportPage: React.FC = () => {
 					)}
 
 					{printBy && hasSearched && records.length === 0 && !loading && (
-						<div className="py-10 px-6 text-center text-[var(--app-muted)] border border-[var(--app-border)] rounded-lg">
+						<div className="py-10 px-6 text-center text-[var(--app-text)] border border-[var(--app-border)] rounded-lg">
 							<div className="flex flex-col items-center justify-center">
 								<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

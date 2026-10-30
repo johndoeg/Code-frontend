@@ -54,7 +54,7 @@ const Pagination: React.FC<PaginationProps> = ({
 			title={title}
 			className={`p-2 rounded-lg transition-colors ${disabled
 				? 'text-gray-300 cursor-not-allowed'
-				: 'text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]'
+				: 'text-[var(--app-text)] hover:bg-[var(--app-surface)]'
 				}`}
 		>
 			{children}
@@ -63,7 +63,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
 	return (
 		<div className={`flex items-center justify-between gap-4 ${className}`}>
-			<div className="text-sm text-[var(--app-muted)] shrink-0">
+			<div className="text-sm text-[var(--app-text)] shrink-0">
 				Showing <span className="font-semibold text-[var(--app-text)]">{startIndex}</span> to{' '}
 				<span className="font-semibold text-[var(--app-text)]">{endIndex}</span> of{' '}
 				<span className="font-semibold text-[var(--app-text)]">{totalItems}</span> results
@@ -71,7 +71,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
 			<div className="flex items-center gap-2">
 				{totalPages > 5 && (
-					<div className="flex items-center gap-1.5 text-sm text-[var(--app-muted)] mr-2">
+					<div className="flex items-center gap-1.5 text-sm text-[var(--app-text)] mr-2">
 						<span className="whitespace-nowrap">Go to</span>
 						<input
 							type="number"
@@ -81,7 +81,7 @@ const Pagination: React.FC<PaginationProps> = ({
 							onChange={(e) => setJumpValue(e.target.value)}
 							onKeyDown={handleJumpKeyDown}
 							placeholder="page"
-							className="w-14 px-2 py-1.5 text-center border border-[var(--app-border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+							className="w-14 px-2 py-1.5 text-center border border-[var(--app-border)] rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 						/>
 						<button
 							onClick={handleJump}

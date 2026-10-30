@@ -181,18 +181,18 @@ const GroupPage: React.FC = () => {
 			<div className="max-w-full mx-auto">
 
 				{akses === "9" && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
-						<h2 className="text-sm font-semibold text-[var(--app-muted)] uppercase tracking-wide mb-4">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+						<h2 className="text-sm font-semibold text-[var(--app-text)] uppercase tracking-wide mb-4">
 							Add Group
 						</h2>
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Code</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Code</label>
 								<input readOnly value={grpcode}
-									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--app-surface-alt)] font-mono" />
+									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-slate-100 text-slate-600 font-mono" />
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Type *</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Type *</label>
 								<select value={formType} onChange={e => setFormType(e.target.value)}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
 									<option value="" style={optionStyle}>Select…</option>
@@ -200,7 +200,7 @@ const GroupPage: React.FC = () => {
 								</select>
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group SIPP</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group SIPP</label>
 								<select value={formSipp} onChange={e => setFormSipp(e.target.value)}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
 									<option value="" style={optionStyle}>Select…</option>
@@ -208,7 +208,7 @@ const GroupPage: React.FC = () => {
 								</select>
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group SLIK</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group SLIK</label>
 								<select value={formSlik} onChange={e => setFormSlik(e.target.value)}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
 									<option value="" style={optionStyle}>Select…</option>
@@ -216,28 +216,28 @@ const GroupPage: React.FC = () => {
 								</select>
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Name *</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Name *</label>
 								<div className="relative">
 									<input maxLength={100} value={formName} placeholder="Enter group name…"
 										onChange={e => setFormName(e.target.value)}
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8" />
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8 bg-white text-slate-900 placeholder:text-slate-400" />
 									{formName && (
 										<button type="button" onClick={() => setFormName("")} aria-label="Clear group name"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
 								</div>
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Description *</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Description *</label>
 								<div className="relative">
 									<input value={formDesc} placeholder="Enter description…"
 										onChange={e => setFormDesc(e.target.value)}
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8" />
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8 bg-white text-slate-900 placeholder:text-slate-400" />
 									{formDesc && (
 										<button type="button" onClick={() => setFormDesc("")} aria-label="Clear group description"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
@@ -255,11 +255,11 @@ const GroupPage: React.FC = () => {
 					</div>
 				)}
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="flex items-center justify-between mb-5">
 						<div>
 							<h1 className="text-2xl font-bold text-[var(--app-text)]">Group</h1>
-							<p className="text-sm text-[var(--app-muted)] mt-0.5">View and manage customer groups</p>
+							<p className="text-sm text-[var(--app-text)] mt-0.5">View and manage customer groups</p>
 						</div>
 						<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
 							Total: {total}
@@ -274,7 +274,7 @@ const GroupPage: React.FC = () => {
 							<option value="2" style={optionStyle}>Group Name</option>
 						</select>
 						<div className="relative flex-1">
-							<svg className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2"
+							<svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
 								fill="none" viewBox="0 0 24 24">
 								<path fill="currentColor" d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16
 									9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11
@@ -286,10 +286,10 @@ const GroupPage: React.FC = () => {
 								onChange={e => setSearchVal(e.target.value)}
 								onKeyDown={e => e.key === "Enter" && handleSearch()}
 								className="w-full pl-10 pr-8 py-2.5 border border-[var(--app-border)] rounded-lg text-sm
-                           focus:ring-2 focus:ring-blue-500" />
+                           focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							{searchVal && (
 								<button type="button" onClick={() => setSearchVal("")} aria-label="Clear search"
-									className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+									className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 									&times;
 								</button>
 							)}
@@ -308,14 +308,14 @@ const GroupPage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider w-28">Code</th>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">Group Name</th>
-									<th className="py-3 px-5 text-center text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider w-52">Action</th>
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-28">Code</th>
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Group Name</th>
+									<th className="py-3 px-5 text-center text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-52">Action</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{groups.length === 0 && !loading ? (
-									<tr><td colSpan={3} className="py-12 text-center text-[var(--app-muted)]">
+									<tr><td colSpan={3} className="py-12 text-center text-[var(--app-text)]">
 										<div className="flex flex-col items-center gap-2">
 											<svg className="w-12 h-12 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -399,21 +399,21 @@ const GroupPage: React.FC = () => {
 			{editOpen && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
 					onClick={e => e.target === e.currentTarget && setEditOpen(false)}>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-lg animate-in slide-in-from-top-4">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-lg animate-in slide-in-from-top-4">
 						<div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)]">
 							<h2 className="font-semibold text-[var(--app-text)]">Edit Group</h2>
 							<button onClick={() => setEditOpen(false)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">×</button>
+								className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none">×</button>
 						</div>
 						<div className="px-6 py-5 space-y-4">
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Code</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Code</label>
 								<input readOnly value={editCode}
-									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--app-surface-alt)] font-mono" />
+									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-slate-100 text-slate-600 font-mono" />
 							</div>
 							<div className="grid grid-cols-2 gap-3">
 								<div>
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group SIPP</label>
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group SIPP</label>
 									<select value={editSipp} onChange={e => setEditSipp(e.target.value)}
 										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
 										<option value="" style={optionStyle}>Select…</option>
@@ -421,7 +421,7 @@ const GroupPage: React.FC = () => {
 									</select>
 								</div>
 								<div>
-									<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group SLIK</label>
+									<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group SLIK</label>
 									<select value={editSlik} onChange={e => setEditSlik(e.target.value)}
 										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
 										<option value="" style={optionStyle}>Select…</option>
@@ -430,33 +430,33 @@ const GroupPage: React.FC = () => {
 								</div>
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Name *</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Name *</label>
 								<div className="relative">
 									<input maxLength={100} autoFocus value={editName} onChange={e => setEditName(e.target.value)}
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8" />
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8 bg-white text-slate-900 placeholder:text-slate-400" />
 									{editName && (
 										<button type="button" onClick={() => setEditName("")} aria-label="Clear group name"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
 								</div>
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Description *</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Description *</label>
 								<div className="relative">
 									<input value={editDesc} onChange={e => setEditDesc(e.target.value)}
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8" />
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8 bg-white text-slate-900 placeholder:text-slate-400" />
 									{editDesc && (
 										<button type="button" onClick={() => setEditDesc("")} aria-label="Clear group description"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
 								</div>
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Group Type *</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Group Type *</label>
 								<select value={editType} onChange={e => setEditType(e.target.value)}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500">
 									<option value="" style={optionStyle}>Select…</option>

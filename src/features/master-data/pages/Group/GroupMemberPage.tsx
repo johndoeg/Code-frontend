@@ -142,9 +142,9 @@ const GroupMemberPage: React.FC = () => {
 				<div className="flex items-center justify-between">
 					<div>
 						<h1 className="text-xl font-bold text-[var(--app-text)]">
-							Group Member — <span className="text-blue-700">{info?.grpname || grpcode}</span>
+							Group Member — <span className="text-blue-500">{info?.grpname || grpcode}</span>
 						</h1>
-						<p className="text-sm text-[var(--app-muted)] mt-0.5">Manage members of this group</p>
+						<p className="text-sm text-[var(--app-text)] mt-0.5">Manage members of this group</p>
 					</div>
 					<button onClick={() => navigate("/group-entry")}
 						className="px-4 py-2 text-sm border border-[var(--app-border)] rounded-lg text-[var(--app-text)] hover:bg-[var(--app-surface)]">
@@ -153,20 +153,20 @@ const GroupMemberPage: React.FC = () => {
 				</div>
 
 				{info && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-5">
-						<h2 className="text-sm font-semibold text-[var(--app-muted)] uppercase tracking-wide mb-3">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-5">
+						<h2 className="text-sm font-semibold text-[var(--app-text)] uppercase tracking-wide mb-3">
 							Group Information
 						</h2>
 						<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 							<div>
-								<p className="text-xs font-medium text-[var(--app-muted)] mb-1">Group Name</p>
+								<p className="text-xs font-medium text-[var(--app-text)] mb-1">Group Name</p>
 								<p className="text-sm font-medium text-[var(--app-text)] bg-[var(--app-surface)] border
                               border-[var(--app-border)] rounded-lg px-3 py-2.5">
 									{info.grpname}
 								</p>
 							</div>
 							<div>
-								<p className="text-xs font-medium text-[var(--app-muted)] mb-1">Group SIPP</p>
+								<p className="text-xs font-medium text-[var(--app-text)] mb-1">Group SIPP</p>
 								<p className="text-sm text-[var(--app-text)] bg-[var(--app-surface)] border
                               border-[var(--app-border)] rounded-lg px-3 py-2.5 truncate"
 									title={info.sipp_desc || info.sipp_code}>
@@ -174,7 +174,7 @@ const GroupMemberPage: React.FC = () => {
 								</p>
 							</div>
 							<div>
-								<p className="text-xs font-medium text-[var(--app-muted)] mb-1">Group SLIK</p>
+								<p className="text-xs font-medium text-[var(--app-text)] mb-1">Group SLIK</p>
 								<p className="text-sm text-[var(--app-text)] bg-[var(--app-surface)] border
                               border-[var(--app-border)] rounded-lg px-3 py-2.5 truncate"
 									title={info.slik_desc || info.slik_code}>
@@ -186,11 +186,11 @@ const GroupMemberPage: React.FC = () => {
 				)}
 
 				{akses === "9" && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
-						<h2 className="text-sm font-semibold text-[var(--app-muted)] uppercase tracking-wide mb-4">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+						<h2 className="text-sm font-semibold text-[var(--app-text)] uppercase tracking-wide mb-4">
 							Add Member
 						</h2>
-						<p className="text-xs text-[var(--app-muted)] mb-3">
+						<p className="text-xs text-[var(--app-text)] mb-3">
 							Type at least 2 characters to search customers
 						</p>
 						<div className="relative">
@@ -199,7 +199,7 @@ const GroupMemberPage: React.FC = () => {
 								placeholder="Search customer by name…"
 								value={custSearch}
 								onChange={e => handleCustSearchChange(e.target.value)}
-								className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 pr-8"
+								className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 pr-8"
 							/>
 							{custSearching && (
 								<svg className="animate-spin w-4 h-4 text-blue-500 absolute right-3 top-3"
@@ -219,10 +219,10 @@ const GroupMemberPage: React.FC = () => {
 											<div className="flex items-center justify-between">
 												<div>
 													<p className="text-sm font-medium text-[var(--app-text)]">{c.LESSEE_NM}</p>
-													<p className="text-xs text-[var(--app-muted)] mt-0.5">{c.APLESS} · {c.address}</p>
+													<p className="text-xs text-[var(--app-text)] mt-0.5">{c.APLESS} · {c.address}</p>
 												</div>
 												{c.GrpCode && (
-													<span className="text-xs bg-[var(--app-surface-alt)] text-[var(--app-muted)] px-2 py-0.5 rounded-full shrink-0 ml-2">
+													<span className="text-xs bg-[var(--app-surface-alt)] text-[var(--app-text)] px-2 py-0.5 rounded-full shrink-0 ml-2">
 														Group {c.GrpCode}
 													</span>
 												)}
@@ -234,7 +234,7 @@ const GroupMemberPage: React.FC = () => {
 						</div>
 
 						{selectedCust && (
-							<div className="mt-3 p-3 bg-[var(--app-surface)] border border-blue-200 rounded-lg flex
+							<div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex
                               items-center justify-between">
 								<div>
 									<p className="text-sm font-medium text-blue-800">{selectedCust.LESSEE_NM}</p>
@@ -260,7 +260,7 @@ const GroupMemberPage: React.FC = () => {
 					</div>
 				)}
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="flex items-center justify-between mb-5">
 						<h2 className="text-lg font-bold text-[var(--app-text)]">Members</h2>
 						<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -270,7 +270,7 @@ const GroupMemberPage: React.FC = () => {
 
 					<div className="flex gap-3 mb-5">
 						<div className="relative flex-1">
-							<svg className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2"
+							<svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
 								fill="none" viewBox="0 0 24 24">
 								<path fill="currentColor" d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16
 									9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11
@@ -281,7 +281,7 @@ const GroupMemberPage: React.FC = () => {
 							<input type="text" placeholder="Customer Name…" value={searchName}
 								onChange={e => setSearchName(e.target.value)}
 								onKeyDown={e => e.key === "Enter" && handleSearch()}
-								className="w-full pl-10 pr-4 py-2.5 border border-[var(--app-border)] rounded-lg text-sm
+								className="w-full pl-10 pr-4 py-2.5 border border-[var(--app-border)] rounded-lg text-sm bg-white text-slate-900 placeholder:text-slate-400
                            focus:ring-2 focus:ring-blue-500"/>
 						</div>
 						<button onClick={handleSearch} disabled={loading}
@@ -298,19 +298,19 @@ const GroupMemberPage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider w-36">Customer No.</th>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">Customer Name</th>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">Address</th>
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-36">Customer No.</th>
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Customer Name</th>
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Address</th>
 									{akses === "9" && (
-										<th className="py-3 px-5 text-center text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider w-24">Action</th>
+										<th className="py-3 px-5 text-center text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-24">Action</th>
 									)}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{members.length === 0 && !loading ? (
-									<tr><td colSpan={akses === "9" ? 4 : 3} className="py-12 text-center text-[var(--app-muted)]">
+									<tr><td colSpan={akses === "9" ? 4 : 3} className="py-12 text-center text-[var(--app-text)]">
 										<div className="flex flex-col items-center gap-2">
-											<svg className="w-12 h-12 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<svg className="w-12 h-12 text-[var(--app-text)] opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 													d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
 											</svg>
@@ -325,7 +325,7 @@ const GroupMemberPage: React.FC = () => {
 												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}>
 												<td className="py-3 px-5 text-sm font-mono font-medium text-[var(--app-text)]">{m.APLESS}</td>
 												<td className="py-3 px-5 text-sm text-[var(--app-text)]">{m.LESSEE_NM}</td>
-												<td className="py-3 px-5 text-sm text-[var(--app-muted)]">{m.address}</td>
+												<td className="py-3 px-5 text-sm text-[var(--app-text)]">{m.address}</td>
 												{akses === "9" && (
 													<td className="py-3 px-5 text-center">
 														<button onClick={() => handleRemoveMember(m)}

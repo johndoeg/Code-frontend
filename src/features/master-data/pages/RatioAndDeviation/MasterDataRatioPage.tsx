@@ -142,8 +142,8 @@ const MasterDataRatioPage: React.FC = () => {
 		const showRange = form.remark === "3";
 
 		const baseCls = readonly
-			? "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed w-40"
-			: "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40";
+			? "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed w-40"
+			: "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40";
 
 		const numInput = (val: string, onChange?: (v: string) => void) => (
 			<div className="flex items-center gap-1">
@@ -159,12 +159,12 @@ const MasterDataRatioPage: React.FC = () => {
 					/>
 					{!readonly && val && (
 						<button type="button" onClick={() => onChange && onChange("")} aria-label="Clear"
-							className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+							className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 							&times;
 						</button>
 					)}
 				</div>
-				<span className="text-sm text-[var(--app-muted)]">{cfg.suffix}</span>
+				<span className="text-sm text-[var(--app-text)]">{cfg.suffix}</span>
 			</div>
 		);
 
@@ -187,7 +187,7 @@ const MasterDataRatioPage: React.FC = () => {
 				{field1}
 				{showRange && (
 					<>
-						<span className="text-sm text-[var(--app-muted)] font-medium">s/d</span>
+						<span className="text-sm text-[var(--app-text)] font-medium">s/d</span>
 						{field2}
 					</>
 				)}
@@ -198,11 +198,11 @@ const MasterDataRatioPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Actual Ratio</h1>
-						<p className="text-[var(--app-muted)] mt-1">Record actual vs OJK threshold values per ratio</p>
+						<p className="text-[var(--app-text)] mt-1">Record actual vs OJK threshold values per ratio</p>
 					</div>
 
 					<div className="bg-[var(--app-surface)] rounded-xl p-4 border border-[var(--app-border)]">
@@ -237,11 +237,11 @@ const MasterDataRatioPage: React.FC = () => {
 					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
 					onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}
 				>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
 
 						<div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)] bg-[var(--app-surface)]">
 							<h2 className="text-lg font-bold text-[var(--app-text)]">Add New Record</h2>
-							<button onClick={() => setModalOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">&times;</button>
+							<button onClick={() => setModalOpen(false)} className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none">&times;</button>
 						</div>
 
 						<div className="px-6 py-5 space-y-4">
@@ -297,7 +297,7 @@ const MasterDataRatioPage: React.FC = () => {
 										type="text"
 										value={fullname}
 										readOnly
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed"
 									/>
 								</div>
 								<div>
@@ -306,7 +306,7 @@ const MasterDataRatioPage: React.FC = () => {
 										type="text"
 										value={new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric" })}
 										readOnly
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed"
 									/>
 								</div>
 							</div>
@@ -315,25 +315,25 @@ const MasterDataRatioPage: React.FC = () => {
 								<div>
 									<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Remark</label>
 									{ojkLoading ? (
-										<div className="flex items-center gap-2 py-2 text-sm text-[var(--app-muted)]">
+										<div className="flex items-center gap-2 py-2 text-sm text-[var(--app-text)]">
 											<Spinner size={4} /> Loading...
 										</div>
 									) : (
 										<select
 											value={form.remark}
 											disabled
-											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
+											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed"
 										>
 											<option value="">—</option>
 											{remarkOpts.map(o => <option key={o.value} value={o.value}>{o.desc_value}</option>)}
 										</select>
 									)}
-									<p className="text-xs text-[var(--app-muted)] mt-1">Auto-filled from OJK threshold</p>
+									<p className="text-xs text-[var(--app-text)] mt-1">Auto-filled from OJK threshold</p>
 								</div>
 							</div>
 
 							<div className="border-t border-[var(--app-border)] pt-1">
-								<p className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Amount / Category</p>
+								<p className="text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">Amount / Category</p>
 							</div>
 
 							<div className="grid grid-cols-[140px_1fr] items-center gap-4">
@@ -350,11 +350,11 @@ const MasterDataRatioPage: React.FC = () => {
 								<div>
 									<label className="text-sm font-medium text-[var(--app-text)]">Threshold Level (OJK)</label>
 									{form.ojk_date && !ojkLoading && (
-										<p className="text-xs text-[var(--app-muted)] mt-0.5">as of {form.ojk_date}</p>
+										<p className="text-xs text-[var(--app-text)] mt-0.5">as of {form.ojk_date}</p>
 									)}
 								</div>
 								{ojkLoading
-									? <span className="text-sm text-[var(--app-muted)] flex items-center gap-1"><Spinner size={4} /> Loading...</span>
+									? <span className="text-sm text-[var(--app-text)] flex items-center gap-1"><Spinner size={4} /> Loading...</span>
 									: renderFields(form.ojk1, form.ojk2, undefined, undefined, true)
 								}
 							</div>

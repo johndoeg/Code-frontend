@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
+import { useOptions } from '@/shared/hooks/useOptions';
 
 interface InsuranceRecord {
 	lease_no: string;
@@ -48,7 +49,7 @@ const StatusIcon: React.FC<{ status: string }> = ({ status }) => {
 
 const InsuranceEntryPage: React.FC = () => {
 	const [records, setRecords] = useState<InsuranceRecord[]>([]);
-	const [companies, setCompanies] = useState<InsuranceCompany[]>([]);
+	const { data: companies = [] } = useOptions<InsuranceCompany[]>('/InsuranceEntry/companies');
 	const [selectedIns, setSelectedIns] = useState<string>('All');
 	const [contractNo, setContractNo] = useState<string>('');
 	const [appliedSearch, setAppliedSearch] = useState<string>('');
@@ -67,13 +68,6 @@ const InsuranceEntryPage: React.FC = () => {
 	const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 	const [selectAll, setSelectAll] = useState<boolean>(false);
 	const [saving, setSaving] = useState<boolean>(false);
-
-	const fetchCompanies = useCallback(async () => {
-		try {
-			const res = await api.get('/InsuranceEntry/companies');
-			setCompanies(res.data ?? []);
-		} catch {}
-	}, []);
 
 	const fetchRecords = useCallback(async () => {
 		setLoading(true);
@@ -103,7 +97,6 @@ const InsuranceEntryPage: React.FC = () => {
 		}
 	}, [selectedIns, appliedSearch, uploadFailed, page, limit]);
 
-	useEffect(() => { fetchCompanies(); }, [fetchCompanies]);
 	useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
 	const handleInsChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -227,11 +220,11 @@ const InsuranceEntryPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Entry Host to Host</h1>
-							<p className="text-[var(--app-muted)] mt-1">Manage insurance H2H entries</p>
+							<p className="text-[var(--app-text)] mt-1">Manage insurance H2H entries</p>
 						</div>
 						<button
 							onClick={openAddModal}
@@ -277,13 +270,13 @@ const InsuranceEntryPage: React.FC = () => {
 										value={contractNo}
 										onChange={e => setContractNo(e.target.value)}
 										onKeyDown={e => e.key === 'Enter' && handleSearch()}
-										className="px-3 py-1.5 border border-[var(--app-border)] rounded-md text-sm pr-7
+										className="px-3 py-1.5 border border-[var(--app-border)] rounded-md text-sm pr-7 bg-white text-slate-900
 										           focus:outline-none focus:ring-2 focus:ring-blue-500"
 										style={{ height: '2.2rem', width: '200px' }}
 									/>
 									{contractNo && (
 										<button type="button" onClick={clearContractNo} aria-label="Clear contract number"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
@@ -337,7 +330,7 @@ const InsuranceEntryPage: React.FC = () => {
 									{['No.', 'Contract No.', 'Customer Name', 'Insurance Company',
 										'Policy No.', 'Status', 'Message', 'Success Date', ''].map(h => (
 											<th key={h}
-												className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)]
+												className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)]
 										               uppercase tracking-wider whitespace-nowrap">
 												{h}
 											</th>
@@ -355,7 +348,7 @@ const InsuranceEntryPage: React.FC = () => {
 									</tr>
 								) : records.length === 0 ? (
 									<tr>
-										<td colSpan={9} className="py-10 text-center text-[var(--app-muted)]">
+										<td colSpan={9} className="py-10 text-center text-[var(--app-text)]">
 											No records found.
 										</td>
 									</tr>
@@ -412,7 +405,7 @@ const InsuranceEntryPage: React.FC = () => {
 
 			{addModalOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh]
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh]
 					                overflow-hidden flex flex-col">
 
 						<div className="flex justify-between items-center p-6 border-b">
@@ -420,7 +413,7 @@ const InsuranceEntryPage: React.FC = () => {
 								Entry Host To Host — Input Contract
 							</h2>
 							<button onClick={() => setAddModalOpen(false)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+								className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
 										d="M6 18L18 6M6 6l12 12" />
@@ -440,12 +433,12 @@ const InsuranceEntryPage: React.FC = () => {
 											value={retailContractNo}
 											onChange={e => setRetailContractNo(e.target.value)}
 											onKeyDown={e => e.key === 'Enter' && handleGetContractData()}
-											className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md text-sm pr-7
+											className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md text-sm pr-7 bg-white text-slate-900
 											           focus:outline-none focus:ring-2 focus:ring-blue-500"
 										/>
 										{retailContractNo && (
 											<button type="button" onClick={() => setRetailContractNo('')} aria-label="Clear contract retail number"
-												className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+												className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 												&times;
 											</button>
 										)}
@@ -472,7 +465,7 @@ const InsuranceEntryPage: React.FC = () => {
 										readOnly
 										value={masterContract}
 										className="px-3 py-2 border border-[var(--app-border)] rounded-md text-sm
-										           bg-[var(--app-surface)] text-[var(--app-muted)] cursor-not-allowed"
+										           bg-slate-100 text-slate-600 cursor-not-allowed"
 									/>
 								</div>
 							</div>
@@ -485,7 +478,7 @@ const InsuranceEntryPage: React.FC = () => {
 										readOnly
 										value={formatCoverDate()}
 										className="px-3 py-2 border border-[var(--app-border)] rounded-md text-sm
-										           bg-[var(--app-surface)] text-[var(--app-muted)] cursor-not-allowed"
+										           bg-slate-100 text-slate-600 cursor-not-allowed"
 									/>
 								</div>
 							</div>
@@ -494,19 +487,19 @@ const InsuranceEntryPage: React.FC = () => {
 								<table className="w-full text-sm">
 									<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)] sticky top-0">
 										<tr>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>
 												No.
 											</th>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}>
 												Contract No.
 											</th>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '25%' }}>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '25%' }}>
 												Customer Name
 											</th>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}>
 												Insurance Company
 											</th>
-											<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>
+											<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>
 												<div className="flex items-center justify-center gap-2">
 													Select All
 													<input
@@ -524,7 +517,7 @@ const InsuranceEntryPage: React.FC = () => {
 										{contractRows.length === 0 ? (
 											<tr>
 												<td colSpan={5}
-													className="py-8 text-center text-[var(--app-muted)] text-sm italic">
+													className="py-8 text-center text-[var(--app-text)] text-sm italic">
 													Search a contract to see available rows.
 												</td>
 											</tr>

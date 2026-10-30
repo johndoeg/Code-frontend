@@ -3,6 +3,8 @@ import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import ReportPrintModal, { PRINT_CELL, PRINT_HEAD, fetchAllResponses } from '@/features/cam/components/ReportPrintModal';
 import Pagination from '@/helpers/Pagination';
+import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
+import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
 
 interface BranchOption {
 	branch_cd: string;
@@ -23,6 +25,7 @@ interface DetailRow {
 	cmo: string;
 	status: string;
 	is_revision: boolean;
+	edit_link_params: Record<string, string | number | null>;
 }
 
 interface SegmentTotal {
@@ -62,6 +65,23 @@ const fmt = (n: number) => (n ?? 0).toLocaleString('id-ID', { maximumFractionDig
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
+const ctxFromEditParams = (p: Record<string, string | number | null>, custName?: string): CamCtx => ({
+	finType: String(p.id1 ?? ''),
+	indCor: String(p.id2 ?? ''),
+	repeat: String(p.id3 ?? ''),
+	guarantor: String(p.id4 ?? ''),
+	newCar: String(p.id5 ?? ''),
+	status: String(p.id6 ?? ''),
+	purpoffinc: String(p.id7 ?? ''),
+	c2c: String(p.id8 ?? ''),
+	contType: String(p.id9 ?? ''),
+	apless: String(p.apless ?? ''),
+	applno: String(p.applno ?? ''),
+	custName,
+});
+
 const SEGMENT_ROWS: { key: keyof Omit<GrandTotals, 'grand_total'>; type: string; condition: string }[] = [
 	{ key: 'passenger_new', type: 'Passenger', condition: 'New' },
 	{ key: 'passenger_used', type: 'Passenger', condition: 'Used' },
@@ -99,6 +119,8 @@ const ListInProgressCAMPage: React.FC = () => {
 		periodLabel: string;
 		branchName: string;
 	} | null>(null);
+
+	const [activeCam, setActiveCam] = useState<{ ctx: CamCtx } | null>(null);
 
 	useEffect(() => {
 		(async () => {
@@ -218,35 +240,39 @@ const ListInProgressCAMPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="mb-6">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">List In Progress CAM</h1>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 text-sm items-end">
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Start Create Date</label>
-							<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							<label className="text-[var(--app-text)] block mb-1">Start Create Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">End Create Date</label>
-							<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							<label className="text-[var(--app-text)] block mb-1">End Create Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Customer Name</label>
+							<label className="text-[var(--app-text)] block mb-1">Customer Name</label>
 							<div className="relative">
 								<input
 									type="text"
 									value={lesseeNm}
 									onChange={(e) => setLesseeNm(e.target.value)}
-									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none pr-8"
+									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none pr-8"
 								/>
 								{lesseeNm && (
 									<button
 										type="button"
 										onClick={() => setLesseeNm('')}
 										aria-label="Clear customer name"
-										className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none"
+										className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none"
 									>
 										&times;
 									</button>
@@ -254,12 +280,12 @@ const ListInProgressCAMPage: React.FC = () => {
 							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Branch</label>
+							<label className="text-[var(--app-text)] block mb-1">Branch</label>
 							<select
 								value={branch}
 								onChange={(e) => setBranch(e.target.value)}
 								disabled={branchDisabled}
-								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-[var(--app-surface-alt)]"
+								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
 							>
 								<option value="" style={optionStyle}>Select</option>
 								{branches.map((b) => (
@@ -305,13 +331,11 @@ const ListInProgressCAMPage: React.FC = () => {
 							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto" />
 						</div>
 					) : !hasSearched ? (
-						<div className="py-10 text-center text-[var(--app-muted)] text-sm">
-							Choose your filters and click Preview.
-						</div>
+						<div className="py-10 text-center text-[var(--app-muted)] text-sm"></div>
 					) : (
 						<>
 							{branchName && (
-								<p className="text-sm text-[var(--app-muted)] mb-3">Branch : {branchName}</p>
+								<p className="text-sm text-[var(--app-text)] mb-3">Branch : {branchName}</p>
 							)}
 
 							<div className="overflow-x-auto rounded-lg border border-[var(--app-border)] mb-6">
@@ -343,7 +367,13 @@ const ListInProgressCAMPage: React.FC = () => {
 												<tr key={row.appl_no} className="odd:bg-[var(--app-surface)]">
 													<td className="border border-[var(--app-border)] px-1 py-1 text-center">{row.no}</td>
 													<td className="border border-[var(--app-border)] px-1 py-1">
-														{row.cam_no}
+														<button
+															type="button"
+															onClick={() => setActiveCam({ ctx: ctxFromEditParams(row.edit_link_params, row.customer_name) })}
+															className="text-blue-600 hover:underline"
+														>
+															{row.cam_no}
+														</button>
 														{row.is_revision && (
 															<span className="ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] bg-purple-100 text-purple-700">
 																Revised
@@ -372,14 +402,14 @@ const ListInProgressCAMPage: React.FC = () => {
 							)}
 
 							{grandTotals && (
-								<div>
+								<div className="text-[var(--app-text)]">
 									<div className="font-semibold underline mb-2 text-sm">
 										Grand Total* ({periodLabel.replace('Period : ', '') || 'All Dates'}):
 									</div>
 									<div className="overflow-x-auto">
 										<table className="text-sm border-collapse w-full max-w-xl">
 											<thead>
-												<tr className="bg-[var(--app-surface-alt)]">
+												<tr className="bg-[var(--app-surface-alt)] text-[var(--app-text)]">
 													<th className="border border-[var(--app-border)] px-2 py-1">Type</th>
 													<th className="border border-[var(--app-border)] px-2 py-1">Condition</th>
 													<th className="border border-[var(--app-border)] px-2 py-1">Net Finance</th>
@@ -398,7 +428,7 @@ const ListInProgressCAMPage: React.FC = () => {
 														</tr>
 													);
 												})}
-												<tr className="bg-gray-200 font-bold">
+												<tr className="bg-gray-200 text-slate-900 font-bold">
 													<td colSpan={2} className="border border-[var(--app-border)] px-2 py-1 text-center">
 														Grand Total
 													</td>
@@ -408,7 +438,7 @@ const ListInProgressCAMPage: React.FC = () => {
 											</tbody>
 										</table>
 									</div>
-									<div className="text-xs text-[var(--app-muted)] italic mt-2">
+									<div className="text-xs text-[var(--app-text)] opacity-70 italic mt-2">
 										*Grand Total Net Finance and Unit based on latest revised CAM (if any)
 									</div>
 								</div>
@@ -417,6 +447,27 @@ const ListInProgressCAMPage: React.FC = () => {
 					)}
 				</div>
 			</div>
+
+			{activeCam && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+					<div
+						role="dialog"
+						aria-modal="true"
+						aria-label={`CAM ${activeCam.ctx.applno} detail`}
+						className="flex max-h-[90vh] w-[95vw] flex-col overflow-hidden rounded-2xl bg-[var(--app-card)] shadow-2xl"
+					>
+						<div className="min-h-0 flex-1 overflow-y-auto">
+							<CamViewTabs
+								ctx={activeCam.ctx}
+								initialMenu={1}
+								initialSubmenu={1}
+								onHome={() => setActiveCam(null)}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
+
 			{printData && (
 				<ReportPrintModal
 					title="LIST IN PROGRESS CAM"

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
 import api from '@/shared/api/axiosInstance';
 
 interface CustomerRow {
@@ -10,7 +9,8 @@ interface CustomerRow {
 const fmtNum = (v: number) =>
 	new Intl.NumberFormat("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v);
 
-function exportExcel(rows: CustomerRow[]): void {
+async function exportExcel(rows: CustomerRow[]): Promise<void> {
+	const XLSX = await import("xlsx");
 	const data: (string | number)[][] = [
 		["No.", "Customer Name", "Total Outstanding Principal"],
 		...rows.map((r, i) => [i + 1, r.lessee_nm, r.total]),
@@ -42,16 +42,16 @@ const Top20CustomerPage: React.FC = () => {
 				<div className="mb-6 flex items-center justify-between flex-wrap gap-3">
 					<div>
 						<h1 className="text-2xl font-semibold text-[var(--app-text)]">Top 20 Customer</h1>
-						<p className="text-sm text-[var(--app-muted)] mt-1">
+						<p className="text-sm text-[var(--app-text)] mt-1">
 							Ranked by total outstanding principal
 						</p>
 					</div>
 
 					{data.length > 0 && (
 						<button
-							onClick={() => exportExcel(data)}
+							onClick={() => { void exportExcel(data); }}
 							className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg
-								bg-green-50 text-green-800 border border-green-200 hover:bg-green-100 transition-all"
+								bg-green-600 text-white border border-green-700 hover:bg-green-700 transition-all"
 						>
 							Export to Excel
 						</button>
@@ -81,13 +81,13 @@ const Top20CustomerPage: React.FC = () => {
 						<table className="w-full border-collapse text-sm">
 							<thead>
 								<tr className="bg-[var(--app-surface)]">
-									<th className="px-4 py-3 text-xs font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] text-center w-14">
+									<th className="px-4 py-3 text-xs font-medium text-[var(--app-text)] border-b border-[var(--app-border)] text-center w-14">
 										No.
 									</th>
-									<th className="px-4 py-3 text-xs font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] text-left">
+									<th className="px-4 py-3 text-xs font-medium text-[var(--app-text)] border-b border-[var(--app-border)] text-left">
 										Customer Name
 									</th>
-									<th className="px-4 py-3 text-xs font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] text-right">
+									<th className="px-4 py-3 text-xs font-medium text-[var(--app-text)] border-b border-[var(--app-border)] text-right">
 										Total Outstanding Principal
 									</th>
 								</tr>
@@ -105,7 +105,7 @@ const Top20CustomerPage: React.FC = () => {
 													{i + 1}
 												</span>
 											) : (
-												<span className="text-[var(--app-muted)] tabular-nums">{i + 1}</span>
+												<span className="text-[var(--app-text)] tabular-nums">{i + 1}</span>
 											)}
 										</td>
 										<td className="px-4 py-2.5 border-b border-[var(--app-border)] text-[var(--app-text)] font-medium">
@@ -122,7 +122,7 @@ const Top20CustomerPage: React.FC = () => {
 				)}
 
 				{!loading && !error && data.length === 0 && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
+					<div className="py-16 text-center text-sm text-[var(--app-text)] border border-dashed border-[var(--app-border)] rounded-xl">
 						Tidak ada data
 					</div>
 				)}

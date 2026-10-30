@@ -70,7 +70,7 @@ const COLOR_MAP: Record<RowColor, string> = {
 };
 
 const LINK_COLOR_MAP: Record<RowColor, string> = {
-	default: "text-blue-800 hover:text-blue-400 dark:text-blue-400 dark:hover:text-blue-300",
+	default: "text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300",
 	revise: "text-green-700 dark:text-green-400 font-semibold hover:text-green-800 dark:hover:text-green-300",
 	reject: "text-fuchsia-600 dark:text-fuchsia-400 font-semibold hover:text-fuchsia-700 dark:hover:text-fuchsia-300",
 };
@@ -89,13 +89,13 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 	if (!open) return null;
 	return (
 		<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-			<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-sm p-6">
+			<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-sm p-6">
 				<h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-2">{title}</h3>
 				<p className="text-[var(--app-text)] mb-6 text-sm">{message}</p>
 				<div className="flex justify-end gap-3">
 					<button
 						onClick={onCancel}
-						className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-muted)] hover:bg-[var(--app-surface)] text-sm"
+						className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-text)] hover:bg-[var(--app-surface)] text-sm"
 					>
 						Cancel
 					</button>
@@ -401,9 +401,9 @@ const CamOnHandPage: React.FC = () => {
 	};
 
 	const renderCmoHeaders = () => (
-		<tr className="bg-gradient-to-r from-[var(--app-surface-alt)] to-slate-200 dark:from-slate-700 dark:to-slate-800">
+		<tr className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)] dark:from-slate-700 dark:to-slate-800">
 			{["Date", "CAM No.", "Customer Name", "Status", "Branch", "", "Actions", "Send"].map((h, i) => (
-				<th key={i} className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">
+				<th key={i} className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider whitespace-nowrap">
 					{h}
 				</th>
 			))}
@@ -411,9 +411,9 @@ const CamOnHandPage: React.FC = () => {
 	);
 
 	const renderApproverHeaders = (extra: string) => (
-		<tr className="bg-gradient-to-r from-[var(--app-surface-alt)] to-slate-200 dark:from-slate-700 dark:to-slate-800">
+		<tr className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)] dark:from-slate-700 dark:to-slate-800">
 			{["Date", "CAM No.", "Customer Name", "Status", "Branch - CMO", "", "Actions", extra].map((h, i) => (
-				<th key={i} className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] dark:text-slate-300 uppercase tracking-wider whitespace-nowrap">
+				<th key={i} className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider whitespace-nowrap">
 					{h}
 				</th>
 			))}
@@ -429,7 +429,7 @@ const CamOnHandPage: React.FC = () => {
 		return (
 			<tr key={row.appl_no || `cmo-${idx}`}
 				className={`${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"} hover:bg-[var(--app-surface)] dark:hover:bg-slate-700/60 transition-colors`}>
-				<td className="py-3 px-4 text-sm whitespace-nowrap text-[var(--app-muted)]">{row.tgl}</td>
+				<td className="py-3 px-4 text-sm whitespace-nowrap text-[var(--app-text)]">{row.tgl}</td>
 				<td className="py-3 px-4 text-sm whitespace-nowrap">
 					<button type="button" onClick={() => openCam(row, "View")}
 						className={`text-left underline underline-offset-2 ${linkColorCls}`}>
@@ -467,7 +467,7 @@ const CamOnHandPage: React.FC = () => {
 		return (
 			<tr key={row.appl_no || `appr-${idx}`}
 				className={`${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"} hover:bg-[var(--app-surface)] dark:hover:bg-slate-700/60 transition-colors`}>
-				<td className="py-3 px-4 text-sm whitespace-nowrap text-[var(--app-muted)]">{row.tgl}</td>
+				<td className="py-3 px-4 text-sm whitespace-nowrap text-[var(--app-text)]">{row.tgl}</td>
 				<td className="py-3 px-4 text-sm whitespace-nowrap">
 					<button type="button" onClick={() => openCam(row, "View", row.menmen)}
 						className={`text-left underline underline-offset-2 ${linkColorCls}`}>
@@ -507,15 +507,15 @@ const CamOnHandPage: React.FC = () => {
 	};
 
 	return (
-		<div className="min-h-screen bg-[var(--app-surface)]">
+		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 								On Process — On Hand
 							</h1>
-							<p className="text-[var(--app-muted)] mt-1 text-sm">
+							<p className="text-[var(--app-text)] mt-1 text-sm">
 								Credit Approval Memo tracking
 							</p>
 						</div>
@@ -528,7 +528,7 @@ const CamOnHandPage: React.FC = () => {
 						<select
 							value={searchBy}
 							onChange={e => setSearchBy(e.target.value)}
-							className="border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-card)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-blue-400"
+							className="border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400"
 						>
 							<option value="1">CAM No.</option>
 							<option value="2">Customer Name</option>
@@ -540,14 +540,14 @@ const CamOnHandPage: React.FC = () => {
 								onChange={e => setSearchVal(e.target.value)}
 								onKeyDown={handleSearchKeyDown}
 								placeholder="Search…"
-								className="border border-[var(--app-border)] bg-[var(--app-card)] text-[var(--app-text)] rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-48"
+								className="border border-[var(--app-border)] bg-white text-slate-900 placeholder:text-slate-400 rounded-lg pl-3 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-48"
 							/>
 							{searchVal && (
 								<button
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
-									className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-sm leading-none"
+									className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-sm leading-none"
 								>
 									✕
 								</button>
@@ -578,7 +578,7 @@ const CamOnHandPage: React.FC = () => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{loading ? (
 									<tr>
-										<td colSpan={8} className="py-14 text-center text-[var(--app-muted)]">
+										<td colSpan={8} className="py-14 text-center text-[var(--app-text)]">
 											<div className="flex justify-center">
 												<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
 											</div>
@@ -586,7 +586,7 @@ const CamOnHandPage: React.FC = () => {
 									</tr>
 								) : rows.length === 0 ? (
 									<tr>
-										<td colSpan={8} className="py-14 text-center text-[var(--app-muted)]">
+										<td colSpan={8} className="py-14 text-center text-[var(--app-text)]">
 											No records found
 										</td>
 									</tr>
@@ -649,11 +649,11 @@ const CamOnHandPage: React.FC = () => {
 				<div className="flex items-center gap-6 px-2">
 					<div className="flex items-center gap-2">
 						<span className="inline-block w-4 h-4 rounded border border-[var(--app-border)] bg-green-600" />
-						<span className="text-sm text-[var(--app-muted)]">Revise</span>
+						<span className="text-sm text-[var(--app-text)]">Revise</span>
 					</div>
 					<div className="flex items-center gap-2">
 						<span className="inline-block w-4 h-4 rounded border border-[var(--app-border)] bg-fuchsia-500" />
-						<span className="text-sm text-[var(--app-muted)]">Reject</span>
+						<span className="text-sm text-[var(--app-text)]">Reject</span>
 					</div>
 				</div>
 			</div>

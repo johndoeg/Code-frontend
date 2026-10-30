@@ -1,5 +1,5 @@
 import { useState } from "react";
-import * as XLSX from "xlsx";
+import type { WorkSheet } from "xlsx";
 import api from '@/shared/api/axiosInstance';
 import DatePicker, { registerLocale } from "react-datepicker";
 import { id } from "date-fns/locale";
@@ -50,10 +50,11 @@ function dateToParam(d: Date): string {
 	return `${y}-${m}-01`;
 }
 
-function exportExcel(data: NettBookingData, selectedDate: Date): void {
+async function exportExcel(data: NettBookingData, selectedDate: Date): Promise<void> {
+	const XLSX = await import("xlsx");
 	const month = fmtMonth(selectedDate);
 	const wb = XLSX.utils.book_new();
-	const ws: XLSX.WorkSheet = {};
+	const ws: WorkSheet = {};
 
 	const s = (ref: string, v: string | number | null) => {
 		ws[ref] = { v: v ?? "", t: typeof v === "number" ? "n" : "s" };
@@ -104,7 +105,7 @@ function MonthYearPicker({
 	return (
 		<div className="flex-1 min-w-[180px] max-w-xs">
 			{label && (
-				<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+				<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 					{label}
 					{required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
 				</label>
@@ -121,7 +122,7 @@ function MonthYearPicker({
 				className={[
 					"w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm",
 					"focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-					"bg-[var(--app-card)] text-[var(--app-text)]",
+					"bg-white text-slate-900",
 					disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
 				].join(" ")}
 				wrapperClassName="w-full"
@@ -175,7 +176,7 @@ const NettBookingAPPIPage: React.FC = () => {
 			const res = await api.get<NettBookingData>("/CAM/Others/NetBookingAPPI/nett-booking/excel", {
 				params: { date_from: dateToParam(selectedDate) },
 			});
-			exportExcel(res.data, selectedDate);
+			await exportExcel(res.data, selectedDate);
 		} catch {
 			setError("Gagal mengekspor data. Silakan coba lagi.");
 		} finally {
@@ -188,7 +189,7 @@ const NettBookingAPPIPage: React.FC = () => {
 			<div className="max-w-full mx-auto">
 				<div className="mb-6">
 					<h1 className="text-2xl font-semibold text-[var(--app-text)]">Nett Booking APPI</h1>
-					<p className="text-sm text-[var(--app-muted)] mt-1">
+					<p className="text-sm text-[var(--app-text)] mt-1">
 						Laporan bulanan pembiayaan konvensional dan KBLBB
 					</p>
 				</div>
@@ -203,8 +204,8 @@ const NettBookingAPPIPage: React.FC = () => {
 						onClick={handleExport}
 						disabled={!selectedDate || loading}
 						className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all
-							bg-green-50 text-green-800 border border-green-200
-							hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed"
+							bg-green-600 text-white border border-green-700
+							hover:bg-green-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed"
 					>
 						{loading ? "Memuat…" : "Export to Excel"}
 					</button>

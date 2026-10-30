@@ -58,6 +58,9 @@ const API_LINKS: { title: string; urls: string[] }[] = [
     },
 ];
 
+const dateFieldClass =
+    'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const toApiDate = (d: Date | null): string => {
     if (!d || isNaN(d.getTime())) return "";
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -140,17 +143,17 @@ const DashboardPage: React.FC = () => {
         return () => window.removeEventListener('keydown', onKey);
     }, []);
 
-    const thClass = "py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider";
+    const thClass = "py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider";
     const tdClass = "py-3 px-4 text-sm text-[var(--app-text)]";
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
             <div className="max-w-full mx-auto">
-                <div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+                <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Dashboard</h1>
-                            <p className="text-[var(--app-muted)] mt-1">API request summary by date</p>
+                            <p className="text-[var(--app-text)] mt-1">API request summary by date</p>
                         </div>
                         <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium self-start md:self-auto">
                             Total: {rows.length}
@@ -160,10 +163,12 @@ const DashboardPage: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6">
                         <div className="md:w-64">
                             <label className="block text-sm font-medium text-[var(--app-text)] mb-1">Date</label>
-                            <AsOfDatePickerComponent
-                                value={date}
-                                onChange={(d: Date | null) => setDate(d)}
-                            />
+                            <div className={dateFieldClass}>
+                                <AsOfDatePickerComponent
+                                    value={date}
+                                    onChange={(d: Date | null) => setDate(d)}
+                                />
+                            </div>
                         </div>
 
                         <button
@@ -204,7 +209,7 @@ const DashboardPage: React.FC = () => {
                             <tbody className="divide-y divide-[var(--app-border)]">
                                 {rows.length === 0 && !loading ? (
                                     <tr>
-                                        <td colSpan={5} className="py-10 px-6 text-center text-[var(--app-muted)]">
+                                        <td colSpan={5} className="py-10 px-6 text-center text-[var(--app-text)]">
                                             No data found for this date
                                         </td>
                                     </tr>
@@ -248,13 +253,13 @@ const DashboardPage: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+                <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
                     {API_LINKS.map((group) => (
                         <div key={group.title} className="mb-4 last:mb-0">
                             <h5 className="font-semibold text-[var(--app-text)] mb-2">{group.title}</h5>
                             <ul className="list-disc list-inside space-y-1">
                                 {group.urls.map((u) => (
-                                    <li key={u} className="text-sm text-[var(--app-muted)] font-mono break-all">{u}</li>
+                                    <li key={u} className="text-sm text-[var(--app-text)] font-mono break-all">{u}</li>
                                 ))}
                             </ul>
                         </div>
@@ -268,7 +273,7 @@ const DashboardPage: React.FC = () => {
                     onClick={() => setDetailOpen(false)}
                 >
                     <div
-                        className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-6xl mt-10"
+                        className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-6xl mt-10"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)]">
@@ -278,7 +283,7 @@ const DashboardPage: React.FC = () => {
                             <button
                                 onClick={() => setDetailOpen(false)}
                                 aria-label="Close detail"
-                                className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-2xl leading-none"
+                                className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none"
                             >
                                 &times;
                             </button>
@@ -317,7 +322,7 @@ const DashboardPage: React.FC = () => {
                                             </tr>
                                         ) : detailRows.length === 0 ? (
                                             <tr>
-                                                <td colSpan={4} className="py-8 px-6 text-center text-[var(--app-muted)]">
+                                                <td colSpan={4} className="py-8 px-6 text-center text-[var(--app-text)]">
                                                     No detail records found
                                                 </td>
                                             </tr>

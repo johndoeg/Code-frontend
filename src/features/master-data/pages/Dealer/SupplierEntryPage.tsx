@@ -2,6 +2,8 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
 import { isImageFile } from '@/shared/constants/DefaultValue';
+import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { useOptions } from '@/shared/hooks/useOptions';
 
 type Mode = "AddCF" | "Edit" | "View";
 type Tab = "main" | "tax" | "bank" | "add" | "dev" | "doc" | "notes";
@@ -165,12 +167,13 @@ const defDevNotes: DeviationNotes = {
 };
 
 const inp =
-	"w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm text-[var(--app-text)] " +
+	"w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm " +
+	"bg-white text-slate-900 placeholder:text-slate-400 [color-scheme:light] " +
 	"focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " +
-	"disabled:bg-[var(--app-surface-alt)] disabled:cursor-not-allowed disabled:opacity-100 " +
-	"disabled:text-[var(--app-text)] disabled:[-webkit-text-fill-color:var(--app-text)] transition-colors";
+	"disabled:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-100 " +
+	"disabled:text-slate-500 disabled:[-webkit-text-fill-color:theme(colors.slate.500)] transition-colors";
 
-const sel = inp;
+const sel = inp + " [&>option]:bg-white [&>option]:text-slate-900";
 
 const btnPrimary =
 	"px-4 py-2 text-sm rounded-lg font-medium transition-colors " +
@@ -189,6 +192,55 @@ function Field({ label, children, required }: {
 				{label}{required && <span className="text-red-500 ml-0.5">*</span>}
 			</label>
 			{children}
+		</div>
+	);
+}
+
+const dateFieldClass =
+	"text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white " +
+	"[&_input]:!text-slate-900 [&_input]:![color-scheme:light] [&_input]:!w-full";
+
+const parseDateString = (val: string): Date | null => {
+	const raw = String(val ?? "").trim();
+	if (!raw) return null;
+	const dmy = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(raw);
+	const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(raw);
+	let year: number, month: number, day: number;
+	if (dmy) {
+		day = Number(dmy[1]); month = Number(dmy[2]); year = Number(dmy[3]);
+	} else if (iso) {
+		year = Number(iso[1]); month = Number(iso[2]); day = Number(iso[3]);
+	} else {
+		return null;
+	}
+	const d = new Date(year, month - 1, day);
+	if (d.getFullYear() !== year || d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+	return d;
+};
+
+const toDmy = (d: Date): string =>
+	`${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${d.getFullYear()}`;
+
+function DateField({ value, onChange, disabled, minDate, className = "" }: {
+	value: string; onChange: (v: string) => void;
+	disabled?: boolean; minDate?: Date; className?: string;
+}) {
+	if (disabled) {
+		return (
+			<input className={`${inp} ${className}`} disabled readOnly
+				placeholder="dd-mm-yyyy" value={value} />
+		);
+	}
+	return (
+		<div className={`${dateFieldClass} ${className}`}>
+			<AsOfDatePicker
+				label=""
+				format="DD-MM-YYYY"
+				placeholder="dd-mm-yyyy"
+				value={parseDateString(value)}
+				onChange={(d: Date | null) => onChange(d ? toDmy(d) : "")}
+				minDate={minDate}
+			/>
 		</div>
 	);
 }
@@ -239,19 +291,19 @@ function FilePreviewModal({ state, onClose }: { state: FilePreviewState; onClose
 		>
 			<div
 				onClick={e => e.stopPropagation()}
-				className="flex h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-[var(--app-card)] shadow-2xl"
+				className="flex h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-[var(--app-card)] text-[var(--app-text)] shadow-2xl"
 			>
 				<div className="flex items-center justify-between border-b border-[var(--app-border)] px-4 py-3">
 					<span className="truncate text-sm font-semibold text-[var(--app-text)]">{state.name}</span>
 					<div className="flex flex-shrink-0 items-center gap-3">
 						<a href={state.url} target="_blank" rel="noreferrer" title="Open in new tab"
-							className="text-[var(--app-muted)] transition-colors hover:text-blue-600">
+							className="text-[var(--app-text)] transition-colors hover:text-blue-600">
 							<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 									d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 							</svg>
 						</a>
-						<button onClick={onClose} className="text-lg leading-none text-[var(--app-muted)] hover:text-[var(--app-muted)]">
+						<button onClick={onClose} className="text-lg leading-none text-[var(--app-text)] hover:opacity-70">
 							✕
 						</button>
 					</div>
@@ -269,7 +321,7 @@ function FilePreviewModal({ state, onClose }: { state: FilePreviewState; onClose
 						<iframe title={state.name} src={state.url} className="h-full w-full border-0" />
 					) : (
 						<div className="flex h-full flex-col items-center justify-center text-center">
-							<p className="mb-3 text-sm text-[var(--app-muted)]">
+							<p className="mb-3 text-sm text-[var(--app-text)]">
 								{imgError ? "Failed to load image." : "Preview not available for this file type."}
 							</p>
 						</div>
@@ -284,7 +336,7 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 	if (!value) return null;
 	return (
 		<div className="flex flex-col gap-1">
-			<label className="block text-xs font-medium text-[var(--app-muted)]">{label}</label>
+			<label className="block text-xs font-medium text-[var(--app-text)]">{label}</label>
 			<p className="text-sm text-[var(--app-text)] bg-[var(--app-surface)] border border-[var(--app-border)]
                     rounded-lg px-3 py-2 min-h-[36px]">
 				{value || "—"}
@@ -295,15 +347,15 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
 
 function StubTab({ title, desc }: { title: string; desc: string }) {
 	return (
-		<div className="py-16 text-center text-[var(--app-muted)]">
-			<svg className="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none"
+		<div className="py-16 text-center text-[var(--app-text)]">
+			<svg className="w-12 h-12 mx-auto mb-3 text-[var(--app-text)] opacity-30" fill="none"
 				stroke="currentColor" viewBox="0 0 24 24">
 				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 					d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2
              h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0
              01.293.707V19a2 2 0 01-2 2z" />
 			</svg>
-			<p className="font-semibold text-[var(--app-muted)]">{title}</p>
+			<p className="font-semibold text-[var(--app-text)]">{title}</p>
 			<p className="text-sm mt-1">{desc}</p>
 		</div>
 	);
@@ -329,7 +381,9 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 	const [mode, setMode] = useState<Mode>(mode0);
 	const [currentSup, setCurrentSup] = useState(supp0);
 	const [activeTab, setActiveTab] = useState<Tab>("main");
-	const [options, setOptions] = useState<FormOptions | null>(null);
+	const { data: optionsData, isError: optionsFailed } =
+		useOptions<FormOptions>("/MasterData/dealer/options");
+	const options = optionsData ?? null;
 	const [loading, setLoading] = useState(false);
 
 	const [main, setMain] = useState<MainForm>({ ...defMain });
@@ -378,12 +432,11 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 	];
 
 	useEffect(() => {
-		api.get("/MasterData/dealer/options")
-			.then(r => setOptions(r.data))
-			.catch(() => setMsg("main", {
-				type: "error", text: "Failed to load form options.",
-			}));
-	}, []);
+		if (optionsFailed) {
+			setMsg("main", { type: "error", text: "Failed to load form options." });
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [optionsFailed]);
 
 	useEffect(() => {
 		if ((mode === "Edit" || mode === "View") && supp0) {
@@ -750,7 +803,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 		return (
 			<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)]
                       flex items-center justify-center">
-				<div className="flex items-center gap-3 text-[var(--app-muted)]">
+				<div className="flex items-center gap-3 text-[var(--app-text)]">
 					<svg className="animate-spin w-5 h-5 text-blue-500" fill="none"
 						viewBox="0 0 24 24">
 						<circle className="opacity-25" cx="12" cy="12" r="10"
@@ -776,7 +829,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 								? "Add New Dealer"
 								: `Dealer — ${currentSup}`}
 						</h1>
-						<p className="text-sm text-[var(--app-muted)] mt-0.5">
+						<p className="text-sm text-[var(--app-text)] mt-0.5">
 							{mode === "AddCF"
 								? "Create a new dealer record"
 								: mode === "View"
@@ -794,7 +847,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 					</button>
 				</div>
 
-				<div className="rounded-2xl bg-[var(--app-card)] shadow-lg overflow-hidden">
+				<div className="rounded-2xl bg-[var(--app-card)] text-[var(--app-text)] shadow-lg overflow-hidden">
 
 					<div className="flex border-b border-[var(--app-border)] bg-[var(--app-surface)] overflow-x-auto">
 						{tabs.map(t => (
@@ -807,8 +860,8 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 									activeTab === t.id
 										? "border-b-2 border-blue-600 text-blue-700 bg-[var(--app-card)]"
 										: t.disabled
-											? "text-gray-300 cursor-not-allowed"
-											: "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]",
+											? "text-[var(--app-text)] opacity-40 cursor-not-allowed"
+											: "text-[var(--app-text)] hover:opacity-70 hover:bg-[var(--app-card)]",
 								].join(" ")}
 							>
 								{t.label}
@@ -822,7 +875,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 							<div className="grid grid-cols-1 lg:grid-cols-2 gap-x-10 gap-y-0">
 
 								<div className="space-y-4">
-									<p className="text-xs font-semibold text-[var(--app-muted)] uppercase
+									<p className="text-xs font-semibold text-[var(--app-text)] uppercase
                                 tracking-widest pb-2 border-b border-[var(--app-border)]">
 										Dealer Information
 									</p>
@@ -942,10 +995,9 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 											))}
 										</div>
 										{main.exp_date === "1" && (
-											<input className={`${inp} mt-1`} disabled={!canEdit}
-												placeholder="dd-mm-yyyy"
+											<DateField className="mt-1" disabled={!canEdit}
 												value={main.certain_per}
-												onChange={e => onMain("certain_per", e.target.value)} />
+												onChange={v => onMain("certain_per", v)} />
 										)}
 									</Field>
 
@@ -1030,7 +1082,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 								</div>
 
 								<div className="space-y-4 mt-8 lg:mt-0">
-									<p className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-widest pb-2 border-b border-[var(--app-border)]">
+									<p className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-widest pb-2 border-b border-[var(--app-border)]">
 										Configuration
 									</p>
 
@@ -1062,7 +1114,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 									</Field>
 
 									<div className="pt-2 space-y-3 border-t border-[var(--app-border)]">
-										<p className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-widest pt-2">
+										<p className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-widest pt-2">
 											Audit
 										</p>
 										<ReadOnlyField label="Create By" value={main.create_by} />
@@ -1092,7 +1144,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 										</span>
 									)}
 									{!canEdit && !taxLocked && (
-										<span className="text-xs bg-[var(--app-surface-alt)] text-[var(--app-muted)] border
+										<span className="text-xs bg-[var(--app-surface-alt)] text-[var(--app-text)] border
                                      border-[var(--app-border)] px-2 py-0.5 rounded-full">
 											View only
 										</span>
@@ -1134,7 +1186,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 												/>
 											);
 											if (seg.sep)
-												acc.push(<span key={`s${i}`} className="text-[var(--app-muted)] select-none">{seg.sep}</span>);
+												acc.push(<span key={`s${i}`} className="text-[var(--app-text)] select-none">{seg.sep}</span>);
 											return acc;
 										}, [])}
 									</div>
@@ -1203,18 +1255,15 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 
 								<Field label="Tax Free (From → To)">
 									<div className="flex items-center gap-2">
-										<input className={inp} disabled={!canEdit || taxLocked}
-											placeholder="dd-mm-yyyy"
+										<DateField className="flex-1" disabled={!canEdit || taxLocked}
 											value={tax.taxfree}
-											onChange={e => setTax(t => ({
-												...t, taxfree: e.target.value, taxfree2: "",
-											}))} />
-										<span className="text-sm text-[var(--app-muted)] shrink-0">to</span>
-										<input className={inp}
+											onChange={v => setTax(t => ({ ...t, taxfree: v, taxfree2: "" }))} />
+										<span className="text-sm text-[var(--app-text)] shrink-0">to</span>
+										<DateField className="flex-1"
 											disabled={!canEdit || taxLocked || !tax.taxfree}
-											placeholder="dd-mm-yyyy"
+											minDate={parseDateString(tax.taxfree) ?? undefined}
 											value={tax.taxfree2}
-											onChange={e => setTax(t => ({ ...t, taxfree2: e.target.value }))} />
+											onChange={v => setTax(t => ({ ...t, taxfree2: v }))} />
 									</div>
 								</Field>
 
@@ -1234,14 +1283,14 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 											<option value="2">Flat</option>
 										</select>
 										<input className={`${inp} text-center`} style={{ width: "4rem", flex: "0 0 auto" }} readOnly value="2" />
-										<span className="text-sm text-[var(--app-muted)] shrink-0">%</span>
+										<span className="text-sm text-[var(--app-text)] shrink-0">%</span>
 									</div>
 								</Field>
 
 								<Field label="DPP">
 									<div className="flex items-center gap-2">
 										<input className={`${inp} w-16 text-center`} readOnly value={tax.dpp} />
-										<span className="text-sm text-[var(--app-muted)]">% × Bruto</span>
+										<span className="text-sm text-[var(--app-text)]">% × Bruto</span>
 									</div>
 								</Field>
 
@@ -1290,33 +1339,33 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 
 							const BankTable = ({ rows, title }: { rows: BankAccount[]; title: string }) => (
 								<div className="mb-6">
-									<h3 className="text-sm font-semibold text-[var(--app-muted)] mb-2">{title}</h3>
+									<h3 className="text-sm font-semibold text-[var(--app-text)] mb-2">{title}</h3>
 									<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
 										<table className="w-full text-xs">
 											<thead className="bg-[var(--app-surface)]">
 												<tr>
-													{canEdit && <th className="py-2 px-3 text-left font-medium text-[var(--app-muted)] w-20">Action</th>}
-													<th className="py-2 px-3 text-left font-medium text-[var(--app-muted)]">Acc Name</th>
-													<th className="py-2 px-3 text-left font-medium text-[var(--app-muted)]">Acc No</th>
-													<th className="py-2 px-3 text-left font-medium text-[var(--app-muted)]">Bank</th>
-													<th className="py-2 px-3 text-left font-medium text-[var(--app-muted)]">Branch</th>
-													<th className="py-2 px-3 text-left font-medium text-[var(--app-muted)]">Benef. Type</th>
-													<th className="py-2 px-3 text-left font-medium text-[var(--app-muted)]">Resident</th>
-													<th className="py-2 px-3 text-left font-medium text-[var(--app-muted)]">Updated</th>
-													<th className="py-2 px-3 text-center font-medium text-[var(--app-muted)]">Default</th>
+													{canEdit && <th className="py-2 px-3 text-left font-medium text-[var(--app-text)] w-20">Action</th>}
+													<th className="py-2 px-3 text-left font-medium text-[var(--app-text)]">Acc Name</th>
+													<th className="py-2 px-3 text-left font-medium text-[var(--app-text)]">Acc No</th>
+													<th className="py-2 px-3 text-left font-medium text-[var(--app-text)]">Bank</th>
+													<th className="py-2 px-3 text-left font-medium text-[var(--app-text)]">Branch</th>
+													<th className="py-2 px-3 text-left font-medium text-[var(--app-text)]">Benef. Type</th>
+													<th className="py-2 px-3 text-left font-medium text-[var(--app-text)]">Resident</th>
+													<th className="py-2 px-3 text-left font-medium text-[var(--app-text)]">Updated</th>
+													<th className="py-2 px-3 text-center font-medium text-[var(--app-text)]">Default</th>
 												</tr>
 											</thead>
 											<tbody className="divide-y divide-[var(--app-border)]">
 												{rows.length === 0 ? (
 													<tr><td colSpan={canEdit ? 9 : 8}
-														className="py-6 text-center text-[var(--app-muted)]">No records</td></tr>
+														className="py-6 text-center text-[var(--app-text)]">No records</td></tr>
 												) : rows.map(r => (
 													<tr key={r.acc_no} className="hover:bg-[var(--app-surface)]">
 														{canEdit && (
 															<td className="py-2 px-3">
 																<div className="flex gap-1">
 																	<button onClick={() => handleBankEdit(r)}
-																		className="px-2 py-1 bg-[var(--app-surface)] hover:bg-blue-100 text-blue-700 rounded text-xs font-medium transition-colors">
+																		className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded text-xs font-medium transition-colors">
 																		Edit
 																	</button>
 																	<button onClick={() => handleBankDelete(r)}
@@ -1328,15 +1377,15 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 														)}
 														<td className="py-2 px-3 text-[var(--app-text)] font-medium">{r.acc_name}</td>
 														<td className="py-2 px-3 font-mono text-[var(--app-text)]">{r.acc_no}</td>
-														<td className="py-2 px-3 text-[var(--app-muted)]">{r.acc_bank_desc || r.acc_bank}</td>
-														<td className="py-2 px-3 text-[var(--app-muted)]">{r.acc_bank_branch}</td>
-														<td className="py-2 px-3 text-[var(--app-muted)]">{r.beneficiary_type_desc || r.beneficiary_type}</td>
-														<td className="py-2 px-3 text-[var(--app-muted)]">{r.resident_status_desc || r.resident_status}</td>
-														<td className="py-2 px-3 text-[var(--app-muted)]">{r.last_update}</td>
+														<td className="py-2 px-3 text-[var(--app-text)]">{r.acc_bank_desc || r.acc_bank}</td>
+														<td className="py-2 px-3 text-[var(--app-text)]">{r.acc_bank_branch}</td>
+														<td className="py-2 px-3 text-[var(--app-text)]">{r.beneficiary_type_desc || r.beneficiary_type}</td>
+														<td className="py-2 px-3 text-[var(--app-text)]">{r.resident_status_desc || r.resident_status}</td>
+														<td className="py-2 px-3 text-[var(--app-text)]">{r.last_update}</td>
 														<td className="py-2 px-3 text-center">
 															{r.is_default
 																? <span className="text-green-600 font-bold text-base">✔</span>
-																: <span className="text-gray-300">–</span>}
+																: <span className="text-[var(--app-text)] opacity-40">–</span>}
 														</td>
 													</tr>
 												))}
@@ -1452,7 +1501,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 
 						{activeTab === "add" && (
 							<div className="max-w-sm space-y-4">
-								<h2 className="text-sm font-semibold text-[var(--app-muted)] pb-2 border-b border-[var(--app-border)]">
+								<h2 className="text-sm font-semibold text-[var(--app-text)] pb-2 border-b border-[var(--app-border)]">
 									Additional
 								</h2>
 								<Field label="Area">
@@ -1502,27 +1551,27 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 						{activeTab === "dev" && (
 							<div className="space-y-6">
 								<div>
-									<h2 className="text-sm font-semibold text-[var(--app-muted)] pb-2 border-b border-[var(--app-border)] mb-3">
+									<h2 className="text-sm font-semibold text-[var(--app-text)] pb-2 border-b border-[var(--app-border)] mb-3">
 										Document Checklist
 									</h2>
 									<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
 										<table className="w-full text-sm border-collapse">
 											<thead className="bg-[var(--app-surface)]">
 												<tr>
-													<th className="py-2 px-4 text-center font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] w-28">
+													<th className="py-2 px-4 text-center font-medium text-[var(--app-text)] border-b border-[var(--app-border)] w-28">
 														Received
 													</th>
-													<th className="py-2 px-4 text-center font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] w-28">
+													<th className="py-2 px-4 text-center font-medium text-[var(--app-text)] border-b border-[var(--app-border)] w-28">
 														Not Received
 													</th>
-													<th className="py-2 px-4 text-left font-medium text-[var(--app-muted)] border-b border-[var(--app-border)]">
+													<th className="py-2 px-4 text-left font-medium text-[var(--app-text)] border-b border-[var(--app-border)]">
 														Document
 													</th>
 												</tr>
 											</thead>
 											<tbody>
 												{deviItems.length === 0 ? (
-													<tr><td colSpan={3} className="py-8 text-center text-[var(--app-muted)]">
+													<tr><td colSpan={3} className="py-8 text-center text-[var(--app-text)]">
 														No checklist items
 													</td></tr>
 												) : deviItems.map((item, idx) => (
@@ -1552,14 +1601,14 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 											</tbody>
 										</table>
 									</div>
-									<p className="mt-2 text-xs text-[var(--app-muted)] italic">
+									<p className="mt-2 text-xs text-[var(--app-text)] italic">
 										Copy KTP yang harus diterima oleh Genie adalah copy KTP yang nama pejabatnya
 										tertulis di Kartu Identitas Dealer.
 									</p>
 								</div>
 
 								<div>
-									<h2 className="text-sm font-semibold text-[var(--app-muted)] pb-2 border-b border-[var(--app-border)] mb-3">
+									<h2 className="text-sm font-semibold text-[var(--app-text)] pb-2 border-b border-[var(--app-border)] mb-3">
 										Pertimbangan (Considerations)
 									</h2>
 									<div className="space-y-2">
@@ -1575,7 +1624,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 								</div>
 
 								<div>
-									<h2 className="text-sm font-semibold text-[var(--app-muted)] pb-2 border-b border-[var(--app-border)] mb-3">
+									<h2 className="text-sm font-semibold text-[var(--app-text)] pb-2 border-b border-[var(--app-border)] mb-3">
 										Janji CMO (CMO Promise)
 									</h2>
 									<textarea className={`${inp} resize-none`} rows={4}
@@ -1600,7 +1649,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 
 						{activeTab === "doc" && (
 							<div>
-								<h2 className="text-sm font-semibold text-[var(--app-muted)] pb-2
+								<h2 className="text-sm font-semibold text-[var(--app-text)] pb-2
                                border-b border-[var(--app-border)] mb-5">
 									Upload Dealer Documents
 								</h2>
@@ -1630,7 +1679,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 														{canEdit && (
 															<label className={[
 																"inline-flex items-center gap-1.5 cursor-pointer rounded-lg",
-																"border border-dashed border-blue-300 bg-[var(--app-surface)] hover:bg-blue-100",
+																"border border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100",
 																"px-3 py-1.5 text-xs text-blue-700 transition-colors",
 																isUpl ? "opacity-60 cursor-not-allowed" : "",
 															].join(" ")}>
@@ -1666,7 +1715,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 																			<button
 																				onClick={() => handleFilePreview(f)}
 																				className="inline-flex items-center gap-1.5 rounded-md border border-blue-300
-                                                                                    bg-[var(--app-surface)] px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors
+                                                                                    bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors
                                                                                     hover:border-blue-400 hover:bg-blue-100"
 																			>
 																				<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1681,13 +1730,13 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 																				{fullName}
 																			</span>
 																			{f.created_date && (
-																				<span className="whitespace-nowrap text-[11px] text-[var(--app-muted)]">{f.created_date}</span>
+																				<span className="whitespace-nowrap text-[11px] text-[var(--app-text)]">{f.created_date}</span>
 																			)}
 																			{canEdit && (
 																				<button
 																					onClick={() => handleFileDelete(f.id)}
 																					title="Delete"
-																					className="text-gray-300 transition-colors hover:text-red-500"
+																					className="text-[var(--app-text)] opacity-50 transition-colors hover:text-red-500 hover:opacity-100"
 																				>
 																					<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 																						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1699,7 +1748,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 																})}
 															</div>
 														) : !canEdit ? (
-															<span className="text-xs italic text-[var(--app-muted)]">No file uploaded</span>
+															<span className="text-xs italic text-[var(--app-text)]">No file uploaded</span>
 														) : null}
 													</div>
 												</div>
@@ -1714,7 +1763,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 
 						{activeTab === "notes" && (
 							<div className="max-w-2xl">
-								<h2 className="text-sm font-semibold text-[var(--app-muted)] pb-2 border-b border-[var(--app-border)] mb-4">
+								<h2 className="text-sm font-semibold text-[var(--app-text)] pb-2 border-b border-[var(--app-border)] mb-4">
 									Additional Notes
 								</h2>
 								<textarea

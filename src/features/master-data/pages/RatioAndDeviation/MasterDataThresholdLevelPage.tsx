@@ -57,6 +57,9 @@ function getFieldConfig(ratio: string, remark: string): {
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const toISO = (d: Date): string => {
 	const year = d.getFullYear();
 	const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -218,7 +221,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 
 	const renderThresholdFields = () => {
 		const cfg = getFieldConfig(form.ratio, form.remark);
-		const inputCls = "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-36";
+		const inputCls = "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-36";
 
 		const fromField = cfg.type === "select" ? (
 			<select
@@ -246,12 +249,12 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 					/>
 					{form.threshold1 && (
 						<button type="button" onClick={() => setForm(f => ({ ...f, threshold1: "" }))} aria-label="Clear"
-							className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+							className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 							&times;
 						</button>
 					)}
 				</div>
-				{cfg.suffix1 && <span className="text-sm text-[var(--app-muted)]">{cfg.suffix1}</span>}
+				{cfg.suffix1 && <span className="text-sm text-[var(--app-text)]">{cfg.suffix1}</span>}
 			</div>
 		);
 
@@ -281,12 +284,12 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 					/>
 					{form.threshold2 && (
 						<button type="button" onClick={() => setForm(f => ({ ...f, threshold2: "" }))} aria-label="Clear"
-							className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+							className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 							&times;
 						</button>
 					)}
 				</div>
-				{cfg.suffix2 && <span className="text-sm text-[var(--app-muted)]">{cfg.suffix2}</span>}
+				{cfg.suffix2 && <span className="text-sm text-[var(--app-text)]">{cfg.suffix2}</span>}
 			</div>
 		);
 
@@ -295,7 +298,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 				{fromField}
 				{cfg.showRange && (
 					<>
-						<span className="text-sm text-[var(--app-muted)] font-medium">s/d</span>
+						<span className="text-sm text-[var(--app-text)] font-medium">s/d</span>
 						{toField}
 					</>
 				)}
@@ -308,11 +311,11 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Master Ratio Threshold Level</h1>
-						<p className="text-[var(--app-muted)] mt-1">Manage ratio threshold configuration</p>
+						<p className="text-[var(--app-text)] mt-1">Manage ratio threshold configuration</p>
 					</div>
 
 					<div className="bg-[var(--app-surface)] rounded-xl p-4 border border-[var(--app-border)] mb-6">
@@ -370,7 +373,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 							<thead>
 								<tr>
 									{["Implementation Date", "Remark", "Threshold Level (OJK)", "Create By", "Create Date", "Update By", "Last Update", "Action"].map(h => (
-										<th key={h} className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">
+										<th key={h} className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">
 											{h}
 										</th>
 									))}
@@ -385,11 +388,8 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 									</tr>
 								) : rows.length === 0 ? (
 									<tr>
-										<td colSpan={8} className="py-10 text-center text-[var(--app-muted)]">
-											<svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-											</svg>
-											<p>No data found. Click Search or Add to get started.</p>
+										<td colSpan={8} className="py-10 text-center text-[var(--app-text)]">
+											<p></p>
 										</td>
 									</tr>
 								) : (
@@ -437,7 +437,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 					</div>
 
 					{totalPages > 1 && (
-						<div className="mt-4 flex items-center justify-between text-sm text-[var(--app-muted)]">
+						<div className="mt-4 flex items-center justify-between text-sm text-[var(--app-text)]">
 							<span>Showing {((page - 1) * LIMIT) + 1}–{Math.min(page * LIMIT, total)} of {total}</span>
 							<div className="flex gap-2">
 								<button
@@ -461,14 +461,14 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
 					onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}
 				>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
 						<div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)] bg-[var(--app-surface)]">
 							<h2 className="text-lg font-bold text-[var(--app-text)]">
 								{isEdit ? "Edit Record" : "Add New Record"}
 							</h2>
 							<button
 								onClick={() => setModalOpen(false)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none"
+								className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none"
 							>&times;</button>
 						</div>
 
@@ -481,7 +481,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 								<>
 									<div className="grid grid-cols-3 items-center gap-3">
 										<label className="text-sm font-medium text-[var(--app-text)] text-right">Ratio</label>
-										<span className="text-sm text-[var(--app-muted)]">:</span>
+										<span className="text-sm text-[var(--app-text)]">:</span>
 										<select
 											value={form.ratio}
 											onChange={e => setForm(f => ({ ...f, ratio: e.target.value, threshold1: "", threshold2: "" }))}
@@ -495,17 +495,19 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 
 									<div className="grid grid-cols-3 items-center gap-3">
 										<label className="text-sm font-medium text-[var(--app-text)] text-right">Implementation Date</label>
-										<span className="text-sm text-[var(--app-muted)]">:</span>
-										<AsOfDatePickerComponent
-											label=""
-											value={parseISO(form.imp_date)}
-											onChange={(d: Date | null) => setForm(f => ({ ...f, imp_date: d ? toISO(d) : "" }))}
-										/>
+										<span className="text-sm text-[var(--app-text)]">:</span>
+										<div className={dateFieldClass}>
+											<AsOfDatePickerComponent
+												label=""
+												value={parseISO(form.imp_date)}
+												onChange={(d: Date | null) => setForm(f => ({ ...f, imp_date: d ? toISO(d) : "" }))}
+											/>
+										</div>
 									</div>
 
 									<div className="grid grid-cols-3 items-center gap-3">
 										<label className="text-sm font-medium text-[var(--app-text)] text-right">Remark</label>
-										<span className="text-sm text-[var(--app-muted)]">:</span>
+										<span className="text-sm text-[var(--app-text)]">:</span>
 										<select
 											value={form.remark}
 											onChange={e => setForm(f => ({ ...f, remark: e.target.value, threshold1: "", threshold2: "" }))}
@@ -519,7 +521,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 
 									<div className="grid grid-cols-3 items-center gap-3">
 										<label className="text-sm font-medium text-[var(--app-text)] text-right">Threshold Level (OJK)</label>
-										<span className="text-sm text-[var(--app-muted)]">:</span>
+										<span className="text-sm text-[var(--app-text)]">:</span>
 										{renderThresholdFields()}
 									</div>
 								</>
@@ -574,7 +576,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 
 			{deleteId !== null && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
 						<div className="flex items-center gap-3 mb-4">
 							<div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
 								<svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -583,7 +585,7 @@ const MasterDataThresholdLevelPage: React.FC = () => {
 							</div>
 							<div>
 								<h3 className="font-bold text-[var(--app-text)]">Delete Record</h3>
-								<p className="text-sm text-[var(--app-muted)] mt-0.5">Are you sure to delete this record?</p>
+								<p className="text-sm text-[var(--app-text)] mt-0.5">Are you sure to delete this record?</p>
 							</div>
 						</div>
 						<div className="flex justify-end gap-3">

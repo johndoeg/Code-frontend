@@ -57,6 +57,8 @@ const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const ListCAMByCarConditionPage: React.FC = () => {
 	const [branches, setBranches] = useState<BranchOption[]>([]);
 	const [branchDisabled, setBranchDisabled] = useState(false);
@@ -213,27 +215,31 @@ const ListCAMByCarConditionPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="mb-6">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">List Approved CAM by Car's Condition</h1>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm items-end">
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Start Approved Date</label>
-							<AsOfDatePicker label="" value={startDate} onChange={setStartDate} required />
+							<label className="text-[var(--app-text)] block mb-1">Start Approved Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={startDate} onChange={setStartDate} required />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">End Approved Date</label>
-							<AsOfDatePicker label="" value={endDate} onChange={setEndDate} required />
+							<label className="text-[var(--app-text)] block mb-1">End Approved Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={endDate} onChange={setEndDate} required />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Branch</label>
+							<label className="text-[var(--app-text)] block mb-1">Branch</label>
 							<select
 								value={branchCd}
 								onChange={(e) => setBranchCd(e.target.value)}
 								disabled={branchDisabled}
-								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-[var(--app-surface-alt)]"
+								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
 							>
 								<option value="" style={optionStyle}>Select</option>
 								{branches.map((b) => (
@@ -308,9 +314,7 @@ const ListCAMByCarConditionPage: React.FC = () => {
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={9} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-muted)]">
-											Choose a period and branch, then click Preview.
-										</td>
+										<td colSpan={9} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : !hasData ? (
 									<tr>

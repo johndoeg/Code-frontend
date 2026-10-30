@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo, forwardRef } from "r
 import { Link, useLocation, useNavigate, type Location } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MODAL_ROUTES } from '@/shared/config/modalRoutes';
+import { prefetchRoute } from '@/routes/protectedRoutes';
 import api from '@/shared/api/axiosInstance';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useOverlay } from '@/shared/contexts/OverlayContext';
@@ -97,6 +98,8 @@ const SidebarLink = forwardRef<HTMLAnchorElement, {
 	const navigate = useNavigate();
 	const { openAddCam, openAddCamGuarantor } = useOverlay();
 
+	const prefetch = () => { prefetchRoute(to.split("?")[0]); };
+
 	const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
 		if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
 
@@ -119,7 +122,18 @@ const SidebarLink = forwardRef<HTMLAnchorElement, {
 	};
 
 	return (
-		<a ref={ref} href="/" className={className} data-tip={dataTip} title={title} style={style} onClick={handleClick}>
+		<a
+			ref={ref}
+			href="/"
+			className={className}
+			data-tip={dataTip}
+			title={title}
+			style={style}
+			onClick={handleClick}
+			onPointerEnter={prefetch}
+			onFocus={prefetch}
+			onTouchStart={prefetch}
+		>
 			{children}
 		</a>
 	);
@@ -237,7 +251,7 @@ function MenuIcon({ label, size = 16 }: { label: string; size?: number }) {
 	);
 }
 
-const inertProps = (on: boolean) => (on ? ({ inert: "" } as Record<string, string>) : {});
+const inertProps = (on: boolean): { inert?: boolean } => (on ? { inert: true } : {});
 
 function MenuNode({ item, collapsed, depth = 0, resetKey, currentPath, onNavigate, modalBackground, activeRef }: {
 	item: MenuItem; collapsed: boolean; depth?: number; resetKey: number; currentPath: string; onNavigate?: () => void; modalBackground: Location; activeRef: React.RefObject<HTMLElement | null>;

@@ -285,7 +285,7 @@ const MasterDataDeviationDPPage: React.FC = () => {
                             </thead>
                             <tbody>
                                 {!searched ? (
-                                    <tr><td colSpan={9} className="text-center py-6 text-[var(--app-muted)]">Search a customer to view CAM records</td></tr>
+                                    <tr><td colSpan={9} className="text-center py-6 text-[var(--app-muted)]"></td></tr>
                                 ) : rows.length === 0 ? (
                                     <tr><td colSpan={9} className="text-center py-6 text-[var(--app-muted)]">No data</td></tr>
                                 ) : rows.map((row, i) => {

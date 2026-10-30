@@ -148,18 +148,18 @@ const SlikReportingPage: React.FC = () => {
 			<div className="max-w-full mx-auto">
 
 				<div className="no-print mb-6">
-					<div className="bg-[var(--app-card)] rounded-lg shadow p-4 flex justify-between items-center">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-lg shadow p-4 flex justify-between items-center">
 						<h1 className="text-xl font-bold text-[var(--app-text)]">Pelaporan SLIK</h1>
 						<button
 							onClick={handleClose}
-							className="px-4 py-2 text-sm text-[var(--app-muted)] hover:text-[var(--app-text)] border border-[var(--app-border)] rounded-lg hover:bg-[var(--app-surface)] transition-colors"
+							className="px-4 py-2 text-sm text-[var(--app-text)] hover:opacity-70 border border-[var(--app-border)] rounded-lg hover:bg-[var(--app-surface)] transition-colors"
 						>
 							Close
 						</button>
 					</div>
 				</div>
 
-				<div className="bg-[var(--app-card)] rounded-lg shadow print:shadow-none print:rounded-none">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-lg shadow print:shadow-none print:rounded-none">
 					<div className="p-6 print:p-0">
 						<div className="print:block hidden mb-6">
 							<h1 className="text-2xl font-bold text-center text-[var(--app-text)]">Pelaporan SLIK</h1>
@@ -177,7 +177,7 @@ const SlikReportingPage: React.FC = () => {
 										showMonthYearPicker
 										dateFormat="MM/yyyy"
 										placeholderText="Select Month & Year"
-										className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-[var(--app-text)] placeholder-slate-400
+										className={`w-full px-4 py-3 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all bg-white text-slate-900 placeholder-slate-400 [color-scheme:light]
 										print:border-none print:p-0 print:bg-transparent print:cursor-default`}
 										popperPlacement="bottom-start"
 										calendarClassName="rounded-lg shadow-xl border border-[var(--app-border)]"
@@ -192,7 +192,7 @@ const SlikReportingPage: React.FC = () => {
 									<select
 										value={segment}
 										onChange={(e) => setSegment(e.target.value)}
-										className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all bg-[var(--app-card)] text-[var(--app-text)] print:border-none print:p-0 print:bg-transparent"
+										className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900 print:border-none print:p-0 print:bg-transparent"
 									>
 										{SEGMENTS.map((opt) => (
 											<option key={opt.value} value={opt.value}>
@@ -254,7 +254,7 @@ const SlikReportingPage: React.FC = () => {
 
 			{modal.isOpen && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm no-print">
-					<div className="bg-[var(--app-card)] rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
 						<div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
 							<h3 className="text-white font-bold text-lg">Notification</h3>
 						</div>

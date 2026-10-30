@@ -122,12 +122,12 @@ const SupplierPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Dealer</h1>
-							<p className="text-[var(--app-muted)] mt-1">View and manage dealer records</p>
+							<p className="text-[var(--app-text)] mt-1">View and manage dealer records</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -150,12 +150,12 @@ const SupplierPage: React.FC = () => {
 						<select
 							value={searchByInput}
 							onChange={e => setSearchByInput(e.target.value)}
-							className="border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 md:w-40"
+							className="border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 md:w-40"
 						>
-							<option value="" className="bg-white text-[var(--app-text)]">All Fields</option>
-							<option value="1" className="bg-white text-[var(--app-text)]">Dealer ID</option>
-							<option value="2" className="bg-white text-[var(--app-text)]">Name</option>
-							<option value="3" className="bg-white text-[var(--app-text)]">Nickname</option>
+							<option value="" className="bg-white text-slate-900">All Fields</option>
+							<option value="1" className="bg-white text-slate-900">Dealer ID</option>
+							<option value="2" className="bg-white text-slate-900">Name</option>
+							<option value="3" className="bg-white text-slate-900">Nickname</option>
 						</select>
 
 						<div className="relative flex-1">
@@ -165,10 +165,10 @@ const SupplierPage: React.FC = () => {
 								value={searchInput}
 								onChange={e => setSearchInput(e.target.value)}
 								onKeyDown={e => { if (e.key === "Enter") handleSearch(); }}
-								className="w-full pl-10 pr-10 py-2.5 border border-[var(--app-border)] rounded-lg
+								className="w-full pl-10 pr-10 py-2.5 border border-[var(--app-border)] rounded-lg bg-white text-slate-900 placeholder:text-slate-400
                            				focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm"
 							/>
-							<svg className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2"
+							<svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
 								fill="none" viewBox="0 0 24 24">
 								<path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z"
 									fill="currentColor" />
@@ -178,7 +178,7 @@ const SupplierPage: React.FC = () => {
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
-									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -217,7 +217,7 @@ const SupplierPage: React.FC = () => {
 								<tr>
 									{["Dealer ID", "Name", "Nickname", "Address", "Actions"].map(h => (
 										<th key={h}
-											className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+											className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											{h}
 										</th>
 									))}
@@ -226,7 +226,7 @@ const SupplierPage: React.FC = () => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{dealers.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={5} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={5} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center gap-2">
 												<svg className="w-12 h-12 text-gray-300" fill="none"
 													stroke="currentColor" viewBox="0 0 24 24">
@@ -234,7 +234,7 @@ const SupplierPage: React.FC = () => {
 														d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
 												</svg>
 												<p>No dealer records found</p>
-												<p className="text-sm text-[var(--app-muted)]">Try adjusting your search</p>
+												<p className="text-sm text-[var(--app-text)]">Try adjusting your search</p>
 											</div>
 										</td>
 									</tr>
@@ -247,8 +247,8 @@ const SupplierPage: React.FC = () => {
 													{d.SUPP}
 												</td>
 												<td className="py-3 px-5 text-sm font-medium text-[var(--app-text)]">{d.NAME}</td>
-												<td className="py-3 px-5 text-sm text-[var(--app-muted)]">{d.NICKNAME}</td>
-												<td className="py-3 px-5 text-sm text-[var(--app-muted)] max-w-xs truncate">{d.ADDRESS}</td>
+												<td className="py-3 px-5 text-sm text-[var(--app-text)]">{d.NICKNAME}</td>
+												<td className="py-3 px-5 text-sm text-[var(--app-text)] max-w-xs truncate">{d.ADDRESS}</td>
 												<td className="py-3 px-5 whitespace-nowrap">
 													<div className="flex items-center gap-2">
 														{akses === "9" ? (
@@ -268,7 +268,7 @@ const SupplierPage: React.FC = () => {
 																<button
 																	onClick={() => navigate(`/supplier-entry?id=View&supp=${d.SUPP}&akses=${akses}`)}
 																	className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold
-																		bg-[var(--app-surface-alt)] hover:bg-gray-200 active:bg-gray-300
+																		bg-[var(--app-surface-alt)] hover:bg-[var(--app-surface)] active:bg-[var(--app-border)]
 																		text-[var(--app-text)] shadow-sm hover:shadow transition-all"
 																>
 																	<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -297,7 +297,7 @@ const SupplierPage: React.FC = () => {
 															<button
 																onClick={() => navigate(`/supplier-entry?id=View&supp=${d.SUPP}&akses=${akses}`)}
 																className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-semibold
-																		bg-[var(--app-surface-alt)] hover:bg-gray-200 active:bg-gray-300
+																		bg-[var(--app-surface-alt)] hover:bg-[var(--app-surface)] active:bg-[var(--app-border)]
 																		text-[var(--app-text)] shadow-sm hover:shadow transition-all"
 															>
 																<svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -340,11 +340,11 @@ const SupplierPage: React.FC = () => {
 			{del && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
 					onClick={e => e.target === e.currentTarget && closeDelete()}>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-md animate-in slide-in-from-top-4">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-md animate-in slide-in-from-top-4">
 						<div className="px-6 py-4 border-b border-[var(--app-border)] flex items-center justify-between">
 							<h2 className="font-semibold text-[var(--app-text)]">Delete Dealer</h2>
 							<button onClick={closeDelete}
-								className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">&times;</button>
+								className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none">&times;</button>
 						</div>
 						<div className="px-6 py-5 space-y-4">
 							<div>
@@ -352,7 +352,7 @@ const SupplierPage: React.FC = () => {
 									Dealer ID
 								</label>
 								<input type="text" readOnly value={del.supp}
-									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface)] font-mono" />
+									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 font-mono" />
 							</div>
 							<div>
 								<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
@@ -362,14 +362,14 @@ const SupplierPage: React.FC = () => {
 									rows={4}
 									value={del.reason}
 									onChange={e => setDel(d => d ? { ...d, reason: e.target.value, error: "" } : d)}
-									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-400 focus:border-red-400 resize-none"
+									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-red-400 focus:border-red-400 resize-none"
 									placeholder="Enter reason…"
 								/>
 							</div>
 							<div>
 								<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Delete By</label>
 								<input type="text" readOnly value={username}
-									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface)]" />
+									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600" />
 							</div>
 							{del.error && (
 								<p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">

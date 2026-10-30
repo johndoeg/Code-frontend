@@ -81,11 +81,11 @@ const Users: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">User</h1>
-							<p className="text-[var(--app-muted)] mt-1">View and manage your user records</p>
+							<p className="text-[var(--app-text)] mt-1">View and manage your user records</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -113,10 +113,10 @@ const Users: React.FC = () => {
 								value={search}
 								onChange={(e) => setSearch(e.target.value)}
 								onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
-								className="w-full pl-10 pr-8 py-3 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+								className="w-full pl-10 pr-8 py-3 border border-[var(--app-border)] rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
 							/>
 							<svg
-								className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 transform -translate-y-1/2"
+								className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2"
 								focusable="false"
 								aria-hidden="true"
 								viewBox="0 0 24 24"
@@ -129,7 +129,7 @@ const Users: React.FC = () => {
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
-									className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-lg leading-none"
+									className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-lg leading-none"
 								>
 									&times;
 								</button>
@@ -185,20 +185,20 @@ const Users: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Employee ID</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Username</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Fullname</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Branch</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Access Group</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Superior</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Status</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Actions</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Employee ID</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Username</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Fullname</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Branch</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Access Group</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Superior</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Status</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Actions</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{user.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={8} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={8} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center justify-center">
 												<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>

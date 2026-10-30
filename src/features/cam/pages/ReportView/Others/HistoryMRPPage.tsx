@@ -96,11 +96,11 @@ const HistoryMRP: React.FC = () => {
 	const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
 
 	const selectCls = (disabled?: boolean) =>
-		`w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm bg-[var(--app-card)] text-[var(--app-text)]
+		`w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm bg-white text-slate-900
 		 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
 		 ${disabled ? "opacity-60 cursor-not-allowed" : ""}`;
 
-	const TH = "px-3 py-2 text-xs font-semibold text-[var(--app-muted)] bg-[var(--app-surface)] border-b border-[var(--app-border)] text-center whitespace-nowrap";
+	const TH = "px-3 py-2 text-xs font-semibold text-[var(--app-text)] bg-[var(--app-surface)] border-b border-[var(--app-border)] text-center whitespace-nowrap";
 	const TD = (right = false) =>
 		`px-3 py-1.5 text-sm border-b border-[var(--app-border)] ${right ? "text-right tabular-nums" : "text-center"} text-[var(--app-text)]`;
 
@@ -110,13 +110,13 @@ const HistoryMRP: React.FC = () => {
 
 				<div className="mb-6">
 					<h1 className="text-2xl font-semibold text-[var(--app-text)]">History MRP</h1>
-					<p className="text-sm text-[var(--app-muted)] mt-1">Data disbursement 3 bulan terakhir</p>
+					<p className="text-sm text-[var(--app-text)] mt-1">Data disbursement 3 bulan terakhir</p>
 				</div>
 
-				<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] p-4 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] p-4 mb-6">
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
 						<div>
-							<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+							<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 								Brand <span className="text-red-500">*</span>
 							</label>
 							<select
@@ -124,15 +124,15 @@ const HistoryMRP: React.FC = () => {
 								onChange={e => { setBrand(e.target.value); setRows([]); setHasSearched(false); }}
 								className={selectCls()}
 							>
-								<option value="">Select</option>
+								<option value="" className="bg-white text-slate-900">Select</option>
 								{brands.map(b => (
-									<option key={b.brand} value={b.brand}>{b.brand_nm}</option>
+									<option key={b.brand} value={b.brand} className="bg-white text-slate-900">{b.brand_nm}</option>
 								))}
 							</select>
 						</div>
 
 						<div>
-							<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+							<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 								Model <span className="text-red-500">*</span>
 							</label>
 							<select
@@ -140,15 +140,15 @@ const HistoryMRP: React.FC = () => {
 								onChange={e => { setModel(e.target.value); setRows([]); setHasSearched(false); }}
 								className={selectCls()}
 							>
-								<option value="">Select</option>
+								<option value="" className="bg-white text-slate-900">Select</option>
 								{models.map(m => (
-									<option key={m.model} value={m.model}>{m.model_nm}</option>
+									<option key={m.model} value={m.model} className="bg-white text-slate-900">{m.model_nm}</option>
 								))}
 							</select>
 						</div>
 
 						<div>
-							<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+							<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 								Type <span className="text-red-500">*</span>
 							</label>
 							<select
@@ -157,11 +157,11 @@ const HistoryMRP: React.FC = () => {
 								disabled={!brand || !model || typeLoading}
 								className={selectCls(!brand || !model || typeLoading)}
 							>
-								<option value="">
+								<option value="" className="bg-white text-slate-900">
 									{typeLoading ? "Loading…" : (!brand || !model) ? "Select brand & model first" : "Select"}
 								</option>
 								{types.map(t => (
-									<option key={t.type} value={t.type}>{t.type_nm}</option>
+									<option key={t.type} value={t.type} className="bg-white text-slate-900">{t.type_nm}</option>
 								))}
 							</select>
 						</div>
@@ -170,9 +170,9 @@ const HistoryMRP: React.FC = () => {
 					<button
 						onClick={handleSearch}
 						disabled={loading}
-						className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--app-surface)] text-blue-800
-							border border-blue-200 hover:bg-blue-100
-							disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+						className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white
+							border border-blue-700 hover:bg-blue-700
+							disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed transition-all"
 					>
 						{loading ? "Mencari…" : "Search"}
 					</button>
@@ -184,15 +184,10 @@ const HistoryMRP: React.FC = () => {
 					</div>
 				)}
 
-				{loading && <div className="py-12 text-center text-sm text-[var(--app-muted)]">Memuat data…</div>}
+				{loading && <div className="py-12 text-center text-sm text-[var(--app-text)]">Memuat data…</div>}
 
-				{!loading && !hasSearched && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
-						Pilih Brand, Model, dan Type, lalu klik <span className="font-medium">Search</span>
-					</div>
-				)}
 				{!loading && hasSearched && rows.length === 0 && !error && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
+					<div className="py-16 text-center text-sm text-[var(--app-text)] border border-dashed border-[var(--app-border)] rounded-xl">
 						Tidak ada data untuk kombinasi yang dipilih
 					</div>
 				)}
@@ -200,13 +195,13 @@ const HistoryMRP: React.FC = () => {
 				{!loading && rows.length > 0 && (
 					<>
 						<div className="flex items-center gap-3 mb-3">
-							<span className="text-sm text-[var(--app-muted)]">
+							<span className="text-sm text-[var(--app-text)]">
 								<span className="font-medium text-[var(--app-text)]">{rows.length}</span> records
 								&nbsp;·&nbsp; 3 bulan terakhir
 							</span>
 						</div>
 
-						<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden">
+						<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] overflow-hidden">
 							<div className="overflow-x-auto">
 								<table className="w-full border-collapse">
 									<thead>
@@ -244,15 +239,15 @@ const HistoryMRP: React.FC = () => {
 							{totalPages > 1 && (
 								<div className="flex items-center justify-center gap-1 py-3 border-t border-[var(--app-border)] flex-wrap">
 									<button onClick={() => setCurrentPage(1)} disabled={currentPage === 1}
-										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
+										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
 										title="First page">«</button>
 									<button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
-										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
+										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
 										title="Previous page">‹</button>
 
 									{pageNumbers.map((p, i) =>
 										p === "…" ? (
-											<span key={`el-${i}`} className="px-1 text-xs text-[var(--app-muted)]">…</span>
+											<span key={`el-${i}`} className="px-1 text-xs text-[var(--app-text)]">…</span>
 										) : (
 											<button key={p} onClick={() => setCurrentPage(p as number)}
 												className={`px-3 py-1 text-xs rounded border transition-colors ${currentPage === p ? "bg-blue-600 text-white border-blue-600 font-bold" : "border-[var(--app-border)] hover:bg-[var(--app-surface)]"}`}>
@@ -262,10 +257,10 @@ const HistoryMRP: React.FC = () => {
 									)}
 
 									<button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
+										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
 										title="Next page">›</button>
 									<button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}
-										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
+										className="px-2 py-1 text-xs rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]"
 										title="Last page">»</button>
 								</div>
 							)}

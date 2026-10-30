@@ -20,6 +20,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 const STORAGE_KEY = "auth_user";
 
+export const SESSION_EXPIRY_KEY = "session_expires_at";
+
 function getCachedUser(): User | null {
     try {
         const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -27,6 +29,11 @@ function getCachedUser(): User | null {
     } catch {
         return null;
     }
+}
+
+function clearSession() {
+    sessionStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(SESSION_EXPIRY_KEY);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -69,13 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 queryClient.invalidateQueries({ queryKey: ["menus"] });
             } else {
                 setUser(null);
-                sessionStorage.removeItem(STORAGE_KEY);
+                clearSession();
                 queryClient.clear();
             }
         } catch (err: any) {
             if (err?.response?.status === 401) {
                 setUser(null);
-                sessionStorage.removeItem(STORAGE_KEY);
+                clearSession();
                 queryClient.clear();
             }
         } finally {
@@ -88,7 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await api.post("/auth/logout");
         } finally {
             setUser(null);
-            sessionStorage.removeItem(STORAGE_KEY);
+            clearSession();
             queryClient.clear();
         }
     };

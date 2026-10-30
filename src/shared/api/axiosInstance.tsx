@@ -1,6 +1,7 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import type { MaintenanceInfo } from '@/shared/types/maintenance';
 
+const UNSET = -1;
 const DEFAULT_TIMEOUT = 15_000;
 const HEAVY_TIMEOUT = 90_000;
 
@@ -16,10 +17,11 @@ const pickTimeout = (config: InternalAxiosRequestConfig): number => {
 const api = axios.create({
 	baseURL: import.meta.env.VITE_API_URL,
 	withCredentials: true,
+	timeout: UNSET,
 });
 
 api.interceptors.request.use((config) => {
-	if (!config.timeout) {
+	if (config.timeout === UNSET) {
 		config.timeout = pickTimeout(config);
 	}
 	return config;
@@ -42,7 +44,7 @@ api.interceptors.response.use(
 		}
 
 		if (status === 401 && !isAuthEndpoint) {
-			window.location.href = "/login";
+			window.dispatchEvent(new CustomEvent("app:unauthorized"));
 		}
 
 		return Promise.reject(error);

@@ -126,7 +126,7 @@ const EmployeeDataPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">
 						Employee Data
 					</h1>
@@ -169,11 +169,11 @@ const EmployeeDataPage: React.FC = () => {
 									onChange={e => setTextVal(e.target.value)}
 									onKeyDown={handleKeyDown}
 									placeholder="Type to search…"
-									className="border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 w-52 pr-8"
+									className="border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 w-52 pr-8"
 								/>
 								{textVal && (
 									<button type="button" onClick={() => setTextVal("")} aria-label="Clear search"
-										className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+										className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 										&times;
 									</button>
 								)}
@@ -247,15 +247,15 @@ const EmployeeDataPage: React.FC = () => {
 				</div>
 
 				{searched && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 						<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
 							<table className="w-full text-sm">
-								<thead className="bg-gradient-to-r from-[var(--app-surface-alt)] to-slate-200">
+								<thead className="bg-gradient-to-r from-[var(--app-surface-alt)] to-[var(--app-surface)]">
 									<tr>
 										{["No.", "Employee ID", "Employee Fullname", "Branch", "Division", "Position"].map((h, i) => (
 											<th key={i}
-												className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] whitespace-nowrap">
+												className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] whitespace-nowrap">
 												{h}
 											</th>
 										))}
@@ -264,7 +264,7 @@ const EmployeeDataPage: React.FC = () => {
 								<tbody className="divide-y divide-[var(--app-border)]">
 									{loading ? (
 										<tr>
-											<td colSpan={6} className="py-14 text-center text-[var(--app-muted)]">
+											<td colSpan={6} className="py-14 text-center text-[var(--app-text)]">
 												<div className="flex justify-center">
 													<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
 												</div>
@@ -272,7 +272,7 @@ const EmployeeDataPage: React.FC = () => {
 										</tr>
 									) : pageRows.length === 0 ? (
 										<tr>
-											<td colSpan={6} className="py-14 text-center text-[var(--app-muted)]">
+											<td colSpan={6} className="py-14 text-center text-[var(--app-text)]">
 												No records found
 											</td>
 										</tr>
@@ -282,7 +282,7 @@ const EmployeeDataPage: React.FC = () => {
 												key={`${row.EmployeeID}-${idx}`}
 												className={idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}
 											>
-												<td className="py-2 px-4 text-center text-[var(--app-muted)] border-b border-[var(--app-border)]">
+												<td className="py-2 px-4 text-center text-[var(--app-text)] border-b border-[var(--app-border)]">
 													{startIndex + idx}
 												</td>
 												<td className="py-2 px-4 border-b border-[var(--app-border)]">{row.EmployeeID}</td>

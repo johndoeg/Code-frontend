@@ -47,8 +47,10 @@ function getFieldConfig(ratio: string): { type: FieldType; suffix: string } {
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const SPINNER_SIZE: Record<number, string> = { 4: "h-4 w-4", 6: "h-6 w-6", 8: "h-8 w-8" };
+
 const Spinner = ({ size = 6 }: { size?: number }) => (
-	<svg className={`animate-spin h-${size} w-${size} text-blue-600`} fill="none" viewBox="0 0 24 24">
+	<svg className={`animate-spin ${SPINNER_SIZE[size] ?? "h-6 w-6"} text-blue-600`} fill="none" viewBox="0 0 24 24">
 		<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
 		<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
 	</svg>
@@ -77,6 +79,8 @@ const ViewEditActualRatioPage: React.FC = () => {
 
 	const [deleteId, setDeleteId] = useState<number | null>(null);
 	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [printing, setPrinting] = useState(false);
+	const [exporting, setExporting] = useState(false);
 
 	const currentYear = new Date().getFullYear();
 	const yearOptions = Array.from({ length: 21 }, (_, i) => currentYear + 10 - i);
@@ -178,19 +182,90 @@ const ViewEditActualRatioPage: React.FC = () => {
 		}
 	};
 
-	const handlePrint = () => {
-		window.open(`/MasterData/actual-ratio/print?ratio=${ratioFilter}&tahun=${tahunFilter}`, "_blank");
+	const handlePrint = async () => {
+		if (!ratioFilter || !tahunFilter) {
+			setListError("Select Ratio and Period first.");
+			return;
+		}
+		setPrinting(true);
+		setListError(null);
+		try {
+			const res = await api.get("/MasterData/actual-ratio/print", {
+				params: { ratio: ratioFilter, tahun: tahunFilter },
+				responseType: "text",
+				transformResponse: [(d: string) => d],
+			});
+			const html = typeof res.data === "string" ? res.data : String(res.data ?? "");
+			if (!html.trim()) {
+				setListError("The print view came back empty.");
+				return;
+			}
+
+			const frame = document.createElement("iframe");
+			frame.setAttribute("aria-hidden", "true");
+			frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0;";
+			document.body.appendChild(frame);
+			const doc = frame.contentWindow?.document;
+			if (!doc) {
+				frame.remove();
+				setListError("Failed to open the print view. Please try again.");
+				return;
+			}
+			doc.open();
+			doc.write(html);
+			doc.close();
+
+			const cleanup = () => frame.remove();
+			frame.contentWindow?.addEventListener("afterprint", cleanup, { once: true });
+			window.setTimeout(cleanup, 60000);
+		} catch (err: any) {
+			setListError(err?.response?.status
+				? `Print failed (HTTP ${err.response.status}).`
+				: "Failed to open the print view. Please try again.");
+		} finally {
+			setPrinting(false);
+		}
 	};
 
-	const handleExport = () => {
-		window.open(`/MasterData/actual-ratio/export?ratio=${ratioFilter}&tahun=${tahunFilter}`, "_blank");
+	const handleExport = async () => {
+		if (!ratioFilter || !tahunFilter) {
+			setListError("Select Ratio and Period first.");
+			return;
+		}
+		setExporting(true);
+		setListError(null);
+		try {
+			const res = await api.get("/MasterData/actual-ratio/export", {
+				params: { ratio: ratioFilter, tahun: tahunFilter },
+				responseType: "blob",
+			});
+			const blob = new Blob([res.data], { type: "application/vnd.ms-excel" });
+			if (blob.size === 0) {
+				setListError("The export came back empty.");
+				return;
+			}
+			const url = URL.createObjectURL(blob);
+			const anchor = document.createElement("a");
+			anchor.href = url;
+			anchor.download = `Actual Ratio ${tahunFilter}.xls`;
+			document.body.appendChild(anchor);
+			anchor.click();
+			anchor.remove();
+			window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+		} catch (err: any) {
+			setListError(err?.response?.status
+				? `Export failed (HTTP ${err.response.status}).`
+				: "Failed to export. Please try again.");
+		} finally {
+			setExporting(false);
+		}
 	};
 
 	const renderActualFields = () => {
 		if (!editForm) return null;
 		const cfg = getFieldConfig(editForm.ratio);
 		const showRange = editForm.remark === "3";
-		const cls = "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40";
+		const cls = "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-40";
 
 		const field = (val: string, key: "actual1" | "actual2") =>
 			cfg.type === "select" ? (
@@ -206,19 +281,19 @@ const ViewEditActualRatioPage: React.FC = () => {
 							className={`${cls} pr-7`} placeholder="0.00" />
 						{val && (
 							<button type="button" onClick={() => setEditForm(f => f ? { ...f, [key]: "" } : f)} aria-label="Clear"
-								className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+								className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 								&times;
 							</button>
 						)}
 					</div>
-					<span className="text-sm text-[var(--app-muted)]">{cfg.suffix}</span>
+					<span className="text-sm text-[var(--app-text)]">{cfg.suffix}</span>
 				</div>
 			);
 
 		return (
 			<div className="flex items-center gap-2 flex-wrap">
 				{field(editForm.actual1, "actual1")}
-				{showRange && <><span className="text-sm text-[var(--app-muted)] font-medium">s/d</span>{field(editForm.actual2, "actual2")}</>}
+				{showRange && <><span className="text-sm text-[var(--app-text)] font-medium">s/d</span>{field(editForm.actual2, "actual2")}</>}
 			</div>
 		);
 	};
@@ -227,7 +302,7 @@ const ViewEditActualRatioPage: React.FC = () => {
 		if (!editForm) return null;
 		const cfg = getFieldConfig(editForm.ratio);
 		const showRange = editForm.remark === "3";
-		const cls = "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed w-40";
+		const cls = "border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed w-40";
 
 		const field = (val: string) =>
 			cfg.type === "select" ? (
@@ -238,14 +313,14 @@ const ViewEditActualRatioPage: React.FC = () => {
 			) : (
 				<div className="flex items-center gap-1">
 					<input type="text" value={val} readOnly className={cls} />
-					<span className="text-sm text-[var(--app-muted)]">{cfg.suffix}</span>
+					<span className="text-sm text-[var(--app-text)]">{cfg.suffix}</span>
 				</div>
 			);
 
 		return (
 			<div className="flex items-center gap-2 flex-wrap">
 				{field(editForm.ojk1)}
-				{showRange && <><span className="text-sm text-[var(--app-muted)] font-medium">s/d</span>{field(editForm.ojk2)}</>}
+				{showRange && <><span className="text-sm text-[var(--app-text)] font-medium">s/d</span>{field(editForm.ojk2)}</>}
 			</div>
 		);
 	};
@@ -255,11 +330,11 @@ const ViewEditActualRatioPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">View & Edit Actual Ratio</h1>
-						<p className="text-[var(--app-muted)] mt-1">Search, edit and export actual ratio records</p>
+						<p className="text-[var(--app-text)] mt-1">Search, edit and export actual ratio records</p>
 					</div>
 
 					<div className="bg-[var(--app-surface)] rounded-xl p-4 border border-[var(--app-border)] mb-6">
@@ -289,19 +364,19 @@ const ViewEditActualRatioPage: React.FC = () => {
 									)}
 									Search
 								</button>
-								<button onClick={handlePrint}
-									className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+								<button onClick={handlePrint} disabled={printing}
+									className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 									</svg>
-									Print
+									{printing ? "Opening…" : "Print"}
 								</button>
-								<button onClick={handleExport}
-									className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2">
+								<button onClick={handleExport} disabled={exporting}
+									className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
 									</svg>
-									Export to Excel
+									{exporting ? "Exporting…" : "Export to Excel"}
 								</button>
 							</div>
 						</div>
@@ -320,19 +395,19 @@ const ViewEditActualRatioPage: React.FC = () => {
 						<table className="w-full text-sm">
 							<thead>
 								<tr>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] w-12" rowSpan={2}>No.</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>As Of</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Remark</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" colSpan={2}>Amount / Category</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Create By</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Create Date</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Update By</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Update Date</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Action</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] w-12" rowSpan={2}>No.</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>As Of</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Remark</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" colSpan={2}>Amount / Category</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Create By</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Create Date</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Update By</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Update Date</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]" rowSpan={2}>Action</th>
 								</tr>
 								<tr>
-									<th className="py-2 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">Actual</th>
-									<th className="py-2 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">Threshold Level (OJK)</th>
+									<th className="py-2 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">Actual</th>
+									<th className="py-2 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">Threshold Level (OJK)</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
@@ -340,17 +415,12 @@ const ViewEditActualRatioPage: React.FC = () => {
 									<tr><td colSpan={10} className="py-10 text-center"><div className="flex justify-center"><Spinner size={8} /></div></td></tr>
 								) : rows.length === 0 ? (
 									<tr>
-										<td colSpan={10} className="py-10 text-center text-[var(--app-muted)]">
-											<svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-											</svg>
-											<p>Select Ratio and Period then click Search</p>
-										</td>
+										<td colSpan={10} className="py-10 text-center text-[var(--app-text)]"></td>
 									</tr>
 								) : (
 									rows.map((row, idx) => (
 										<tr key={row.id} className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]/50"}`}>
-											<td className="py-2.5 px-4 border border-[var(--app-border)] text-center text-[var(--app-muted)]">{(page - 1) * LIMIT + idx + 1}</td>
+											<td className="py-2.5 px-4 border border-[var(--app-border)] text-center text-[var(--app-text)]">{(page - 1) * LIMIT + idx + 1}</td>
 											<td className="py-2.5 px-4 border border-[var(--app-border)] text-center">{row.as_of}</td>
 											<td className="py-2.5 px-4 border border-[var(--app-border)] text-center">{row.remark_desc}</td>
 											<td className="py-2.5 px-4 border border-[var(--app-border)] text-center font-mono">{row.actual_display}</td>
@@ -385,7 +455,7 @@ const ViewEditActualRatioPage: React.FC = () => {
 					</div>
 
 					{totalPages > 1 && (
-						<div className="mt-4 flex items-center justify-between text-sm text-[var(--app-muted)]">
+						<div className="mt-4 flex items-center justify-between text-sm text-[var(--app-text)]">
 							<span>Showing {((page - 1) * LIMIT) + 1}–{Math.min(page * LIMIT, total)} of {total}</span>
 							<div className="flex gap-2">
 								<button onClick={() => fetchList(page - 1)} disabled={page === 1 || listLoading}
@@ -401,13 +471,13 @@ const ViewEditActualRatioPage: React.FC = () => {
 			{modalOpen && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
 					onClick={e => { if (e.target === e.currentTarget) setModalOpen(false); }}>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
 
 						<div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)] bg-[var(--app-surface)]">
 							<h2 className="text-lg font-bold text-[var(--app-text)]">
 								{editForm ? editForm.ratio_name : "Edit Record"}
 							</h2>
-							<button onClick={() => setModalOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">&times;</button>
+							<button onClick={() => setModalOpen(false)} className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none">&times;</button>
 						</div>
 
 						<div className="px-6 py-5 space-y-4">
@@ -419,12 +489,12 @@ const ViewEditActualRatioPage: React.FC = () => {
 										<div>
 											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">As of</label>
 											<input type="text" value={editForm.as_of} readOnly
-												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed" />
+												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed" />
 										</div>
 										<div>
 											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Create By</label>
 											<input type="text" value={editForm.created_by} readOnly
-												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed" />
+												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed" />
 										</div>
 									</div>
 
@@ -432,7 +502,7 @@ const ViewEditActualRatioPage: React.FC = () => {
 										<div>
 											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Remark</label>
 											<select value={editForm.remark} disabled
-												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed">
+												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed">
 												<option value="">—</option>
 												{remarkOpts.map(o => <option key={o.value} value={o.value}>{o.desc_value}</option>)}
 											</select>
@@ -440,12 +510,12 @@ const ViewEditActualRatioPage: React.FC = () => {
 										<div>
 											<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Create Date</label>
 											<input type="text" value={editForm.created_date} readOnly
-												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed" />
+												className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600 cursor-not-allowed" />
 										</div>
 									</div>
 
 									<div className="border-t border-[var(--app-border)] pt-1">
-										<p className="text-xs font-bold text-[var(--app-muted)] uppercase tracking-wider">Amount / Category</p>
+										<p className="text-xs font-bold text-[var(--app-text)] uppercase tracking-wider">Amount / Category</p>
 									</div>
 
 									<div className="grid grid-cols-[160px_1fr] items-center gap-4">
@@ -506,7 +576,7 @@ const ViewEditActualRatioPage: React.FC = () => {
 
 			{deleteId !== null && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6">
 						<div className="flex items-center gap-3 mb-4">
 							<div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
 								<svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -515,7 +585,7 @@ const ViewEditActualRatioPage: React.FC = () => {
 							</div>
 							<div>
 								<h3 className="font-bold text-[var(--app-text)]">Delete Record</h3>
-								<p className="text-sm text-[var(--app-muted)] mt-0.5">Are you sure to delete this record?</p>
+								<p className="text-sm text-[var(--app-text)] mt-0.5">Are you sure to delete this record?</p>
 							</div>
 						</div>
 						<div className="flex justify-end gap-3">

@@ -2,41 +2,48 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 
+const apiProxy = {
+    "/v1": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+    },
+
+    "/CAM": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+    },
+
+    "/Prechecking": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+    },
+};
+
 export default defineConfig({
-	plugins: [react()],
+    plugins: [react()],
 
-	resolve: {
-		alias: {
-			"@": path.resolve(__dirname, "./src"),
-		},
-	},
+    resolve: {
+        alias: {
+            "@": path.resolve(__dirname, "./src"),
+        },
+    },
 
-	build: {
-		chunkSizeWarningLimit: 1600,
-	},
+    build: {
+        chunkSizeWarningLimit: 1600,
+    },
 
-	server: {
-		host: "0.0.0.0",
-		port: 5173,
+    server: {
+        host: "0.0.0.0",
+        port: 5173,
+        proxy: apiProxy,
+    },
 
-		proxy: {
-			"/v1": {
-				target: "http://localhost:5000",
-				changeOrigin: true,
-				secure: false,
-			},
-
-			"/CAM": {
-				target: "http://localhost:5000",
-				changeOrigin: true,
-				secure: false,
-			},
-
-			"/Prechecking": {
-				target: "http://localhost:5000",
-				changeOrigin: true,
-				secure: false,
-			},
-		},
-	},
+    preview: {
+        host: "0.0.0.0",
+        port: 4173,
+        proxy: apiProxy,
+    },
 });

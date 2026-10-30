@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import * as XLSX from "xlsx";
+import type { Range } from "xlsx";
 import api from '@/shared/api/axiosInstance';
 
 interface DateInfo { day_num: number; day_str: string; is_holiday: boolean; }
@@ -42,12 +42,13 @@ const GRAY_GRAND = "#e5e7eb";
 function rowBg(emp: Employee) { return emp.is_cmh ? CMH_BG : WHITE; }
 function dayCellBg(isHoliday: boolean) { return isHoliday ? HOLIDAY_BG : "transparent"; }
 
-function exportExcel(data: ReportData): void {
+async function exportExcel(data: ReportData): Promise<void> {
 	if (!data.dates.length) return;
+	const XLSX = await import("xlsx");
 	const numDays = data.dates.length;
 	const totCols = numDays + 4;
 	const rows: (string | number | null)[][] = [];
-	const merges: XLSX.Range[] = [];
+	const merges: Range[] = [];
 
 	const addRow = (r: (string | number | null)[]) => rows.push(r);
 	const merge = (r1: number, c1: number, r2: number, c2: number) =>
@@ -97,20 +98,20 @@ function MonthYearSelect({ month, year, onMonthChange, onYearChange }: {
 	month: number; year: number;
 	onMonthChange: (m: number) => void; onYearChange: (y: number) => void;
 }) {
-	const cls = "px-2 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-[var(--app-card)] focus:outline-none focus:ring-2 focus:ring-blue-500";
+	const cls = "px-2 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
 	return (
 		<>
 			<select value={month} onChange={(e) => onMonthChange(Number(e.target.value))} className={cls} style={{ width: 110 }}>
-				{MONTHS_ID.slice(1).map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+				{MONTHS_ID.slice(1).map((m, i) => <option key={i + 1} value={i + 1} className="bg-white text-slate-900">{m}</option>)}
 			</select>
 			<select value={year} onChange={(e) => onYearChange(Number(e.target.value))} className={cls} style={{ width: 80 }}>
-				{YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+				{YEARS.map((y) => <option key={y} value={y} className="bg-white text-slate-900">{y}</option>)}
 			</select>
 		</>
 	);
 }
 
-const tdBase: React.CSSProperties = { border: "1px solid #ccc", padding: "2px 4px", fontSize: 11 };
+const tdBase: React.CSSProperties = { border: "1px solid #ccc", padding: "2px 4px", fontSize: 11, color: "#111827" };
 const thBase: React.CSSProperties = { ...tdBase, fontWeight: "bold", backgroundColor: "#f9fafb" };
 
 const MonthlySummaryCAMApprovedPage: React.FC = () => {
@@ -148,7 +149,7 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 
 	const handleExport = async () => {
 		const d = data ?? await fetchData();
-		if (d) exportExcel(d);
+		if (d) await exportExcel(d);
 	};
 
 	const dates = data?.dates ?? [];
@@ -248,26 +249,26 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 
 					<div className="mb-6">
 						<h1 className="text-2xl font-semibold text-[var(--app-text)]">CMO Productivity</h1>
-						<p className="text-sm text-[var(--app-muted)] mt-1">Monthly Summary CAM Approved by CMO</p>
+						<p className="text-sm text-[var(--app-text)] mt-1">Monthly Summary CAM Approved by CMO</p>
 					</div>
 
-					<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] p-4 mb-6 flex flex-wrap gap-3 items-end">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] p-4 mb-6 flex flex-wrap gap-3 items-end">
 						<div>
-							<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Approval Date</label>
+							<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Approval Date</label>
 							<div className="flex gap-2">
 								<MonthYearSelect month={bulan} year={tahun} onMonthChange={setBulan} onYearChange={setTahun} />
 							</div>
 						</div>
 						<button onClick={handlePreview} disabled={loading}
-							className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--app-surface)] text-blue-800 border border-blue-200 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed">
+							className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white border border-blue-700 hover:bg-blue-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed">
 							{loading ? "Memuat…" : "Preview"}
 						</button>
 						<button onClick={handlePrint} disabled={loading}
-							className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-surface-alt)] disabled:opacity-40 disabled:cursor-not-allowed">
+							className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--app-surface-alt)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed">
 							Print
 						</button>
 						<button onClick={handleExport} disabled={loading}
-							className="px-4 py-2 text-sm font-medium rounded-lg bg-green-50 text-green-800 border border-green-200 hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
+							className="px-4 py-2 text-sm font-medium rounded-lg bg-green-600 text-white border border-green-700 hover:bg-green-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed">
 							Export to Excel
 						</button>
 					</div>
@@ -275,13 +276,7 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 					{error && (
 						<div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
 					)}
-					{loading && <div className="py-16 text-center text-sm text-[var(--app-muted)]">Memuat data… (memerlukan beberapa saat)</div>}
-
-					{!loading && !data && (
-						<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
-							Pilih periode dan klik <span className="font-medium">Preview</span> untuk menampilkan data
-						</div>
-					)}
+					{loading && <div className="py-16 text-center text-sm text-[var(--app-text)]">Memuat data… (memerlukan beberapa saat)</div>}
 
 					{!loading && data && (
 						<>
@@ -293,13 +288,13 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 									{ label: "Grand Total CAMs", value: data.grand_total },
 								].map((m) => (
 									<div key={m.label} className="bg-[var(--app-surface)] rounded-lg p-3">
-										<div className="text-xs text-[var(--app-muted)] mb-1">{m.label}</div>
+										<div className="text-xs text-[var(--app-text)] mb-1">{m.label}</div>
 										<div className="text-lg font-semibold tabular-nums text-[var(--app-text)]">{m.value}</div>
 									</div>
 								))}
 							</div>
 
-							<div className="flex gap-4 mb-3 text-xs text-[var(--app-muted)]">
+							<div className="flex gap-4 mb-3 text-xs text-[var(--app-text)]">
 								<span className="flex items-center gap-1">
 									<span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: CMH_BG }} /> CMH (Manager)
 								</span>

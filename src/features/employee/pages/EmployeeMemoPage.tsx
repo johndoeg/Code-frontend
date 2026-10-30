@@ -60,6 +60,9 @@ const EMPTY_FORM: MemoFormState = {
 
 const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const isoToDate = (iso: string): Date => {
 	if (!iso) return new Date();
 	const d = new Date(iso + "T00:00:00");
@@ -91,7 +94,7 @@ const FormRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label
 	</div>
 );
 
-const inputCls = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-[var(--app-surface-alt)]";
+const inputCls = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:bg-slate-100 disabled:text-slate-500";
 const selectCls = inputCls;
 
 const EmployeeMemoPage: React.FC = () => {
@@ -363,7 +366,7 @@ const EmployeeMemoPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">Employee Memo</h1>
 
 					{error && (
@@ -371,24 +374,28 @@ const EmployeeMemoPage: React.FC = () => {
 					)}
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-						<AsOfDatePicker
-							label="Memo Date From"
-							value={memoFrom}
-							onChange={(date) => {
-								if (!date) return;
-								setMemoFrom(date);
-								if (date > memoTo) setMemoTo(date);
-							}}
-							maxDate={memoTo}
-							required
-						/>
-						<AsOfDatePicker
-							label="Memo Date To"
-							value={memoTo}
-							onChange={(date) => { if (date) setMemoTo(date); }}
-							minDate={memoFrom}
-							required
-						/>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="Memo Date From"
+								value={memoFrom}
+								onChange={(date) => {
+									if (!date) return;
+									setMemoFrom(date);
+									if (date > memoTo) setMemoTo(date);
+								}}
+								maxDate={memoTo}
+								required
+							/>
+						</div>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="Memo Date To"
+								value={memoTo}
+								onChange={(date) => { if (date) setMemoTo(date); }}
+								minDate={memoFrom}
+								required
+							/>
+						</div>
 					</div>
 
 					<button
@@ -400,13 +407,13 @@ const EmployeeMemoPage: React.FC = () => {
 					</button>
 				</div>
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
 						<table className="w-full text-sm">
-							<thead className="bg-gradient-to-r from-[var(--app-surface-alt)] to-slate-200">
+							<thead className="bg-gradient-to-r from-[var(--app-surface-alt)] to-[var(--app-surface)]">
 								<tr>
 									{["No.", "Memo Type", "Memo Date", "Employee Data", "Facility / Relocation / Resign Info"].map((h, i) => (
-										<th key={i} className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] whitespace-nowrap">
+										<th key={i} className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] whitespace-nowrap">
 											{h}
 										</th>
 									))}
@@ -422,7 +429,7 @@ const EmployeeMemoPage: React.FC = () => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{loading ? (
 									<tr>
-										<td colSpan={6} className="py-14 text-center text-[var(--app-muted)]">
+										<td colSpan={6} className="py-14 text-center text-[var(--app-text)]">
 											<div className="flex justify-center">
 												<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
 											</div>
@@ -430,7 +437,7 @@ const EmployeeMemoPage: React.FC = () => {
 									</tr>
 								) : pageRows.length === 0 ? (
 									<tr>
-										<td colSpan={6} className="py-14 text-center text-[var(--app-muted)]">No records found</td>
+										<td colSpan={6} className="py-14 text-center text-[var(--app-text)]">No records found</td>
 									</tr>
 								) : (
 									pageRows.map((row, idx) => (
@@ -489,10 +496,10 @@ const EmployeeMemoPage: React.FC = () => {
 
 			{memoModalOpen && (
 				<div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-xl my-8">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-xl my-8">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-lg font-bold text-[var(--app-text)]">{isEditMode ? "Edit Memo" : "Add Memo"}</h2>
-							<button onClick={() => setMemoModalOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)]"><CloseIcon /></button>
+							<button onClick={() => setMemoModalOpen(false)} className="text-[var(--app-text)] opacity-80 hover:opacity-100"><CloseIcon /></button>
 						</div>
 
 						<div className="p-6 space-y-1">
@@ -506,7 +513,7 @@ const EmployeeMemoPage: React.FC = () => {
 							</FormRow>
 
 							<FormRow label={MEMO_DATE_LABEL[form.memo_type]}>
-								<AsOfDatePicker label="" value={memoDt} onChange={(d) => { if (d) setMemoDt(d); }} required />
+								<div className={dateFieldClass}><AsOfDatePicker label="" value={memoDt} onChange={(d) => { if (d) setMemoDt(d); }} required /></div>
 							</FormRow>
 
 							<FormRow label="Employee Fullname *">
@@ -553,7 +560,7 @@ const EmployeeMemoPage: React.FC = () => {
 
 							{isNW && (
 								<div className="border border-[var(--app-border)] rounded-lg p-4 space-y-2 bg-[var(--app-surface)]">
-									<p className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider mb-2">Facilities</p>
+									<p className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider mb-2">Facilities</p>
 									{([
 										{ key: "facility_laptop" as const, label: "Laptop" },
 										{ key: "facility_email" as const, label: "Email" },
@@ -571,7 +578,7 @@ const EmployeeMemoPage: React.FC = () => {
 
 							{isRL && (
 								<div className="border border-[var(--app-border)] rounded-lg p-4 space-y-3 bg-[var(--app-surface)]">
-									<p className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider mb-2">Relocation</p>
+									<p className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider mb-2">Relocation</p>
 									<div className="space-y-2">
 										<label className="flex items-center gap-2 text-sm text-[var(--app-text)] cursor-pointer">
 											<input type="checkbox" checked={form.reloc_branch}
@@ -605,19 +612,19 @@ const EmployeeMemoPage: React.FC = () => {
 
 							{isRS && (
 								<div className="border border-[var(--app-border)] rounded-lg p-4 space-y-3 bg-[var(--app-surface)]">
-									<p className="text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider mb-2">Resign Details</p>
+									<p className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider mb-2">Resign Details</p>
 									<FormRow label="Email Off Date">
-										<AsOfDatePicker label="" value={emailOffDate} onChange={(d) => { if (d) setEmailOffDate(d); }} />
+										<div className={dateFieldClass}><AsOfDatePicker label="" value={emailOffDate} onChange={(d) => { if (d) setEmailOffDate(d); }} /></div>
 									</FormRow>
 									<FormRow label="Application Off Date">
-										<AsOfDatePicker label="" value={appOffDate} onChange={(d) => { if (d) setAppOffDate(d); }} />
+										<div className={dateFieldClass}><AsOfDatePicker label="" value={appOffDate} onChange={(d) => { if (d) setAppOffDate(d); }} /></div>
 									</FormRow>
 								</div>
 							)}
 						</div>
 
 						<div className="flex justify-end gap-3 p-6 border-t">
-							<button onClick={() => setMemoModalOpen(false)} className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-muted)] hover:bg-[var(--app-surface)] text-sm">Close</button>
+							<button onClick={() => setMemoModalOpen(false)} className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-text)] hover:bg-[var(--app-surface)] text-sm">Close</button>
 							<button onClick={handleSaveMemo} disabled={saving} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium">
 								{saving ? "Saving…" : "Submit"}
 							</button>
@@ -628,10 +635,10 @@ const EmployeeMemoPage: React.FC = () => {
 
 			{cancelModalOpen && (
 				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-md">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-md">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-lg font-bold text-[var(--app-text)]">Cancel Memo</h2>
-							<button onClick={() => setCancelModalOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)]"><CloseIcon /></button>
+							<button onClick={() => setCancelModalOpen(false)} className="text-[var(--app-text)] opacity-80 hover:opacity-100"><CloseIcon /></button>
 						</div>
 						<div className="p-6">
 							<FormRow label="Cancel Reason *">
@@ -640,7 +647,7 @@ const EmployeeMemoPage: React.FC = () => {
 							</FormRow>
 						</div>
 						<div className="flex justify-end gap-3 p-6 border-t">
-							<button onClick={() => setCancelModalOpen(false)} className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-muted)] hover:bg-[var(--app-surface)] text-sm">Close</button>
+							<button onClick={() => setCancelModalOpen(false)} className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-text)] hover:bg-[var(--app-surface)] text-sm">Close</button>
 							<button onClick={handleCancelMemo} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium">Submit</button>
 						</div>
 					</div>
@@ -649,10 +656,10 @@ const EmployeeMemoPage: React.FC = () => {
 
 			{emailModalOpen && (
 				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-md">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-md">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-lg font-bold text-[var(--app-text)]">Update Email</h2>
-							<button onClick={() => setEmailModalOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)]"><CloseIcon /></button>
+							<button onClick={() => setEmailModalOpen(false)} className="text-[var(--app-text)] opacity-80 hover:opacity-100"><CloseIcon /></button>
 						</div>
 						<div className="p-6">
 							<FormRow label="Email *">
@@ -661,7 +668,7 @@ const EmployeeMemoPage: React.FC = () => {
 							</FormRow>
 						</div>
 						<div className="flex justify-end gap-3 p-6 border-t">
-							<button onClick={() => setEmailModalOpen(false)} className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-muted)] hover:bg-[var(--app-surface)] text-sm">Close</button>
+							<button onClick={() => setEmailModalOpen(false)} className="px-4 py-2 border border-[var(--app-border)] rounded-lg text-[var(--app-text)] hover:bg-[var(--app-surface)] text-sm">Close</button>
 							<button onClick={handleEmailUpdate} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium">Submit</button>
 						</div>
 					</div>

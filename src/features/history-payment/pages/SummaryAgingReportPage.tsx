@@ -13,6 +13,9 @@ const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const fileMessage = async (err: any, fallback: string): Promise<string> => {
 	const d = err?.response?.data;
 	if (d instanceof Blob) {
@@ -98,17 +101,19 @@ const SummaryAgingReportPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 							Summary Aging Report
 						</h1>
-						<p className="text-sm text-[var(--app-muted)] mt-1">Car Financing Only</p>
+						<p className="text-sm text-[var(--app-text)] mt-1">Car Financing Only</p>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-						<AsOfDatePicker value={asof} onChange={setAsof} format="DD MMM YYYY" />
+						<div className={dateFieldClass}>
+							<AsOfDatePicker value={asof} onChange={setAsof} format="DD MMM YYYY" />
+						</div>
 						<div>
 							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
 								By
@@ -119,7 +124,7 @@ const SummaryAgingReportPage: React.FC = () => {
 								disabled={comboLoad || busy}
 								className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg shadow-sm bg-white text-slate-900
 								           focus:outline-none focus:ring-2 focus:ring-blue-500
-								           focus:border-blue-500 disabled:bg-[var(--app-surface-alt)]"
+								           focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-600"
 							>
 								{byOptions.map(o => (
 									<option key={o.value} value={o.value} style={optionStyle}>{o.label}</option>

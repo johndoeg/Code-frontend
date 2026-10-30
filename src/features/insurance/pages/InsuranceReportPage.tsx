@@ -25,6 +25,9 @@ type SearchBy = '' | '1' | '2';
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const InsuranceReportPage: React.FC = () => {
 	const [companies, setCompanies] = useState<InsuranceCompany[]>([]);
 	const [selectedIns, setSelectedIns] = useState<string>('');
@@ -136,7 +139,7 @@ const InsuranceReportPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Insurance Report</h1>
@@ -187,12 +190,12 @@ const InsuranceReportPage: React.FC = () => {
 										onChange={e => setSearchText(e.target.value)}
 										onKeyDown={e => e.key === 'Enter' && handleSearch(1)}
 										placeholder="Enter contract no."
-										className="w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm shadow-sm pr-8
+										className="w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm shadow-sm pr-8 bg-white text-slate-900
 										           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 									/>
 									{searchText && (
 										<button type="button" onClick={() => setSearchText('')} aria-label="Clear contract number"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
@@ -202,25 +205,29 @@ const InsuranceReportPage: React.FC = () => {
 
 						{searchBy === '2' && (
 							<>
-								<AsOfDatePicker
-									label="Date From"
-									value={dateFrom}
-									onChange={date => {
-										if (date) {
-											setDateFrom(date);
-											if (date > dateTo) setDateTo(date);
-										}
-									}}
-									maxDate={dateTo}
-									required
-								/>
-								<AsOfDatePicker
-									label="Date To"
-									value={dateTo}
-									onChange={date => { if (date) setDateTo(date); }}
-									minDate={dateFrom}
-									required
-								/>
+								<div className={dateFieldClass}>
+									<AsOfDatePicker
+										label="Date From"
+										value={dateFrom}
+										onChange={date => {
+											if (date) {
+												setDateFrom(date);
+												if (date > dateTo) setDateTo(date);
+											}
+										}}
+										maxDate={dateTo}
+										required
+									/>
+								</div>
+								<div className={dateFieldClass}>
+									<AsOfDatePicker
+										label="Date To"
+										value={dateTo}
+										onChange={date => { if (date) setDateTo(date); }}
+										minDate={dateFrom}
+										required
+									/>
+								</div>
 							</>
 						)}
 					</div>
@@ -301,7 +308,7 @@ const InsuranceReportPage: React.FC = () => {
 										<th
 											key={label}
 											style={{ width: w }}
-											className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)]
+											className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)]
 											           uppercase tracking-wider whitespace-nowrap"
 										>
 											{label}
@@ -320,13 +327,11 @@ const InsuranceReportPage: React.FC = () => {
 									</tr>
 								) : !searched ? (
 									<tr>
-										<td colSpan={8} className="py-10 text-center text-[var(--app-muted)] italic text-sm">
-											Select filters and click Search to load data.
-										</td>
+										<td colSpan={8} className="py-10 text-center text-[var(--app-text)] italic text-sm"></td>
 									</tr>
 								) : records.length === 0 ? (
 									<tr>
-										<td colSpan={8} className="py-10 text-center text-[var(--app-muted)]">
+										<td colSpan={8} className="py-10 text-center text-[var(--app-text)]">
 											No records found.
 										</td>
 									</tr>

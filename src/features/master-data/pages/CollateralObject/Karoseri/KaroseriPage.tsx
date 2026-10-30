@@ -219,26 +219,26 @@ const KaroseriPage: React.FC = () => {
 			<div className="max-w-full mx-auto">
 
 				{akses === "9" && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
-						<h2 className="text-sm font-semibold text-[var(--app-muted)] uppercase
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+						<h2 className="text-sm font-semibold text-[var(--app-text)] uppercase
                            tracking-wide mb-4">
 							Add Karoseri
 						</h2>
 
 						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Model <span className="text-red-500">*</span>
 								</label>
 								<select
 									value={formModel}
 									onChange={e => handleModelChange(e.target.value)}
-									className="w-full border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2.5 text-sm
+									className="w-full border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm
                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								>
-									<option value="" className="bg-white text-[var(--app-text)]">Select…</option>
+									<option value="" className="bg-white text-slate-900">Select…</option>
 									{modelOptions.map(m => (
-										<option key={m.MODEL} value={m.MODEL} className="bg-white text-[var(--app-text)]">
+										<option key={m.MODEL} value={m.MODEL} className="bg-white text-slate-900">
 											{m.MODEL_NM}
 										</option>
 									))}
@@ -246,23 +246,23 @@ const KaroseriPage: React.FC = () => {
 							</div>
 
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Status <span className="text-red-500">*</span>
 								</label>
 								<select
 									value={formActive}
 									onChange={e => setFormActive(e.target.value)}
-									className="w-full border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2.5 text-sm
+									className="w-full border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm
                              focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								>
-									<option value="" className="bg-white text-[var(--app-text)]">Select…</option>
-									<option value="1" className="bg-white text-[var(--app-text)]">Active</option>
-									<option value="0" className="bg-white text-[var(--app-text)]">Inactive</option>
+									<option value="" className="bg-white text-slate-900">Select…</option>
+									<option value="1" className="bg-white text-slate-900">Active</option>
+									<option value="0" className="bg-white text-slate-900">Inactive</option>
 								</select>
 							</div>
 
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Karoseri Code
 								</label>
 								<input
@@ -270,12 +270,12 @@ const KaroseriPage: React.FC = () => {
 									readOnly
 									value={formKaroseri}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             bg-[var(--app-surface-alt)] font-mono text-center"
+                             bg-slate-100 text-slate-600 font-mono text-center"
 								/>
 							</div>
 
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Karoseri Description <span className="text-red-500">*</span>
 								</label>
 								<input
@@ -285,7 +285,7 @@ const KaroseriPage: React.FC = () => {
 									onChange={e => setFormDesc(e.target.value)}
 									onKeyDown={e => e.key === "Enter" && handleSave()}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
 								/>
 							</div>
 						</div>
@@ -310,12 +310,12 @@ const KaroseriPage: React.FC = () => {
 					</div>
 				)}
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 					<div className="flex items-center justify-between mb-5">
 						<div>
 							<h1 className="text-2xl font-bold text-[var(--app-text)]">Karoseri</h1>
-							<p className="text-sm text-[var(--app-muted)] mt-0.5">
+							<p className="text-sm text-[var(--app-text)] mt-0.5">
 								View and manage karoseri records
 							</p>
 						</div>
@@ -329,15 +329,15 @@ const KaroseriPage: React.FC = () => {
 						<select
 							value={searchBy}
 							onChange={e => setSearchBy(e.target.value)}
-							className="border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2.5 text-sm
+							className="border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm
                          focus:ring-2 focus:ring-blue-500 sm:w-52"
 						>
-							<option value="1" className="bg-white text-[var(--app-text)]">Model</option>
-							<option value="2" className="bg-white text-[var(--app-text)]">Karoseri Description</option>
+							<option value="1" className="bg-white text-slate-900">Model</option>
+							<option value="2" className="bg-white text-slate-900">Karoseri Description</option>
 						</select>
 
 						<div className="relative flex-1">
-							<svg className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2"
+							<svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
 								fill="none" viewBox="0 0 24 24">
 								<path fill="currentColor"
 									d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16
@@ -354,7 +354,7 @@ const KaroseriPage: React.FC = () => {
 								onChange={e => setSearchVal(e.target.value)}
 								onKeyDown={e => e.key === "Enter" && handleSearch()}
 								className="w-full pl-10 pr-10 py-2.5 border border-[var(--app-border)] rounded-lg
-                           text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
 							/>
 							{searchVal && (
 								<button
@@ -362,7 +362,7 @@ const KaroseriPage: React.FC = () => {
 									onClick={handleClearSearch}
 									aria-label="Clear search"
 									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-                             text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+                             text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -396,13 +396,13 @@ const KaroseriPage: React.FC = () => {
 									{["Model", "Karoseri", "Description", "Status"].map(h => (
 										<th key={h}
 											className="py-3 px-5 text-left text-xs font-semibold
-                                 text-[var(--app-muted)] uppercase tracking-wider">
+                                 text-[var(--app-text)] uppercase tracking-wider">
 											{h}
 										</th>
 									))}
 									{akses === "9" && (
 										<th className="py-3 px-5 text-center text-xs font-semibold
-                                   text-[var(--app-muted)] uppercase tracking-wider w-36">
+                                   text-[var(--app-text)] uppercase tracking-wider w-36">
 											Action
 										</th>
 									)}
@@ -412,7 +412,7 @@ const KaroseriPage: React.FC = () => {
 								{karoseri.length === 0 && !loading ? (
 									<tr>
 										<td colSpan={akses === "9" ? 5 : 4}
-											className="py-12 text-center text-[var(--app-muted)]">
+											className="py-12 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center gap-2">
 												<svg className="w-12 h-12 text-gray-200" fill="none"
 													stroke="currentColor" viewBox="0 0 24 24">
@@ -535,14 +535,14 @@ const KaroseriPage: React.FC = () => {
                      bg-black/40 p-4"
 					onClick={e => e.target === e.currentTarget && setEditRow(null)}
 				>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-sm
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-sm
                           animate-in slide-in-from-top-4">
 
 						<div className="flex items-center justify-between px-6 py-4
                             border-b border-[var(--app-border)]">
 							<h2 className="font-semibold text-[var(--app-text)]">Edit Karoseri</h2>
 							<button onClick={() => setEditRow(null)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">
+								className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none">
 								×
 							</button>
 						</div>
@@ -550,7 +550,7 @@ const KaroseriPage: React.FC = () => {
 						<div className="px-6 py-5 space-y-4">
 
 							<div>
-								<p className="text-xs font-medium text-[var(--app-muted)] mb-1">Model Name</p>
+								<p className="text-xs font-medium text-[var(--app-text)] mb-1">Model Name</p>
 								<p className="text-sm font-medium text-[var(--app-text)] bg-[var(--app-surface)] border
                               border-[var(--app-border)] rounded-lg px-3 py-2.5">
 									{editRow.MODEL_NM}
@@ -558,23 +558,23 @@ const KaroseriPage: React.FC = () => {
 							</div>
 
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Status <span className="text-red-500">*</span>
 								</label>
 								<select
 									value={editActive}
 									onChange={e => setEditActive(e.target.value)}
-									className="w-full border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2.5 text-sm
+									className="w-full border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm
                              				focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								>
-									<option value="" className="bg-white text-[var(--app-text)]">Select…</option>
-									<option value="1" className="bg-white text-[var(--app-text)]">Active</option>
-									<option value="0" className="bg-white text-[var(--app-text)]">Inactive</option>
+									<option value="" className="bg-white text-slate-900">Select…</option>
+									<option value="1" className="bg-white text-slate-900">Active</option>
+									<option value="0" className="bg-white text-slate-900">Inactive</option>
 								</select>
 							</div>
 
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Karoseri Code
 								</label>
 								<input
@@ -582,12 +582,12 @@ const KaroseriPage: React.FC = () => {
 									readOnly
 									value={editRow.KAROSERI}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5
-                             text-sm bg-[var(--app-surface-alt)] font-mono"
+                             text-sm bg-slate-100 text-slate-600 font-mono"
 								/>
 							</div>
 
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Karoseri Description <span className="text-red-500">*</span>
 								</label>
 								<input
@@ -597,7 +597,7 @@ const KaroseriPage: React.FC = () => {
 									onChange={e => setEditDesc(e.target.value)}
 									onKeyDown={e => e.key === "Enter" && handleUpdate()}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400"
 								/>
 							</div>
 

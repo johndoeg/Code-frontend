@@ -47,6 +47,9 @@ const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#
 
 const toISO = (d: Date | null): string => (d ? d.toISOString().split('T')[0] : '');
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const FiduciaReportPage: React.FC = () => {
 	const [certType, setCertType] = useState<CertType>('');
 	const [searchBy, setSearchBy] = useState<SearchBy>('');
@@ -306,7 +309,7 @@ const FiduciaReportPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
@@ -354,20 +357,24 @@ const FiduciaReportPage: React.FC = () => {
 
 					{showDateRange && (
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-							<AsOfDatePicker
-								label="Date From"
-								value={dateBefore}
-								onChange={handleDateBeforeChange}
-								maxDate={dateAfter ?? undefined}
-								required
-							/>
-							<AsOfDatePicker
-								label="Date To"
-								value={dateAfter}
-								onChange={handleDateAfterChange}
-								minDate={dateBefore ?? undefined}
-								required
-							/>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker
+									label="Date From"
+									value={dateBefore}
+									onChange={handleDateBeforeChange}
+									maxDate={dateAfter ?? undefined}
+									required
+								/>
+							</div>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker
+									label="Date To"
+									value={dateAfter}
+									onChange={handleDateAfterChange}
+									minDate={dateBefore ?? undefined}
+									required
+								/>
+							</div>
 						</div>
 					)}
 
@@ -383,12 +390,12 @@ const FiduciaReportPage: React.FC = () => {
 									onChange={e => setCustomerName(e.target.value)}
 									onKeyPress={e => { if (e.key === 'Enter') handleSearch(); }}
 									maxLength={50}
-									className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
+									className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg shadow-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
 									placeholder="Enter customer name…"
 								/>
 								{customerName && (
 									<button type="button" onClick={() => setCustomerName('')} aria-label="Clear customer name"
-										className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+										className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 										&times;
 									</button>
 								)}
@@ -398,12 +405,14 @@ const FiduciaReportPage: React.FC = () => {
 
 					{showAsOf && (
 						<div className="mb-4 md:w-1/3">
-							<AsOfDatePicker
-								label="As Of"
-								value={asOf}
-								onChange={setAsOf}
-								required
-							/>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker
+									label="As Of"
+									value={asOf}
+									onChange={setAsOf}
+									required
+								/>
+							</div>
 						</div>
 					)}
 
@@ -443,12 +452,12 @@ const FiduciaReportPage: React.FC = () => {
 								<table className="w-full">
 									<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 										<tr>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider w-12">No.</th>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Contract No.</th>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Customer Name</th>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">{dateHeader}</th>
-											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Action</th>
-											<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-12">No.</th>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Contract No.</th>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Customer Name</th>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">{dateHeader}</th>
+											<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Action</th>
+											<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">
 												<div className="flex items-center justify-center gap-2">
 													Select All
 													<input
@@ -478,7 +487,7 @@ const FiduciaReportPage: React.FC = () => {
 																setContractRows(next);
 															}}
 															onKeyPress={e => handleContractKeyPress(e, idx)}
-															className="w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono pr-7"
+															className="w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono pr-7"
 															placeholder="Enter contract no. & press Enter…"
 														/>
 														{val && (
@@ -487,7 +496,7 @@ const FiduciaReportPage: React.FC = () => {
 																next[idx] = '';
 																setContractRows(next);
 															}} aria-label="Clear contract number"
-																className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+																className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 																&times;
 															</button>
 														)}
@@ -524,7 +533,7 @@ const FiduciaReportPage: React.FC = () => {
 
 										{!showContNum && pagedRecords.length === 0 && !loading && (
 											<tr>
-												<td colSpan={6} className="py-10 px-4 text-center text-[var(--app-muted)]">
+												<td colSpan={6} className="py-10 px-4 text-center text-[var(--app-text)]">
 													<div className="flex flex-col items-center justify-center">
 														<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 															<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"

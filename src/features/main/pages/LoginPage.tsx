@@ -10,6 +10,8 @@ const PIN_LENGTH = 6;
 const DEFAULT_PIN_TTL_SECONDS = 5 * 60;
 const MAX_PIN_ATTEMPTS = 3;
 
+const LOGIN_TIMEOUT_MS = 30000;
+
 const formatTime = (totalSeconds: number) => {
 	const m = Math.floor(totalSeconds / 60);
 	const s = totalSeconds % 60;
@@ -82,7 +84,11 @@ export default function LoginPage() {
 		setError("");
 		setLoading(true);
 		try {
-			const res = await api.post("/auth/login", { username, password });
+			const res = await api.post(
+				"/auth/login",
+				{ username, password },
+				{ timeout: LOGIN_TIMEOUT_MS },
+			);
 			if (res.data?.pin_required) {
 				const ttl = res.data?.expires_in ?? DEFAULT_PIN_TTL_SECONDS;
 				setStage("pin");
@@ -99,6 +105,10 @@ export default function LoginPage() {
 			const data = err.response?.data;
 			if (data?.maintenance) {
 				setError(data.message || "System under maintenance");
+			} else if (err.code === "ECONNABORTED" || err.code === "ETIMEDOUT") {
+				setError(
+					"The server took too long to respond. If a PIN arrives on Telegram, log in again to enter it.",
+				);
 			} else {
 				setError(data?.message || err.message || "Login failed");
 			}

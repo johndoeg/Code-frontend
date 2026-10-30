@@ -100,9 +100,13 @@ const attachmentUrl = (filename: string) =>
 const CORSEC_REASON = '8';
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 const selectStyle: React.CSSProperties = { colorScheme: 'light' };
+
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const inputCls =
-	'w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none transition-shadow disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)]';
-const selectCls = `${inputCls} bg-white text-[var(--app-text)]`;
+	'w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none transition-shadow disabled:bg-slate-100 disabled:text-slate-500';
+const selectCls = `${inputCls} bg-white text-slate-900`;
 
 interface Group { code: string; name: string; }
 
@@ -125,7 +129,7 @@ const FormField = ({ label, required, children }: { label: React.ReactNode; requ
 		<label className="w-44 flex-shrink-0 pt-2 text-sm font-medium text-[var(--app-text)]">
 			{label}{required && <span className="text-red-500 ml-0.5">*</span>}
 		</label>
-		<span className="pt-2 text-sm text-[var(--app-muted)]">:</span>
+		<span className="pt-2 text-sm text-[var(--app-text)]">:</span>
 		<div className="flex-1 min-w-0">{children}</div>
 	</div>
 );
@@ -452,12 +456,12 @@ const WatchListEntryByCorsec: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Watchlist Entry</h1>
-							<p className="text-[var(--app-muted)] mt-1 text-sm">
+							<p className="text-[var(--app-text)] mt-1 text-sm">
 								Manage watchlisted customers (Individual &amp; Corporate)
 							</p>
 						</div>
@@ -482,7 +486,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 							value={searchBy}
 							onChange={(e) => { setSearchBy(e.target.value as SearchBy); setSearchVal(''); }}
 							style={selectStyle}
-							className="border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+							className="border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
 						>
 							<option value="" style={optionStyle}>All</option>
 							<option value="1" style={optionStyle}>ID Card</option>
@@ -497,14 +501,14 @@ const WatchListEntryByCorsec: React.FC = () => {
 								onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
 								disabled={searchBy === ''}
 								placeholder={searchBy === '' ? 'Showing all active entries' : 'Search…'}
-								className="w-full border border-[var(--app-border)] rounded-lg pl-3 pr-10 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)]"
+								className="w-full border border-[var(--app-border)] rounded-lg pl-3 pr-10 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-amber-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
 							/>
 							{searchVal && (
 								<button
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
-									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -534,7 +538,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 									{['No.', 'ID Card / NPWP', 'Name', 'Address', 'Type', 'Action'].map((h) => (
 										<th
 											key={h}
-											className={`py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider ${h === 'Action' ? 'whitespace-nowrap w-px' : ''}`}
+											className={`py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider ${h === 'Action' ? 'whitespace-nowrap w-px' : ''}`}
 										>
 											{h}
 										</th>
@@ -549,19 +553,19 @@ const WatchListEntryByCorsec: React.FC = () => {
 										</div>
 									</td></tr>
 								) : results.length === 0 ? (
-									<tr><td colSpan={6} className="py-16 text-center text-[var(--app-muted)] text-sm">No records found</td></tr>
+									<tr><td colSpan={6} className="py-16 text-center text-[var(--app-text)] text-sm">No records found</td></tr>
 								) : (
 									results.map((row, i) => (
 										<tr
 											key={row.no}
 											className={`hover:bg-amber-50/30 transition-colors ${i % 2 === 0 ? 'bg-[var(--app-card)]' : 'bg-[var(--app-surface)]/50'}`}
 										>
-											<td className="py-3 px-4 text-sm text-[var(--app-muted)] text-center">
+											<td className="py-3 px-4 text-sm text-[var(--app-text)] text-center">
 												{(page - 1) * PAGE_SIZE + i + 1}
 											</td>
 											<td className="py-3 px-4 text-sm font-mono text-[var(--app-text)]">{row.identitas}</td>
 											<td className="py-3 px-4 text-sm font-medium text-[var(--app-text)]">{row.name}</td>
-											<td className="py-3 px-4 text-sm text-[var(--app-muted)] max-w-xs truncate">{row.address}</td>
+											<td className="py-3 px-4 text-sm text-[var(--app-text)] max-w-xs truncate">{row.address}</td>
 											<td className="py-3 px-4">
 												<TypeBadge type={row.lessee_type} />
 											</td>
@@ -609,18 +613,18 @@ const WatchListEntryByCorsec: React.FC = () => {
 
 			{formOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-8xl my-8">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-8xl my-8">
 
-						<div className="flex justify-between items-center px-6 py-5 border-b">
+						<div className="flex justify-between items-center px-6 py-5 border-b border-[var(--app-border)]">
 							<div>
 								<h2 className="text-xl font-bold text-[var(--app-text)]">
 									{formMode === 'create' ? 'Add Watchlist Entry' : formMode === 'edit' ? 'Edit Watchlist Entry' : 'View Watchlist Entry'}
 								</h2>
-								<p className="text-sm text-[var(--app-muted)] mt-0.5">
+								<p className="text-sm text-[var(--app-text)] mt-0.5">
 									{formMode === 'create' ? 'Fill in all required fields' : (formData.name || ' ')}
 								</p>
 							</div>
-							<button onClick={closeForm} className="text-[var(--app-muted)] hover:text-[var(--app-text)] text-2xl leading-none">×</button>
+							<button onClick={closeForm} className="text-[var(--app-text)] hover:text-[var(--app-text)] text-2xl leading-none">×</button>
 						</div>
 
 						<div className="p-6">
@@ -692,15 +696,17 @@ const WatchListEntryByCorsec: React.FC = () => {
 															onChange={(e) => updateField('id_card', e.target.value.replace(/\D/g, ''))} className={inputCls} placeholder="16-digit KTP" />
 													</FormField>
 													<FormField label="Date of Birth">
-														<AsOfDatePicker
-															label=""
-															format="DD-MM-YYYY"
-															placeholder="dd-mm-yyyy"
-															disabled={off}
-															maxDate={new Date()}
-															value={parseDDMMYYYY(formData.date_of_birth)}
-															onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
-														/>
+														<div className={dateFieldClass}>
+															<AsOfDatePicker
+																label=""
+																format="DD-MM-YYYY"
+																placeholder="dd-mm-yyyy"
+																disabled={off}
+																maxDate={new Date()}
+																value={parseDDMMYYYY(formData.date_of_birth)}
+																onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
+															/>
+														</div>
 													</FormField>
 													<FormField label="NPWP">
 														<NpwpInput value={formData.npwp} disabled={off} onChange={(v) => updateField('npwp', v)} />
@@ -720,15 +726,17 @@ const WatchListEntryByCorsec: React.FC = () => {
 														<NpwpInput value={formData.npwp} disabled={off || lockedFromPicker} onChange={(v) => updateField('npwp', v)} />
 													</FormField>
 													<FormField label="Establishment Date">
-														<AsOfDatePicker
-															label=""
-															format="DD-MM-YYYY"
-															placeholder="dd-mm-yyyy"
-															disabled={off}
-															maxDate={new Date()}
-															value={parseDDMMYYYY(formData.date_of_birth)}
-															onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
-														/>
+														<div className={dateFieldClass}>
+															<AsOfDatePicker
+																label=""
+																format="DD-MM-YYYY"
+																placeholder="dd-mm-yyyy"
+																disabled={off}
+																maxDate={new Date()}
+																value={parseDDMMYYYY(formData.date_of_birth)}
+																onChange={(d) => updateField('date_of_birth', formatDDMMYYYY(d))}
+															/>
+														</div>
 													</FormField>
 
 													<div className="pt-2 pb-1">
@@ -768,19 +776,19 @@ const WatchListEntryByCorsec: React.FC = () => {
 
 											<FormField label="Create By">
 												<input type="text" readOnly value={formMode === 'create' ? currentUser : (formData.create_user ?? '')}
-													className={`${inputCls} bg-[var(--app-surface)]`} />
+													className={`${inputCls} !bg-slate-100 !text-slate-600`} />
 											</FormField>
 											<FormField label="Create Date">
 												<input type="text" readOnly value={formMode === 'create' ? todayDisplay : (formData.create_date ?? '')}
-													className={`${inputCls} bg-[var(--app-surface)]`} />
+													className={`${inputCls} !bg-slate-100 !text-slate-600`} />
 											</FormField>
 											{formData.last_user && (
 												<>
 													<FormField label="Update by">
-														<input type="text" readOnly value={formData.last_user} className={`${inputCls} bg-[var(--app-surface)]`} />
+														<input type="text" readOnly value={formData.last_user} className={`${inputCls} !bg-slate-100 !text-slate-600`} />
 													</FormField>
 													<FormField label="Last Update">
-														<input type="text" readOnly value={formData.last_update ?? ''} className={`${inputCls} bg-[var(--app-surface)]`} />
+														<input type="text" readOnly value={formData.last_update ?? ''} className={`${inputCls} !bg-slate-100 !text-slate-600`} />
 													</FormField>
 												</>
 											)}
@@ -839,7 +847,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 																+ Add file
 															</button>
 														)}
-														<p className="text-xs text-[var(--app-muted)]">Min 1, max 3 files. Document file max. 2 MB</p>
+														<p className="text-xs text-[var(--app-text)]">Min 1, max 3 files. Document file max. 2 MB</p>
 												</div>
 											</FormField>
 										</div>
@@ -848,7 +856,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 							)}
 						</div>
 
-						<div className="flex justify-end gap-3 px-6 py-4 border-t bg-[var(--app-surface)] rounded-b-2xl">
+						<div className="flex justify-end gap-3 px-6 py-4 border-t border-[var(--app-border)] bg-[var(--app-surface)] rounded-b-2xl">
 							<button
 								onClick={closeForm}
 								className="px-5 py-2 border border-[var(--app-border)] rounded-lg text-sm text-[var(--app-text)] hover:bg-[var(--app-surface-alt)] transition-colors"
@@ -872,14 +880,14 @@ const WatchListEntryByCorsec: React.FC = () => {
 
 			{pickerOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-						<div className="flex justify-between items-center p-4 border-b">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+						<div className="flex justify-between items-center p-4 border-b border-[var(--app-border)]">
 							<h3 className="font-bold text-[var(--app-text)]">Select Customer</h3>
-							<button onClick={() => setPickerOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none transition-colors">
+							<button onClick={() => setPickerOpen(false)} className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none transition-colors">
 								×
 							</button>
 						</div>
-						<div className="p-4 border-b flex gap-2">
+						<div className="p-4 border-b border-[var(--app-border)] flex gap-2">
 							<div className="relative flex-1">
 								<input
 									type="text"
@@ -887,7 +895,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 									onChange={(e) => setPickerQuery(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && runPickerSearch(pickerQuery)}
 									placeholder="Search by name (optional)"
-									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-900 placeholder:text-slate-400"
 								/>
 								{pickerQuery && (
 									<button
@@ -895,7 +903,7 @@ const WatchListEntryByCorsec: React.FC = () => {
 										onClick={() => { setPickerQuery(''); runPickerSearch(''); }}
 										aria-label="Clear search"
 										className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-										           text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+										           text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 									>
 										<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 											<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -922,13 +930,13 @@ const WatchListEntryByCorsec: React.FC = () => {
 											<tr key={row.apless} className="hover:bg-[var(--app-surface)] cursor-pointer transition-colors" onClick={() => selectCustomer(row)}>
 												<td className="py-2 px-4">
 													<div className="font-medium text-[var(--app-text)]">{row.name}</div>
-													<div className="text-xs text-[var(--app-muted)]">{row.address}</div>
+													<div className="text-xs text-[var(--app-text)]">{row.address}</div>
 												</td>
-												<td className="py-2 px-4 text-right text-xs text-[var(--app-muted)]">{row.apless}</td>
+												<td className="py-2 px-4 text-right text-xs text-[var(--app-text)]">{row.apless}</td>
 											</tr>
 										))}
 										{pickerResults.length === 0 && (
-											<tr><td className="py-8 text-center text-[var(--app-muted)] text-sm">No customers found.</td></tr>
+											<tr><td className="py-8 text-center text-[var(--app-text)] text-sm">No customers found.</td></tr>
 										)}
 									</tbody>
 								</table>
@@ -940,13 +948,13 @@ const WatchListEntryByCorsec: React.FC = () => {
 
 			{deleteNo !== null && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-md p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-md p-6">
 						<h3 className="font-bold text-[var(--app-text)] mb-4">Delete Watchlist Entry</h3>
 						<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Reason for delete</label>
 						<textarea
 							value={deleteReason}
 							onChange={(e) => setDeleteReason(e.target.value)}
-							className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm mb-4"
+							className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm mb-4"
 							rows={3}
 						/>
 						<div className="flex justify-end gap-3">

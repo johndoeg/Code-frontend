@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import { useNavigate, useLocation } from "react-router-dom";
+import { useBranches } from '@/shared/hooks/useOptions';
 interface SalesFormData {
 	SALES_NO: string;
 	NAME: string;
@@ -31,15 +32,11 @@ interface ComboOption {
 	VALUE: string;
 	DESC_VALUE: string;
 }
-interface Branch {
-	BRANCH_CD: string;
-	BRANCH_NAME: string;
-}
 interface CMO {
 	EMPLOYEE_ID: string;
 	FULLNAME: string;
 }
-interface ApiResponse<T> {
+interface ApiResponse<T = unknown> {
 	success: boolean;
 	message: string;
 	data?: T;
@@ -86,7 +83,8 @@ const SalesMainPage: React.FC = () => {
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [success, setSuccess] = useState<string | null>(null);
-	const [branches, setBranches] = useState<Branch[]>([]);
+	const { data: allBranches = [] } = useBranches();
+	const branches = allBranches.filter(b => !["00", "01"].includes(b.branchCd));
 	const [cmos, setCMOs] = useState<CMO[]>([]);
 	const [salesTypes, setSalesTypes] = useState<ComboOption[]>([]);
 	const [brokerTypes, setBrokerTypes] = useState<ComboOption[]>([]);
@@ -115,16 +113,14 @@ const SalesMainPage: React.FC = () => {
 
 	const fetchComboData = useCallback(async () => {
 		try {
-			const [salesTypesRes, brokerTypesRes, gendersRes, branchesRes] = await Promise.all([
+			const [salesTypesRes, brokerTypesRes, gendersRes] = await Promise.all([
 				api.get<ComboOption[]>('/MasterData/combo/SALES_TYPE'),
 				api.get<ComboOption[]>('/MasterData/combo/TIPE_CUST'),
 				api.get<ComboOption[]>('/MasterData/combo/GENDER'),
-				api.get<Branch[]>('/MasterData/branches'),
 			]);
 			setSalesTypes(salesTypesRes.data);
 			setBrokerTypes(brokerTypesRes.data.filter(b => b.VALUE !== "00"));
 			setGenders(gendersRes.data);
-			setBranches(branchesRes.data.filter(b => !["00", "01"].includes(b.BRANCH_CD)));
 		} catch (err) {
 			console.error("Failed to fetch combo data:", err);
 			setError("Failed to load form data. Please refresh the page.");
@@ -519,8 +515,8 @@ const SalesMainPage: React.FC = () => {
 									>
 										<option value="">Select Branch</option>
 										{branches.map(branch => (
-											<option key={branch.BRANCH_CD} value={branch.BRANCH_CD}>
-												{branch.BRANCH_NAME}
+											<option key={branch.branchCd} value={branch.branchCd}>
+												{branch.branchName}
 											</option>
 										))}
 									</select>

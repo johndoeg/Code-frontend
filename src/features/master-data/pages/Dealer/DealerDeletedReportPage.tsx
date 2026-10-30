@@ -1,11 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, Suspense, lazy } from "react";
 import api from '@/shared/api/axiosInstance';
-import * as XLSX from "xlsx";
-interface Branch {
-	branchCd: string;
-	branchName: string;
-	cityName?: string;
-}
+import { useBranches } from '@/shared/hooks/useOptions';
 interface DealerDeletedRow {
 	form_no: string;
 	branch_name: string;
@@ -32,7 +27,7 @@ class ModalBoundary extends React.Component<{ children: React.ReactNode }, { err
 			return (
 				<div className="p-6 text-sm text-red-600">
 					<p className="font-semibold">Supplier Entry failed to load</p>
-					<p className="mt-1 break-words text-[var(--app-muted)]">{this.state.error.message || String(this.state.error)}</p>
+					<p className="mt-1 break-words text-[var(--app-text)]">{this.state.error.message || String(this.state.error)}</p>
 				</div>
 			);
 		}
@@ -48,14 +43,14 @@ function DealerDetailModal({ supp, onClose }: { supp: string; onClose: () => voi
 	}, [onClose]);
 	return (
 		<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-2 md:p-4 no-print" onClick={onClose}>
-			<div className="relative flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-[var(--app-card)] shadow-2xl" onClick={e => e.stopPropagation()}>
+			<div className="relative flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-[var(--app-card)] text-[var(--app-text)] shadow-2xl" onClick={e => e.stopPropagation()}>
 				<div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2">
 					<span className="text-sm font-semibold text-[var(--app-text)]">Dealer — {supp}</span>
-					<button type="button" onClick={onClose} aria-label="Close" className="rounded px-2 py-1 text-lg leading-none text-[var(--app-muted)] hover:bg-[var(--app-card)]">✕</button>
+					<button type="button" onClick={onClose} aria-label="Close" className="rounded px-2 py-1 text-lg leading-none text-[var(--app-text)] hover:bg-[var(--app-card)]">✕</button>
 				</div>
 				<div className="flex-1 overflow-auto">
 					<ModalBoundary>
-						<Suspense fallback={<div className="p-10 text-center text-[var(--app-muted)]">Loading…</div>}>
+						<Suspense fallback={<div className="p-10 text-center text-[var(--app-text)]">Loading…</div>}>
 							<SupplierEntryLazy suppId={supp} mode="View" onClose={onClose} />
 						</Suspense>
 					</ModalBoundary>
@@ -66,7 +61,7 @@ function DealerDetailModal({ supp, onClose }: { supp: string; onClose: () => voi
 }
 
 const DealerDeletedReportPage: React.FC = () => {
-	const [branches, setBranches] = useState<Branch[]>([]);
+	const { data: branches = [] } = useBranches();
 	const [selectedBranch, setSelectedBranch] = useState<string>("");
 	const [searchType, setSearchType] = useState<SearchType>("");
 	const [searchVal, setSearchVal] = useState("");
@@ -80,14 +75,10 @@ const DealerDeletedReportPage: React.FC = () => {
 	const isConsolidate = selectedBranch === "000";
 
 	useEffect(() => {
-		api
-			.get('/MasterData/branches')
-			.then((res) => {
-				setBranches(res.data);
-				if (res.data.length > 0) setSelectedBranch(res.data[0].branchCd);
-			})
-			.catch(console.error);
-	}, []);
+		if (!selectedBranch && branches.length > 0) {
+			setSelectedBranch(branches[0].branchCd);
+		}
+	}, [branches, selectedBranch]);
 
 	const handleSearch = useCallback(async () => {
 		setLoading(true);
@@ -114,7 +105,8 @@ const DealerDeletedReportPage: React.FC = () => {
 		}
 	}, [selectedBranch, searchType, searchVal]);
 
-	const handleExport = () => {
+	const handleExport = async () => {
+	const XLSX = await import("xlsx");
 		const branchLabel =
 			branches.find((b) => b.branchCd === selectedBranch)?.branchName ?? selectedBranch
 
@@ -177,13 +169,13 @@ const DealerDeletedReportPage: React.FC = () => {
 				)}
 
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6 no-print">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6 no-print">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 								Dealer Deleted Report
 							</h1>
-							<p className="text-[var(--app-muted)] mt-1 text-sm">
+							<p className="text-[var(--app-text)] mt-1 text-sm">
 								As of{" "}
 								{new Date().toLocaleDateString("en-GB", {
 									day: "2-digit",
@@ -202,7 +194,7 @@ const DealerDeletedReportPage: React.FC = () => {
 							<select
 								value={selectedBranch}
 								onChange={(e) => setSelectedBranch(e.target.value)}
-								className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-[var(--app-card)]"
+								className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900"
 							>
 								{branches.map((b, idx) => (
 									<option key={b.branchCd || idx} value={b.branchCd}>
@@ -239,7 +231,7 @@ const DealerDeletedReportPage: React.FC = () => {
 											value={searchVal}
 											onChange={(e) => setSearchVal(e.target.value)}
 											onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-											className="flex-1 border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+											className="flex-1 border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
 										/>
 									)}
 								</div>
@@ -266,7 +258,7 @@ const DealerDeletedReportPage: React.FC = () => {
 											value={searchVal}
 											onChange={(e) => setSearchVal(e.target.value)}
 											onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-											className="flex-1 border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+											className="flex-1 border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
 										/>
 									)}
 								</div>
@@ -335,7 +327,7 @@ const DealerDeletedReportPage: React.FC = () => {
 				)}
 
 				{searched && (
-					<div ref={printRef} className="print-section bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div ref={printRef} className="print-section bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<div className="hidden print:block text-center mb-4">
 							<p className="text-lg font-bold">DEALER DELETED REPORT</p>
 							<p className="text-sm">
@@ -355,7 +347,7 @@ const DealerDeletedReportPage: React.FC = () => {
 						<div className="flex items-center justify-between mb-4 no-print">
 							<div>
 								<h2 className="text-lg font-semibold text-[var(--app-text)]">Results</h2>
-								<p className="text-sm text-[var(--app-muted)]">
+								<p className="text-sm text-[var(--app-text)]">
 									Branch:{" "}
 									<span className="font-medium">
 										{branches.find((b) => b.branchCd === selectedBranch)?.branchName ?? selectedBranch}
@@ -372,36 +364,36 @@ const DealerDeletedReportPage: React.FC = () => {
 							<table className="w-full text-sm">
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider w-10">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-10">
 											No.
 										</th>
 										{isConsolidate && (
-											<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+											<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 												Branch
 											</th>
 										)}
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Dealer ID
 										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Dealer Name
 										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Address
 										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Created By
 										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Create Date
 										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Delete By
 										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Delete Date
 										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 											Reason
 										</th>
 									</tr>
@@ -411,7 +403,7 @@ const DealerDeletedReportPage: React.FC = () => {
 										<tr>
 											<td
 												colSpan={isConsolidate ? 10 : 9}
-												className="py-10 text-center text-[var(--app-muted)]"
+												className="py-10 text-center text-[var(--app-text)]"
 											>
 												<div className="flex flex-col items-center justify-center">
 													<svg className="w-14 h-14 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -429,7 +421,7 @@ const DealerDeletedReportPage: React.FC = () => {
 												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"
 													}`}
 											>
-												<td className="py-3 px-4 text-center text-[var(--app-muted)] font-medium">
+												<td className="py-3 px-4 text-center text-[var(--app-text)] font-medium">
 													{idx + 1}
 												</td>
 												{isConsolidate && (
@@ -446,18 +438,18 @@ const DealerDeletedReportPage: React.FC = () => {
 											</button>
 										</td>
 												<td className="py-3 px-4 text-[var(--app-text)]">{row.name}</td>
-												<td className="py-3 px-4 text-[var(--app-muted)] max-w-xs">{row.address}</td>
-												<td className="py-3 px-4 text-[var(--app-muted)]">{row.created_by}</td>
-												<td className="py-3 px-4 text-[var(--app-muted)] whitespace-nowrap">
+												<td className="py-3 px-4 text-[var(--app-text)] max-w-xs">{row.address}</td>
+												<td className="py-3 px-4 text-[var(--app-text)]">{row.created_by}</td>
+												<td className="py-3 px-4 text-[var(--app-text)] whitespace-nowrap">
 													{row.create_date}
 												</td>
-												<td className="py-3 px-4 text-[var(--app-muted)]">{row.delete_by}</td>
+												<td className="py-3 px-4 text-[var(--app-text)]">{row.delete_by}</td>
 												<td className="py-3 px-4 whitespace-nowrap">
 													<span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-medium">
 														{row.delete_date}
 													</span>
 												</td>
-												<td className="py-3 px-4 text-[var(--app-muted)]">{row.reason}</td>
+												<td className="py-3 px-4 text-[var(--app-text)]">{row.reason}</td>
 											</tr>
 										))
 									)}
@@ -466,7 +458,7 @@ const DealerDeletedReportPage: React.FC = () => {
 						</div>
 
 						{rows.length > 0 && (
-							<p className="text-sm text-[var(--app-muted)] mt-3 text-right">
+							<p className="text-sm text-[var(--app-text)] mt-3 text-right">
 								Total:{" "}
 								<span className="font-semibold text-[var(--app-text)]">{rows.length}</span>{" "}
 								record{rows.length !== 1 ? "s" : ""}

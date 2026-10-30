@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
 import { isImageFile } from '@/shared/constants/DefaultValue';
+import { useOptions } from '@/shared/hooks/useOptions';
 
 type Mode = "Add" | "Edit" | "View";
 type Tab = "main" | "pic" | "bank" | "tax" | "doc" | "notes";
@@ -129,9 +130,9 @@ const defTax: TaxForm = {
 };
 
 const cls = {
-	inp: "w-full bg-[var(--app-card)] border border-[var(--app-border)] rounded-md px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-[var(--app-surface-alt)] disabled:cursor-not-allowed",
-	sel: "w-full bg-[var(--app-card)] border border-[var(--app-border)] rounded-md px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-[var(--app-surface-alt)] disabled:cursor-not-allowed",
-	ta: "w-full bg-[var(--app-card)] border border-[var(--app-border)] rounded-md px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-[var(--app-surface-alt)] disabled:cursor-not-allowed resize-none",
+	inp: "w-full bg-white text-slate-900 placeholder:text-slate-400 [color-scheme:light] border border-[var(--app-border)] rounded-md px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed",
+	sel: "w-full bg-white text-slate-900 placeholder:text-slate-400 [color-scheme:light] border border-[var(--app-border)] rounded-md px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed [&>option]:bg-white [&>option]:text-slate-900",
+	ta: "w-full bg-white text-slate-900 placeholder:text-slate-400 [color-scheme:light] border border-[var(--app-border)] rounded-md px-2.5 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed resize-none",
 	btn: "px-4 py-1.5 rounded-lg text-sm font-medium transition-colors",
 };
 
@@ -140,7 +141,7 @@ function FieldRow({ label, children, hidden, required }:
 	if (hidden) return null;
 	return (
 		<div className="flex items-start gap-3 py-2 border-b border-[var(--app-border)] last:border-0">
-			<label className="w-40 text-sm text-[var(--app-muted)] flex-shrink-0 pt-1.5 text-right">
+			<label className="w-40 text-sm text-[var(--app-text)] flex-shrink-0 pt-1.5 text-right">
 				{label}{required && <span className="text-red-500 ml-0.5">*</span>}
 			</label>
 			<div className="flex-1">{children}</div>
@@ -195,19 +196,19 @@ function FilePreviewModal({ state, onClose }: { state: FilePreviewState; onClose
 		>
 			<div
 				onClick={e => e.stopPropagation()}
-				className="flex h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-[var(--app-card)] shadow-2xl"
+				className="flex h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-[var(--app-card)] text-[var(--app-text)] shadow-2xl"
 			>
 				<div className="flex items-center justify-between border-b border-[var(--app-border)] px-4 py-3">
 					<span className="truncate text-sm font-semibold text-[var(--app-text)]">{state.name}</span>
 					<div className="flex items-center gap-3 flex-shrink-0">
 						<a href={state.url} target="_blank" rel="noreferrer" title="Open in new tab"
-							className="text-[var(--app-muted)] hover:text-blue-600 transition-colors">
+							className="text-[var(--app-text)] hover:text-blue-600 transition-colors">
 							<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 									d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
 							</svg>
 						</a>
-						<button onClick={onClose} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-lg leading-none">
+						<button onClick={onClose} className="text-[var(--app-text)] hover:opacity-70 text-lg leading-none">
 							✕
 						</button>
 					</div>
@@ -225,7 +226,7 @@ function FilePreviewModal({ state, onClose }: { state: FilePreviewState; onClose
 						<iframe title={state.name} src={state.url} className="h-full w-full border-0" />
 					) : (
 						<div className="flex h-full flex-col items-center justify-center text-center">
-							<p className="mb-3 text-sm text-[var(--app-muted)]">
+							<p className="mb-3 text-sm text-[var(--app-text)]">
 								{imgError ? "Failed to load image." : "Preview not available for this file type."}
 							</p>
 						</div>
@@ -250,7 +251,9 @@ const SalesEntryPage: React.FC = () => {
 	const [mode, setMode] = useState<Mode>(mode0);
 	const [currentSno, setCurrentSno] = useState(salesNo0);
 	const [activeTab, setActiveTab] = useState<Tab>("main");
-	const [options, setOptions] = useState<FormOptions | null>(null);
+	const { data: optionsData, isError: optionsFailed } =
+		useOptions<FormOptions & { current_user?: string }>("/MasterData/sales-entry/options");
+	const options = optionsData ?? null;
 	const [cmoList, setCmoList] = useState<Opt[]>([]);
 
 	const [main, setMain] = useState<MainForm>({ ...defMain, sal_type: salType0, broker: brokerType0 });
@@ -297,15 +300,17 @@ const SalesEntryPage: React.FC = () => {
 	];
 
 	useEffect(() => {
-		api.get("/MasterData/sales-entry/options")
-			.then(r => {
-				setOptions(r.data);
-				if (mode === "Add" && r.data.current_user) {
-					setMain(f => ({ ...f, create_by: r.data.current_user }));
-				}
-			})
-			.catch(() => setMsgs(m => ({ ...m, main: { type: "error", text: "Failed to load form options." } })));
-	}, []);  // eslint-disable-line react-hooks/exhaustive-deps
+		if (mode === "Add" && optionsData?.current_user) {
+			const user = optionsData.current_user;
+			setMain(f => (f.create_by ? f : { ...f, create_by: user }));
+		}
+	}, [mode, optionsData]);
+
+	useEffect(() => {
+		if (optionsFailed) {
+			setMsgs(m => ({ ...m, main: { type: "error", text: "Failed to load form options." } }));
+		}
+	}, [optionsFailed]);
 
 	const loadCmo = useCallback((branchCd: string) => {
 		if (!branchCd) { setCmoList([]); return; }
@@ -585,7 +590,7 @@ const SalesEntryPage: React.FC = () => {
 		}
 	};
 
-	if (!options) return <div className="p-8 text-center text-[var(--app-muted)]">Loading form…</div>;
+	if (!options) return <div className="p-8 text-center text-[var(--app-text)]">Loading form…</div>;
 
 	const npwpTypeOpts = salType === "PT" && brokerType === "PT"
 		? options.npwp_types_pt
@@ -601,7 +606,7 @@ const SalesEntryPage: React.FC = () => {
 						<h1 className="text-xl font-bold text-[var(--app-text)]">
 							{mode === "Add" ? "Add New Sales" : `Sales Entry — ${currentSno}`}
 						</h1>
-						<p className="text-sm text-[var(--app-muted)]">
+						<p className="text-sm text-[var(--app-text)]">
 							{mode === "Add" ? "Create a new sales record" : `${mode} mode${main.sal_type ? ` · ${main.sal_type}` : ""}${main.broker ? ` / ${main.broker}` : ""}`}
 						</p>
 					</div>
@@ -613,7 +618,7 @@ const SalesEntryPage: React.FC = () => {
 					</button>
 				</div>
 
-				<div className="rounded-2xl bg-[var(--app-card)] shadow-lg overflow-hidden">
+				<div className="rounded-2xl bg-[var(--app-card)] text-[var(--app-text)] shadow-lg overflow-hidden">
 					<div className="flex border-b border-[var(--app-border)] bg-[var(--app-surface)] overflow-x-auto">
 						{tabs.map(t => (
 							<button
@@ -625,8 +630,8 @@ const SalesEntryPage: React.FC = () => {
 										${activeTab === t.id
 										? "border-b-2 border-blue-600 text-blue-600 bg-[var(--app-card)]"
 										: t.disabled
-											? "text-gray-300 cursor-not-allowed"
-											: "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]"}
+											? "text-[var(--app-text)] opacity-40 cursor-not-allowed"
+											: "text-[var(--app-text)] hover:opacity-70 hover:bg-[var(--app-card)]"}
                 		`}
 							>
 								{t.label}
@@ -638,7 +643,7 @@ const SalesEntryPage: React.FC = () => {
 
 						{activeTab === "main" && (
 							<div>
-								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b">SALES</h2>
+								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b border-[var(--app-border)]">SALES</h2>
 								<div className="space-y-0">
 
 									<FieldRow label="Sales Type" required>
@@ -816,7 +821,7 @@ const SalesEntryPage: React.FC = () => {
 
 						{activeTab === "pic" && showPicTab && (
 							<div>
-								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b">PIC SALES</h2>
+								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b border-[var(--app-border)]">PIC SALES</h2>
 								<div className="space-y-0">
 
 									<FieldRow label="Contact Person">
@@ -904,11 +909,11 @@ const SalesEntryPage: React.FC = () => {
 
 						{activeTab === "bank" && (
 							<div>
-								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b">BANK ACCOUNT</h2>
+								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b border-[var(--app-border)]">BANK ACCOUNT</h2>
 
 								{!isView && (
 									<div className="mb-6 p-4 bg-[var(--app-surface)] rounded-xl border border-[var(--app-border)]">
-										<p className="text-sm font-medium text-[var(--app-muted)] mb-3">
+										<p className="text-sm font-medium text-[var(--app-text)] mb-3">
 											{bankEdit ? `Edit account: ${bankEdit}` : "Add Commission Account"}
 										</p>
 										<div className="grid grid-cols-2 gap-3">
@@ -968,7 +973,7 @@ const SalesEntryPage: React.FC = () => {
 
 								<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
 									<table className="w-full text-sm">
-										<thead className="bg-[var(--app-surface)] text-xs text-[var(--app-muted)] uppercase">
+										<thead className="bg-[var(--app-surface)] text-xs text-[var(--app-text)] uppercase">
 											<tr>
 												{!isView && <th className="px-3 py-2 text-left">Action</th>}
 												<th className="px-3 py-2 text-left">Account Name</th>
@@ -982,7 +987,7 @@ const SalesEntryPage: React.FC = () => {
 										</thead>
 										<tbody className="divide-y divide-[var(--app-border)]">
 											{banks.length === 0 ? (
-												<tr><td colSpan={isView ? 7 : 8} className="py-6 text-center text-[var(--app-muted)]">No bank accounts yet</td></tr>
+												<tr><td colSpan={isView ? 7 : 8} className="py-6 text-center text-[var(--app-text)]">No bank accounts yet</td></tr>
 											) : banks.map(b => (
 												<tr key={b.acc_no} className="hover:bg-[var(--app-surface)]">
 													{!isView && (
@@ -1002,7 +1007,7 @@ const SalesEntryPage: React.FC = () => {
 													<td className="px-3 py-2 text-center">
 														{b.is_default
 															? <span className="text-green-600 font-bold">✓</span>
-															: <span className="text-gray-300">—</span>}
+															: <span className="text-[var(--app-text)] opacity-40">—</span>}
 													</td>
 												</tr>
 											))}
@@ -1015,7 +1020,7 @@ const SalesEntryPage: React.FC = () => {
 
 						{activeTab === "tax" && (
 							<div>
-								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b">TAX</h2>
+								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b border-[var(--app-border)]">TAX</h2>
 								{tax.is_saved && !isView && (
 									<div className="mb-3 p-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">
 										Tax has been saved. Fields are locked after first save (matches legacy behaviour).
@@ -1095,7 +1100,7 @@ const SalesEntryPage: React.FC = () => {
 														setTax(t => ({ ...t, taxfree: `${d}-${m}-${y}` }));
 													}
 												}} className={`${cls.inp} w-40`} />
-											<span className="text-[var(--app-muted)]">to</span>
+											<span className="text-[var(--app-text)]">to</span>
 											<input type="date" disabled={npwpFieldsLocked}
 												value={tax.taxfree2 ? tax.taxfree2.split("-").reverse().join("-") : ""}
 												onChange={e => {
@@ -1119,7 +1124,7 @@ const SalesEntryPage: React.FC = () => {
 												opts={[{ value: "1", label: "Progressive" }, { value: "2", label: "Flat" }]}
 												value={tax.rate} onChange={() => { }} disabled={true} placeholder="—" />
 											{tax.rate === "2" && (
-												<span className="text-sm text-[var(--app-muted)]">{tax.rate}%</span>
+												<span className="text-sm text-[var(--app-text)]">{tax.rate}%</span>
 											)}
 										</div>
 									</FieldRow>
@@ -1127,7 +1132,7 @@ const SalesEntryPage: React.FC = () => {
 									<FieldRow label="DPP">
 										<div className="flex items-center gap-2">
 											<input value={tax.dpp} readOnly className={`${cls.inp} w-20`} />
-											<span className="text-sm text-[var(--app-muted)]">% × Bruto</span>
+											<span className="text-sm text-[var(--app-text)]">% × Bruto</span>
 										</div>
 									</FieldRow>
 
@@ -1182,7 +1187,7 @@ const SalesEntryPage: React.FC = () => {
 												{doc.hasLainnya && (
 													<input
 														className="mt-1.5 block w-full rounded border border-[var(--app-border)] px-2 py-1 text-xs
-															focus:ring-1 focus:ring-blue-500 disabled:bg-[var(--app-surface-alt)]"
+															bg-white text-slate-900 placeholder:text-slate-400 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-500"
 														placeholder="Keterangan…"
 														value={lainnya}
 														disabled={isView}
@@ -1195,7 +1200,7 @@ const SalesEntryPage: React.FC = () => {
 												{!isView && (
 													<label className={`
 															inline-flex items-center gap-1.5 cursor-pointer rounded-lg border border-dashed
-															border-blue-300 bg-[var(--app-surface)] hover:bg-blue-100 px-3 py-1.5 text-xs text-blue-700
+															border-blue-300 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 text-xs text-blue-700
 															transition-colors ${isUploading ? "opacity-60 cursor-not-allowed" : ""}
 															`}>
 														<svg className={`w-4 h-4 ${isUploading ? "animate-spin" : ""}`}
@@ -1227,7 +1232,7 @@ const SalesEntryPage: React.FC = () => {
 																	<button
 																		onClick={() => handleFilePreview(f)}
 																		className="inline-flex items-center gap-1.5 rounded-md border border-blue-300
-																			bg-[var(--app-surface)] px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors
+																			bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors
 																			hover:border-blue-400 hover:bg-blue-100"
 																	>
 																		<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1242,13 +1247,13 @@ const SalesEntryPage: React.FC = () => {
 																		{fullName}
 																	</span>
 																	{f.created_date && (
-																		<span className="whitespace-nowrap text-[11px] text-[var(--app-muted)]">{f.created_date}</span>
+																		<span className="whitespace-nowrap text-[11px] text-[var(--app-text)]">{f.created_date}</span>
 																	)}
 																	{!isView && (
 																		<button
 																			onClick={() => handleFileDelete(f.id)}
 																			title="Delete"
-																			className="text-gray-300 transition-colors hover:text-red-500"
+																			className="text-[var(--app-text)] opacity-50 transition-colors hover:text-red-500 hover:opacity-100"
 																		>
 																			<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 																				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1260,7 +1265,7 @@ const SalesEntryPage: React.FC = () => {
 														})}
 													</div>
 												) : isView ? (
-													<span className="text-xs italic text-[var(--app-muted)]">No file uploaded</span>
+													<span className="text-xs italic text-[var(--app-text)]">No file uploaded</span>
 												) : null}
 											</div>
 										</div>
@@ -1270,7 +1275,7 @@ const SalesEntryPage: React.FC = () => {
 
 							return (
 								<div>
-									<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b">{title}</h2>
+									<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b border-[var(--app-border)]">{title}</h2>
 									<div className="space-y-3">
 										{docs.map(doc => (
 											<React.Fragment key={doc.key}>
@@ -1279,7 +1284,7 @@ const SalesEntryPage: React.FC = () => {
 										))}
 									</div>
 									{showNpwpNote && (
-										<p className="mt-4 text-xs italic text-[var(--app-muted)]">
+										<p className="mt-4 text-xs italic text-[var(--app-text)]">
 											*) Khusus jika terdapat perubahan Status NPWP atau Perubahan Nomor NPWP
 										</p>
 									)}
@@ -1290,7 +1295,7 @@ const SalesEntryPage: React.FC = () => {
 
 						{activeTab === "notes" && (
 							<div>
-								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b">
+								<h2 className="text-base font-semibold text-[var(--app-text)] mb-4 pb-2 border-b border-[var(--app-border)]">
 									Additional Notes
 								</h2>
 								<textarea
@@ -1300,7 +1305,7 @@ const SalesEntryPage: React.FC = () => {
 									rows={8}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
 											font-sans focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-											disabled:bg-[var(--app-surface-alt)] disabled:cursor-not-allowed resize-none"
+											bg-white text-slate-900 placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed resize-none"
 									placeholder={isView ? "" : "Enter additional notes here…"}
 								/>
 								{!isView && (

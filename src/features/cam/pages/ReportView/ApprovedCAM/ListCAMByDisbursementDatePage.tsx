@@ -93,6 +93,8 @@ const toISO = (d: Date): string => {
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const ctxFromEditParams = (p: Record<string, string | number>, custName?: string): CamCtx => ({
 	finType: String(p.id1 ?? ''),
 	indCor: String(p.id2 ?? ''),
@@ -203,22 +205,26 @@ const ListCAMByDisbursementDatePage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="mb-6">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">List CAM by Disbursement Date</h1>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 text-sm items-end">
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Start Disbursement Date</label>
-							<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							<label className="text-[var(--app-text)] block mb-1">Start Disbursement Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">End Disbursement Date</label>
-							<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							<label className="text-[var(--app-text)] block mb-1">End Disbursement Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Branch</label>
+							<label className="text-[var(--app-text)] block mb-1">Branch</label>
 							<select
 								value={branch}
 								onChange={(e) => setBranch(e.target.value)}
@@ -239,7 +245,7 @@ const ListCAMByDisbursementDatePage: React.FC = () => {
 								checked={excludeJf}
 								onChange={(e) => setExcludeJf(e.target.checked)}
 							/>
-							<label htmlFor="excludeJf" className="text-[var(--app-muted)]">Exclude JF Portion</label>
+							<label htmlFor="excludeJf" className="text-[var(--app-text)]">Exclude JF Portion</label>
 						</div>
 					</div>
 
@@ -267,14 +273,14 @@ const ListCAMByDisbursementDatePage: React.FC = () => {
 							<div className="flex gap-2 border-b mb-4">
 								<button
 									onClick={() => setActiveTab('summary')}
-									className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${activeTab === 'summary' ? 'border-blue-600 text-blue-600' : 'border-transparent text-[var(--app-muted)]'
+									className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${activeTab === 'summary' ? 'border-blue-600 text-blue-600' : 'border-transparent text-[var(--app-text)] opacity-70 hover:opacity-100'
 										}`}
 								>
 									Summary
 								</button>
 								<button
 									onClick={() => setActiveTab('detail')}
-									className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${activeTab === 'detail' ? 'border-blue-600 text-blue-600' : 'border-transparent text-[var(--app-muted)]'
+									className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px ${activeTab === 'detail' ? 'border-blue-600 text-blue-600' : 'border-transparent text-[var(--app-text)] opacity-70 hover:opacity-100'
 										}`}
 								>
 									Detail
@@ -303,7 +309,7 @@ const ListCAMByDisbursementDatePage: React.FC = () => {
 											<tbody>
 												{pageRows.length === 0 ? (
 													<tr>
-														<td colSpan={11} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-muted)]">
+														<td colSpan={11} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70">
 															No records found.
 														</td>
 													</tr>
@@ -352,7 +358,7 @@ const ListCAMByDisbursementDatePage: React.FC = () => {
 							{activeTab === 'summary' && (
 								<div>
 									<div className="mb-4 text-sm flex items-center gap-2">
-										<span className="text-[var(--app-muted)]">Summary By:</span>
+										<span className="text-[var(--app-text)]">Summary By:</span>
 										<select
 											value={dimension}
 											onChange={(e) => handleDimensionChange(e.target.value)}
@@ -487,9 +493,7 @@ const ListCAMByDisbursementDatePage: React.FC = () => {
 							)}
 						</>
 					) : (
-						<div className="py-10 text-center text-[var(--app-muted)] text-sm">
-							Fill in the search fields above and click Preview.
-						</div>
+						<div className="py-10 text-center text-[var(--app-text)] opacity-70 text-sm"></div>
 					)}
 				</div>
 			</div>

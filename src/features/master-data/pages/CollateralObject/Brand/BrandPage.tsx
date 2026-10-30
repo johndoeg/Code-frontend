@@ -165,33 +165,33 @@ const BrandPage: React.FC = () => {
 			<div className="max-w-full mx-auto">
 
 				{akses === "9" && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
-						<h2 className="text-sm font-semibold text-[var(--app-muted)] uppercase tracking-wide mb-4">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+						<h2 className="text-sm font-semibold text-[var(--app-text)] uppercase tracking-wide mb-4">
 							Add Brand
 						</h2>
 						<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Brand Code <span className="text-red-500">*</span>
 								</label>
 								<input value={formBrand}
 									onChange={e => setFormBrand(e.target.value)}
 									placeholder="Code…"
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Brand Name <span className="text-red-500">*</span>
 								</label>
 								<input value={formBrandNm}
 									onChange={e => setFormBrandNm(e.target.value)}
 									placeholder="Name…"
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Brand Country <span className="text-red-500">*</span>
 								</label>
 								<input value={formCountry}
@@ -199,7 +199,7 @@ const BrandPage: React.FC = () => {
 									onKeyDown={e => e.key === "Enter" && handleSave()}
 									placeholder="Country…"
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							</div>
 						</div>
 						<div className="mt-4">
@@ -213,11 +213,11 @@ const BrandPage: React.FC = () => {
 					</div>
 				)}
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="flex items-center justify-between mb-5">
 						<div>
 							<h1 className="text-2xl font-bold text-[var(--app-text)]">Brand</h1>
-							<p className="text-sm text-[var(--app-muted)] mt-0.5">View and manage brand records</p>
+							<p className="text-sm text-[var(--app-text)] mt-0.5">View and manage brand records</p>
 						</div>
 						<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
 							Total: {total}
@@ -226,13 +226,13 @@ const BrandPage: React.FC = () => {
 
 					<div className="flex gap-3 mb-5">
 						<select value={searchBy} onChange={e => setSearchBy(e.target.value)}
-							className="border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2.5 text-sm
+							className="border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm
                          focus:ring-2 focus:ring-blue-500 sm:w-44">
-							<option value="1" className="bg-white text-[var(--app-text)]">Brand Code</option>
-							<option value="2" className="bg-white text-[var(--app-text)]">Brand Name</option>
+							<option value="1" className="bg-white text-slate-900">Brand Code</option>
+							<option value="2" className="bg-white text-slate-900">Brand Name</option>
 						</select>
 						<div className="relative flex-1">
-							<svg className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2"
+							<svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
 								fill="none" viewBox="0 0 24 24">
 								<path fill="currentColor" d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16
 									9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5
@@ -244,14 +244,14 @@ const BrandPage: React.FC = () => {
 								onChange={e => setSearchVal(e.target.value)}
 								onKeyDown={e => e.key === "Enter" && handleSearch()}
 								className="w-full pl-10 pr-10 py-2.5 border border-[var(--app-border)] rounded-lg text-sm
-                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                           focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							{searchVal && (
 								<button
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
 									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-                             text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+                             text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -276,10 +276,10 @@ const BrandPage: React.FC = () => {
 									{["Brand Code", "Brand Name", "Country"].map(h => (
 										<th key={h}
 											className="py-3 px-5 text-left text-xs font-semibold
-                                 text-[var(--app-muted)] uppercase tracking-wider">{h}</th>
+                                 text-[var(--app-text)] uppercase tracking-wider">{h}</th>
 									))}
 									<th className="py-3 px-5 text-center text-xs font-semibold
-                                 text-[var(--app-muted)] uppercase tracking-wider whitespace-nowrap w-px">
+                                 text-[var(--app-text)] uppercase tracking-wider whitespace-nowrap w-px">
 										Action
 									</th>
 								</tr>
@@ -287,7 +287,7 @@ const BrandPage: React.FC = () => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{brands.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={4} className="py-12 text-center text-[var(--app-muted)]">
+										<td colSpan={4} className="py-12 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center gap-2">
 												<svg className="w-12 h-12 text-gray-200" fill="none"
 													stroke="currentColor" viewBox="0 0 24 24">
@@ -306,7 +306,7 @@ const BrandPage: React.FC = () => {
 												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}>
 												<td className="py-3 px-5 text-sm font-semibold text-[var(--app-text)]">{row.BRAND}</td>
 												<td className="py-3 px-5 text-sm text-[var(--app-text)]">{row.BRAND_NM}</td>
-												<td className="py-3 px-5 text-sm text-[var(--app-muted)]">{row.BRAND_COUNTRY}</td>
+												<td className="py-3 px-5 text-sm text-[var(--app-text)]">{row.BRAND_COUNTRY}</td>
 												<td className="py-3 px-5 whitespace-nowrap">
 													<div className="flex flex-nowrap items-center justify-center gap-2">
 														<button
@@ -376,34 +376,34 @@ const BrandPage: React.FC = () => {
 			{editRow && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
 					onClick={e => e.target === e.currentTarget && setEditRow(null)}>
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-sm animate-in slide-in-from-top-4">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-sm animate-in slide-in-from-top-4">
 						<div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)]">
 							<h2 className="font-semibold text-[var(--app-text)]">Edit Brand</h2>
 							<button onClick={() => setEditRow(null)}
-								className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">×</button>
+								className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none">×</button>
 						</div>
 						<div className="px-6 py-5 space-y-4">
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Brand Code</label>
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Brand Code</label>
 								<input readOnly value={editRow.BRAND}
-									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-[var(--app-surface-alt)] font-semibold" />
+									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm bg-slate-100 text-slate-600 font-semibold" />
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Brand Name <span className="text-red-500">*</span>
 								</label>
 								<input autoFocus value={editBrandNm} onChange={e => setEditBrandNm(e.target.value)}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							</div>
 							<div>
-								<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+								<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 									Brand Country <span className="text-red-500">*</span>
 								</label>
 								<input value={editCountry} onChange={e => setEditCountry(e.target.value)}
 									onKeyDown={e => e.key === "Enter" && handleUpdate()}
 									className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2.5 text-sm
-                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                             focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							</div>
 							{editMsg && <Banner msg={editMsg} onClose={() => setEditMsg(null)} />}
 						</div>

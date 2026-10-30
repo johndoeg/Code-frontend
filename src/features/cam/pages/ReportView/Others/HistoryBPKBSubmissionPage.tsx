@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
-import * as XLSX from "xlsx";
+import { useState, useEffect, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import Pagination from '@/helpers/Pagination';
@@ -19,6 +18,15 @@ interface BPKBRow {
 }
 
 type PrintBy = "0" | "1" | "2";
+
+interface DataResponse {
+	rows: BPKBRow[];
+	total: number;
+	not_due: number;
+	due: number;
+	page: number;
+	limit: number;
+}
 
 const MONTHS_ID = [
 	"", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -49,6 +57,7 @@ const CENTER_COLS: Record<PrintBy, number[]> = {
 };
 
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
+const DATA_URL = "/CAM/Others/HistoryBPKBSubmission/data";
 
 function fmtDateShort(dateStr: string | null): string {
 	if (!dateStr) return "";
@@ -65,34 +74,6 @@ function getRowValues(row: BPKBRow, mode: PrintBy): (string | number)[] {
 	if (mode === "0") return [row.dealer_name, row.lessee_nm, row.lease_no, row.branch_name, exec, recv, row.status, row.remark];
 	if (mode === "1") return [row.dealer_name, row.lessee_nm, row.lease_no, exec, recv, row.status, row.remark];
 	return [row.lessee_nm, row.lease_no, row.branch_name, exec, recv, row.status, row.remark];
-}
-
-function exportExcel(data: BPKBRow[], mode: PrintBy, period: string, subjudul: string): void {
-	const headers = ["No.", ...HEADERS[mode]];
-	const rows: (string | number | null)[][] = [];
-
-	rows.push(["HISTORY OF BPKB SUBMISSION BY DEALER/ SHOWROOM"]);
-	rows.push([`Period Received Date (by CA) : ${period}`]);
-	rows.push([`Print by : ${subjudul}`]);
-	rows.push([]);
-	rows.push(headers);
-
-	data.forEach((row, i) => {
-		rows.push([i + 1, ...getRowValues(row, mode)]);
-	});
-
-	const ws = XLSX.utils.aoa_to_sheet(rows);
-	const colCount = headers.length;
-	ws["!merges"] = [
-		{ s: { r: 0, c: 0 }, e: { r: 0, c: colCount - 1 } },
-		{ s: { r: 1, c: 0 }, e: { r: 1, c: colCount - 1 } },
-		{ s: { r: 2, c: 0 }, e: { r: 2, c: colCount - 1 } },
-	];
-	ws["!cols"] = headers.map((_, ci) => ({ wch: ci === 0 ? 5 : ci <= 2 ? 28 : 14 }));
-
-	const wb = XLSX.utils.book_new();
-	XLSX.utils.book_append_sheet(wb, ws, "HistoryBPKBSubmission");
-	XLSX.writeFile(wb, "HistoryOfBPKBSubmission.xlsx");
 }
 
 function StatusBadge({ status }: { status: string }) {
@@ -138,10 +119,10 @@ function DealerModal({ isOpen, onClose, onSelect }: DealerModalProps) {
 		<div className="fixed inset-0 z-50 flex items-center justify-center">
 			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
 
-			<div className="relative bg-[var(--app-card)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
+			<div className="relative bg-[var(--app-card)] text-[var(--app-text)] rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4">
 				<div className="flex items-center justify-between px-4 py-3 border-b border-[var(--app-border)]">
 					<h2 className="font-semibold text-[var(--app-text)] text-sm">List Dealer</h2>
-					<button onClick={onClose} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-lg leading-none">✕</button>
+					<button onClick={onClose} className="text-[var(--app-text)] text-lg leading-none">✕</button>
 				</div>
 
 				<div className="px-4 py-3 border-b border-[var(--app-border)]">
@@ -151,22 +132,22 @@ function DealerModal({ isOpen, onClose, onSelect }: DealerModalProps) {
 						onChange={(e) => setQuery(e.target.value)}
 						placeholder="Cari dealer / nickname…"
 						autoFocus
-						className="w-full px-3 py-2 text-sm border border-[var(--app-border)] rounded-lg
+						className="w-full px-3 py-2 text-sm border border-[var(--app-border)] rounded-lg bg-white text-slate-900
 							focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 					/>
 				</div>
 
 				<div className="overflow-y-auto flex-1">
 					{loading ? (
-						<div className="py-10 text-center text-sm text-[var(--app-muted)]">Mencari…</div>
+						<div className="py-10 text-center text-sm text-[var(--app-text)]">Mencari…</div>
 					) : dealers.length === 0 ? (
-						<div className="py-10 text-center text-sm text-[var(--app-muted)]">Tidak ada data</div>
+						<div className="py-10 text-center text-sm text-[var(--app-text)]">Tidak ada data</div>
 					) : (
 						<table className="w-full text-sm border-collapse">
 							<thead className="bg-[var(--app-surface)] sticky top-0">
 								<tr>
 									{["Dealer Code", "Dealer Name", "Nickname", "Address", "Phone", "Contact"].map((h) => (
-										<th key={h} className="px-3 py-2 text-xs font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] text-left whitespace-nowrap">
+										<th key={h} className="px-3 py-2 text-xs font-medium text-[var(--app-text)] border-b border-[var(--app-border)] text-left whitespace-nowrap">
 											{h}
 										</th>
 									))}
@@ -203,16 +184,16 @@ interface MonthYearSelectProps {
 }
 
 function MonthYearSelect({ month, year, onMonthChange, onYearChange }: MonthYearSelectProps) {
-	const selectCls = "px-2 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-[var(--app-card)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-blue-500";
+	const selectCls = "px-2 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
 	return (
 		<>
 			<select value={month} onChange={(e) => onMonthChange(Number(e.target.value))} className={selectCls} style={{ width: 110 }}>
 				{MONTHS_ID.slice(1).map((m, i) => (
-					<option key={i + 1} value={i + 1}>{m}</option>
+					<option key={i + 1} value={i + 1} className="bg-white text-slate-900">{m}</option>
 				))}
 			</select>
 			<select value={year} onChange={(e) => onYearChange(Number(e.target.value))} className={selectCls} style={{ width: 80 }}>
-				{YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+				{YEARS.map((y) => <option key={y} value={y} className="bg-white text-slate-900">{y}</option>)}
 			</select>
 		</>
 	);
@@ -226,7 +207,7 @@ function PrintTable({ data, mode }: PrintTableProps) {
 	return (
 		<table border={1} cellPadding={2} cellSpacing={0} style={{ width: "100%", borderCollapse: "collapse" }}>
 			<thead>
-				<tr align="center" style={{ fontSize: 12, fontFamily: "Arial, Helvetica, sans-serif" }}>
+				<tr style={{ fontSize: 12, fontFamily: "Arial, Helvetica, sans-serif", textAlign: "center" }}>
 					{headers.map((h) => (
 						<td key={h} style={{ border: "1px solid #000", padding: "3px 6px", fontWeight: "bold" }}>{h}</td>
 					))}
@@ -265,13 +246,20 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 	const [dealerNm, setDealerNm] = useState<string>("");
 
 	const [branches, setBranches] = useState<Branch[]>([]);
-	const [data, setData] = useState<BPKBRow[]>([]);
+	const [rows, setRows] = useState<BPKBRow[]>([]);
+	const [total, setTotal] = useState<number>(0);
+	const [notDue, setNotDue] = useState<number>(0);
+	const [due, setDue] = useState<number>(0);
 	const [loading, setLoading] = useState<boolean>(false);
+	const [exporting, setExporting] = useState<boolean>(false);
+	const [printing, setPrinting] = useState<boolean>(false);
 	const [branchLoading, setBranchLoading] = useState<boolean>(true);
 	const [error, setError] = useState<string | null>(null);
 	const [hasSearched, setHasSearched] = useState<boolean>(false);
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [dealerModalOpen, setDealerModalOpen] = useState<boolean>(false);
+
+	const [printRows, setPrintRows] = useState<BPKBRow[] | null>(null);
 
 	const period = `${MONTHS_ID[bulanAwal]} ${tahunAwal} - ${MONTHS_ID[bulanAkhir]} ${tahunAkhir}`;
 	const subjudul =
@@ -286,25 +274,49 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 			.finally(() => setBranchLoading(false));
 	}, []);
 
-	const handlePrintByChange = (val: PrintBy) => {
-		setPrintBy(val);
-		setData([]);
-		setHasSearched(false);
+	const resetResults = () => {
+		setRows([]);
+		setTotal(0);
+		setNotDue(0);
+		setDue(0);
+		setPrintRows(null);
 		setCurrentPage(1);
+		setHasSearched(false);
 	};
 
-	const handlePreview = async () => {
-		if (printBy === "1" && !selectedBranch) { setError("Pilih cabang terlebih dahulu."); return; }
-		if (printBy === "2" && !selectedSupp) { setError("Pilih dealer terlebih dahulu."); return; }
+	const handlePrintByChange = (val: PrintBy) => {
+		setPrintBy(val);
+		resetResults();
+	};
+
+	const filterParams = () => ({
+		bulan_awal: bulanAwal,
+		tahun_awal: tahunAwal,
+		bulan_akhir: bulanAkhir,
+		tahun_akhir: tahunAkhir,
+		print_by: printBy,
+		branch_cd: selectedBranch,
+		supp: selectedSupp,
+	});
+
+	const validate = (): boolean => {
+		if (printBy === "1" && !selectedBranch) { setError("Pilih cabang terlebih dahulu."); return false; }
+		if (printBy === "2" && !selectedSupp) { setError("Pilih dealer terlebih dahulu."); return false; }
+		return true;
+	};
+
+	const fetchPage = async (page: number) => {
 		setLoading(true);
 		setError(null);
-		setData([]);
-		setCurrentPage(1);
 		try {
-			const res = await api.get<BPKBRow[]>("/CAM/Others/HistoryBPKBSubmission/data", {
-				params: { bulan_awal: bulanAwal, tahun_awal: tahunAwal, bulan_akhir: bulanAkhir, tahun_akhir: tahunAkhir, print_by: printBy, branch_cd: selectedBranch, supp: selectedSupp },
+			const res = await api.get<DataResponse>(DATA_URL, {
+				params: { ...filterParams(), page, limit: ROWS_PER_PAGE },
 			});
-			setData(res.data);
+			setRows(res.data.rows);
+			setTotal(res.data.total);
+			setNotDue(res.data.not_due);
+			setDue(res.data.due);
+			setCurrentPage(res.data.page);
 			setHasSearched(true);
 		} catch {
 			setError("Gagal memuat data. Silakan coba lagi.");
@@ -313,20 +325,69 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 		}
 	};
 
-	const handleExport = () => {
-		if (!data.length) return;
-		exportExcel(data, printBy, period, subjudul);
+	const handlePreview = () => {
+		if (!validate()) return;
+		setPrintRows(null);
+		void fetchPage(1);
 	};
 
-	const handlePrint = () => window.print();
+	const handlePrint = async () => {
+		if (!total) return;
+		setPrinting(true);
+		setError(null);
+		try {
+			const res = await api.get<DataResponse>(DATA_URL, {
+				params: { ...filterParams(), all: 1 },
+			});
+			setPrintRows(res.data.rows);
+		} catch {
+			setError("Gagal menyiapkan data cetak. Silakan coba lagi.");
+		} finally {
+			setPrinting(false);
+		}
+	};
+
+	const handleExport = async () => {
+		if (!total) return;
+		setExporting(true);
+		setError(null);
+		try {
+			const res = await api.get("/CAM/Others/HistoryBPKBSubmission/excel", {
+				params: {
+					...filterParams(),
+					branch_nm: branches.find((b) => b.branch_cd === selectedBranch)?.branch_name ?? "",
+					dealer_nm: dealerNm,
+				},
+				responseType: "blob",
+			});
+			const url = URL.createObjectURL(res.data as Blob);
+			const anchor = document.createElement("a");
+			anchor.href = url;
+			anchor.download = "HistoryOfBPKBSubmission.xlsx";
+			document.body.appendChild(anchor);
+			anchor.click();
+			anchor.remove();
+			window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+		} catch {
+			setError("Gagal mengekspor data. Silakan coba lagi.");
+		} finally {
+			setExporting(false);
+		}
+	};
 
 	const handleDealerSelect = (supp: string, nickname: string) => {
 		setSelectedSupp(supp);
 		setDealerNm(nickname);
 	};
 
-	const totalPages = Math.ceil(data.length / ROWS_PER_PAGE);
-	const paginatedData = useMemo(() => data.slice((currentPage - 1) * ROWS_PER_PAGE, currentPage * ROWS_PER_PAGE), [data, currentPage]);
+	useEffect(() => {
+		if (!printRows) return;
+		const t = window.setTimeout(() => window.print(), 0);
+		return () => window.clearTimeout(t);
+	}, [printRows]);
+
+	const totalPages = Math.ceil(total / ROWS_PER_PAGE);
+	const busy = loading || printing || exporting;
 
 	const headers = ["No.", ...HEADERS[printBy]];
 	const centerCols = new Set([0, ...CENTER_COLS[printBy].map((c) => c + 1)]);
@@ -353,38 +414,38 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 						<div className="grid grid-cols-1 gap-3">
 
 							<div className="flex flex-wrap items-center gap-2">
-								<span className="text-sm text-[var(--app-muted)] w-52">Period Received Date (by CA)</span>
+								<span className="text-sm text-[var(--app-text)] w-52">Period Received Date (by CA)</span>
 								<MonthYearSelect month={bulanAwal} year={tahunAwal} onMonthChange={setBulanAwal} onYearChange={setTahunAwal} />
-								<span className="text-[var(--app-muted)] text-sm">–</span>
+								<span className="text-[var(--app-text)] text-sm">–</span>
 								<MonthYearSelect month={bulanAkhir} year={tahunAkhir} onMonthChange={setBulanAkhir} onYearChange={setTahunAkhir} />
 							</div>
 
 							<div className="flex flex-wrap items-center gap-2">
-								<span className="text-sm text-[var(--app-muted)] w-52">Print by</span>
+								<span className="text-sm text-[var(--app-text)] w-52">Print by</span>
 								<select
 									value={printBy}
 									onChange={(e) => handlePrintByChange(e.target.value as PrintBy)}
-									className="px-3 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-[var(--app-card)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-blue-500"
+									className="px-3 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
 								>
 									{PRINT_BY_OPTIONS.map((o) => (
-										<option key={o.value} value={o.value}>{o.label}</option>
+										<option key={o.value} value={o.value} className="bg-white text-slate-900">{o.label}</option>
 									))}
 								</select>
 							</div>
 
 							{printBy === "1" && (
 								<div className="flex flex-wrap items-center gap-2">
-									<span className="text-sm text-[var(--app-muted)] w-52">Branch</span>
+									<span className="text-sm text-[var(--app-text)] w-52">Branch</span>
 									<select
 										value={selectedBranch}
 										onChange={(e) => setSelectedBranch(e.target.value)}
 										disabled={branchLoading}
-										className="px-3 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-[var(--app-card)] text-[var(--app-text)] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+										className="px-3 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
 										style={{ minWidth: 180 }}
 									>
-										<option value="">Select</option>
+										<option value="" className="bg-white text-slate-900">Select</option>
 										{branches.map((b) => (
-											<option key={b.branch_cd} value={b.branch_cd}>{b.branch_name}</option>
+											<option key={b.branch_cd} value={b.branch_cd} className="bg-white text-slate-900">{b.branch_name}</option>
 										))}
 									</select>
 								</div>
@@ -392,7 +453,7 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 
 							{printBy === "2" && (
 								<div className="flex flex-wrap items-center gap-2">
-									<span className="text-sm text-[var(--app-muted)] w-52">
+									<span className="text-sm text-[var(--app-text)] w-52">
 										<button onClick={() => setDealerModalOpen(true)} className="text-blue-600 hover:underline text-sm">
 											Dealer Name/ Nickname
 										</button>
@@ -402,7 +463,7 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 										value={dealerNm}
 										readOnly
 										placeholder="Klik link untuk memilih dealer…"
-										className="px-3 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-[var(--app-surface)] text-[var(--app-text)] cursor-pointer"
+										className="px-3 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-white text-slate-900 cursor-pointer"
 										style={{ minWidth: 220 }}
 										onClick={() => setDealerModalOpen(true)}
 									/>
@@ -412,38 +473,38 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 							<div className="flex flex-wrap gap-2 pt-1">
 								<button
 									onClick={handlePreview}
-									disabled={loading}
+									disabled={busy}
 									className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all
-										bg-[var(--app-surface)] text-blue-800 border border-blue-200 hover:bg-blue-100
-										disabled:opacity-40 disabled:cursor-not-allowed"
+										bg-blue-600 text-white border border-blue-700 hover:bg-blue-700
+										disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed"
 								>
 									{loading ? "Memuat…" : "Preview"}
 								</button>
 								<button
 									onClick={handlePrint}
-									disabled={!data.length}
+									disabled={!total || busy}
 									className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all
-										bg-[var(--app-surface)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-surface-alt)]
-										disabled:opacity-40 disabled:cursor-not-allowed"
+										bg-[var(--app-surface-alt)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-surface)]
+										disabled:opacity-60 disabled:cursor-not-allowed"
 								>
-									Print
+									{printing ? "Menyiapkan…" : "Print"}
 								</button>
 								<button
 									onClick={handleExport}
-									disabled={!data.length}
+									disabled={!total || busy}
 									className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all
-										bg-green-50 text-green-800 border border-green-200 hover:bg-green-100
-										disabled:opacity-40 disabled:cursor-not-allowed"
+										bg-green-600 text-white border border-green-700 hover:bg-green-700
+										disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed"
 								>
-									Export to Excel
+									{exporting ? "Mengekspor…" : "Export to Excel"}
 								</button>
 							</div>
 						</div>
 
 						{hasSearched && (
-							<div className="mt-3 pt-3 border-t border-[var(--app-border)] flex flex-wrap gap-2 text-xs text-[var(--app-muted)]">
+							<div className="mt-3 pt-3 border-t border-[var(--app-border)] flex flex-wrap gap-2 text-xs text-[var(--app-text)]">
 								<span>Periode: <strong className="text-[var(--app-text)]">{period}</strong></span>
-								<span className="text-gray-300">|</span>
+								<span className="text-[var(--app-text)]">|</span>
 								<span>Print by: <strong className="text-[var(--app-text)]">{subjudul}</strong></span>
 							</div>
 						)}
@@ -453,33 +514,28 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 						<div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
 					)}
 
-					{loading && <div className="py-16 text-center text-sm text-[var(--app-muted)]">Memuat data…</div>}
+					{loading && <div className="py-16 text-center text-sm text-[var(--app-text)]">Memuat data…</div>}
 
-					{!loading && !hasSearched && (
-						<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
-							Atur filter dan klik <span className="font-medium">Preview</span> untuk menampilkan data
-						</div>
-					)}
-					{!loading && hasSearched && data.length === 0 && (
-						<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
+					{!loading && hasSearched && total === 0 && (
+						<div className="py-16 text-center text-sm text-[var(--app-text)] border border-dashed border-[var(--app-border)] rounded-xl">
 							Tidak ada data untuk filter yang dipilih
 						</div>
 					)}
 
-					{!loading && data.length > 0 && (
+					{!loading && total > 0 && (
 						<>
 							<div className="flex gap-3 mb-4">
 								<div className="bg-[var(--app-surface)] rounded-lg p-3">
-									<div className="text-xs text-[var(--app-muted)] mb-1">Total Records</div>
-									<div className="text-lg font-semibold tabular-nums text-[var(--app-text)]">{data.length}</div>
+									<div className="text-xs text-[var(--app-text)] mb-1">Total Records</div>
+									<div className="text-lg font-semibold tabular-nums text-[var(--app-text)]">{total}</div>
 								</div>
 								<div className="bg-green-50 rounded-lg p-3">
-									<div className="text-xs text-[var(--app-muted)] mb-1">Not Due</div>
-									<div className="text-lg font-semibold tabular-nums text-green-700">{data.filter(r => r.status === "Not Due").length}</div>
+									<div className="text-xs text-green-900 mb-1">Not Due</div>
+									<div className="text-lg font-semibold tabular-nums text-green-700">{notDue}</div>
 								</div>
 								<div className="bg-red-50 rounded-lg p-3">
-									<div className="text-xs text-[var(--app-muted)] mb-1">Due</div>
-									<div className="text-lg font-semibold tabular-nums text-red-700">{data.filter(r => r.status === "Due").length}</div>
+									<div className="text-xs text-red-900 mb-1">Due</div>
+									<div className="text-lg font-semibold tabular-nums text-red-700">{due}</div>
 								</div>
 							</div>
 
@@ -489,14 +545,14 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 										<thead>
 											<tr className="bg-[var(--app-surface)]">
 												{headers.map((h) => (
-													<th key={h} className="px-3 py-2 text-xs font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] text-center whitespace-nowrap">
+													<th key={h} className="px-3 py-2 text-xs font-medium text-[var(--app-text)] border-b border-[var(--app-border)] text-center whitespace-nowrap">
 														{h}
 													</th>
 												))}
 											</tr>
 										</thead>
 										<tbody>
-											{paginatedData.map((row, idx) => {
+											{rows.map((row, idx) => {
 												const globalIdx = (currentPage - 1) * ROWS_PER_PAGE + idx;
 												const values = [globalIdx + 1, ...getRowValues(row, printBy)];
 												const statusIdx = values.length - 2;
@@ -521,8 +577,8 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 									<Pagination
 										page={currentPage}
 										totalPages={totalPages}
-										onPageChange={setCurrentPage}
-										totalItems={data.length}
+										onPageChange={(p) => void fetchPage(p)}
+										totalItems={total}
 										itemsPerPage={ROWS_PER_PAGE}
 										className="border-t border-[var(--app-border)]"
 									/>
@@ -552,7 +608,7 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 					</tbody>
 				</table>
 				<br />
-				<PrintTable data={data} mode={printBy} />
+				<PrintTable data={printRows ?? []} mode={printBy} />
 			</div>
 
 			<DealerModal

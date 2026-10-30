@@ -47,7 +47,10 @@ const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#
 
 const isRejected = (d: InvoiceDetail) => d.invoice === 'N' || d.system === 'N';
 
-const thCls = "py-3 px-4 text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider";
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
+const thCls = "py-3 px-4 text-xs font-medium text-[var(--app-text)] uppercase tracking-wider";
 
 interface Props {
 	insurer: 'raksa' | 'simas';
@@ -256,11 +259,11 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">{title}</h1>
-							<p className="text-[var(--app-muted)] mt-1">View and manage your invoice records</p>
+							<p className="text-[var(--app-text)] mt-1">View and manage your invoice records</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -311,7 +314,7 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{loading ? (
 									<tr>
-										<td colSpan={isSimas ? 10 : 9} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={isSimas ? 10 : 9} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex justify-center">
 												<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
 											</div>
@@ -319,7 +322,7 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 									</tr>
 								) : summaries.length === 0 ? (
 									<tr>
-										<td colSpan={isSimas ? 10 : 9} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={isSimas ? 10 : 9} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center justify-center">
 												<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -384,7 +387,7 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 
 			{detailOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-start p-6 border-b">
 							<div className="space-y-3">
 								<h2 className="text-xl font-bold text-[var(--app-text)]">{title}</h2>
@@ -404,7 +407,7 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 									</select>
 								</div>
 							</div>
-							<button onClick={closeDetail} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={closeDetail} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
 								</svg>
@@ -458,7 +461,7 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 										</tr>
 									) : details.length === 0 ? (
 										<tr>
-											<td colSpan={12} className="py-10 px-6 text-center text-[var(--app-muted)]">
+											<td colSpan={12} className="py-10 px-6 text-center text-[var(--app-text)]">
 												<p className="text-lg">No details found</p>
 											</td>
 										</tr>
@@ -481,7 +484,6 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 													<td className="py-3 px-4 whitespace-nowrap text-sm text-center">{d.invoice}</td>
 													<td className="py-3 px-4 whitespace-nowrap text-sm text-center">{d.system}</td>
 													<td className="py-3 px-4 text-sm">
-														{/* backend joins reasons with <br>; render as lines, never as raw HTML */}
 														{d.remark.split('<br>').filter(Boolean).map((line, i) => <div key={i}>{line}</div>)}
 													</td>
 													<td className="py-3 px-4 text-center">
@@ -531,22 +533,24 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 
 			{isSimas && payOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">Payment Date</h2>
-							<button onClick={() => !paying && setPayOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={() => !paying && setPayOpen(false)} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
 								</svg>
 							</button>
 						</div>
 						<div className="p-6 space-y-4">
-							<AsOfDatePicker
-								label="Payment Date"
-								value={payDate}
-								onChange={(d) => { if (d) setPayDate(d); }}
-								required
-							/>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker
+									label="Payment Date"
+									value={payDate}
+									onChange={(d) => { if (d) setPayDate(d); }}
+									required
+								/>
+							</div>
 							{payError && (
 								<div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{payError}</div>
 							)}
@@ -575,10 +579,10 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 
 			{isRaksa && uploadOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-xl overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">Upload Invoice RAKSA</h2>
-							<button onClick={() => !uploading && setUploadOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={() => !uploading && setUploadOpen(false)} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
 								</svg>
@@ -604,7 +608,7 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 										maxLength={4}
 										value={upYear}
 										onChange={e => setUpYear(e.target.value.replace(/\D/g, ''))}
-										className="w-24 px-3 py-2 border border-[var(--app-border)] rounded-md text-sm
+										className="w-24 px-3 py-2 border border-[var(--app-border)] rounded-md text-sm bg-white text-slate-900
 										           focus:outline-none focus:ring-2 focus:ring-blue-500"
 									/>
 								</div>
@@ -615,14 +619,14 @@ const InvoiceInsurancePage: React.FC<Props> = ({ insurer, title }) => {
 										Select Excel File
 										<input type="file" accept=".xls,.xlsx" onChange={handleFileChange} className="hidden" />
 									</label>
-									<span className="text-sm italic text-[var(--app-muted)] truncate" title={upFile?.name}>
+									<span className="text-sm italic text-[var(--app-text)] truncate" title={upFile?.name}>
 										{upFile ? upFile.name : 'No file selected'}
 									</span>
 									{upFile && (
 										<button
 											type="button"
 											onClick={() => setUpFile(null)}
-											className="shrink-0 text-sm text-[var(--app-muted)] hover:text-[var(--app-text)] underline"
+											className="shrink-0 text-sm text-[var(--app-text)] hover:text-[var(--app-text)] underline"
 										>
 											Clear
 										</button>

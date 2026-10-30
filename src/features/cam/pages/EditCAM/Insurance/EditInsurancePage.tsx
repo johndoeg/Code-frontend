@@ -129,13 +129,13 @@ const EditInsurancePage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)] mb-6">Edit Insurance</h1>
 
 					<table className="w-full mb-4">
 						<tbody>
 							<tr>
-								<td className="py-1 text-sm text-[var(--app-muted)] w-40">CAM No.</td>
+								<td className="py-1 text-sm text-[var(--app-text)] w-40">CAM No.</td>
 								<td className="py-1">
 									<div className="flex gap-2">
 										<input
@@ -143,7 +143,7 @@ const EditInsurancePage: React.FC = () => {
 											value={camNo}
 											onChange={(e) => setCamNo(e.target.value)}
 											maxLength={15}
-											className="px-3 py-2 border border-[var(--app-border)] rounded text-sm flex-1"
+											className="px-3 py-2 border border-[var(--app-border)] rounded text-sm flex-1 bg-white text-slate-900"
 										/>
 										<button
 											onClick={handleSearch}
@@ -156,24 +156,24 @@ const EditInsurancePage: React.FC = () => {
 								</td>
 							</tr>
 							<tr>
-								<td className="py-1 text-sm text-[var(--app-muted)]">Customer Name</td>
+								<td className="py-1 text-sm text-[var(--app-text)]">Customer Name</td>
 								<td className="py-1">
 									<input
 										type="text"
 										value={customerName}
 										readOnly
-										className="w-full px-3 py-2 border border-[var(--app-border)] rounded text-sm bg-[var(--app-surface-alt)]"
+										className="w-full px-3 py-2 border border-[var(--app-border)] rounded text-sm bg-slate-100 text-slate-600 cursor-not-allowed"
 									/>
 								</td>
 							</tr>
 							<tr>
-								<td className="py-1 text-sm text-[var(--app-muted)]">Ins. Company</td>
+								<td className="py-1 text-sm text-[var(--app-text)]">Ins. Company</td>
 								<td className="py-1">
 									<input
 										type="text"
 										value={insCompany}
 										readOnly
-										className="w-full px-3 py-2 border border-[var(--app-border)] rounded text-sm bg-[var(--app-surface-alt)]"
+										className="w-full px-3 py-2 border border-[var(--app-border)] rounded text-sm bg-slate-100 text-slate-600 cursor-not-allowed"
 									/>
 								</td>
 							</tr>
@@ -207,7 +207,7 @@ const EditInsurancePage: React.FC = () => {
 														value={row.rate_premi}
 														onChange={(e) => updateRow(idx, 'rate_premi', Number(e.target.value))}
 														onBlur={() => handleRateBlur(idx)}
-														className="w-full px-2 py-1 border border-[var(--app-border)] rounded text-right text-sm"
+														className="w-full px-2 py-1 border border-[var(--app-border)] rounded text-right text-sm bg-white text-slate-900 [color-scheme:light]"
 													/>
 												</td>
 												<td className="border border-[var(--app-border)] px-1 py-1">
@@ -217,7 +217,7 @@ const EditInsurancePage: React.FC = () => {
 														step="0.01"
 														value={row.prer_amt}
 														onChange={(e) => updateRow(idx, 'prer_amt', Number(e.target.value))}
-														className="w-full px-2 py-1 border border-[var(--app-border)] rounded text-right text-sm"
+														className="w-full px-2 py-1 border border-[var(--app-border)] rounded text-right text-sm bg-white text-slate-900 [color-scheme:light]"
 													/>
 												</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-right">{fmt(row.prep_amt)}</td>
@@ -237,7 +237,7 @@ const EditInsurancePage: React.FC = () => {
 								<button
 									onClick={handleSave}
 									disabled={!calculated || saving}
-									className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:text-[var(--app-muted)] text-white px-4 py-2 rounded-lg text-sm font-medium"
+									className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500 disabled:text-gray-200 text-white px-4 py-2 rounded-lg text-sm font-medium"
 								>
 									{saving ? 'Saving…' : 'Save'}
 								</button>

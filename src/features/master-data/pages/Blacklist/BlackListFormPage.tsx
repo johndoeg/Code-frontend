@@ -31,8 +31,12 @@ const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#
 const selectStyle: React.CSSProperties = { colorScheme: 'light' };
 
 const inputCls =
-    "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent focus:outline-none transition-shadow disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)] disabled:cursor-not-allowed";
-const selectCls = `${inputCls} bg-white text-[var(--app-text)]`;
+    "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 [color-scheme:light] focus:ring-2 focus:ring-red-500 focus:border-transparent focus:outline-none transition-shadow disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed";
+const selectCls = `${inputCls} [&>option]:bg-white [&>option]:text-slate-900`;
+
+const dateFieldClass =
+    "text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white " +
+    "[&_input]:!text-slate-900 [&_input]:![color-scheme:light] [&_input]:!w-full";
 
 const toApiDate = (d: Date | null): string => {
     if (!d || isNaN(d.getTime())) return "";
@@ -325,11 +329,11 @@ const BlackListFormPage: React.FC = () => {
         <div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
             <div className="max-w-full mx-auto space-y-6">
 
-                <div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+                <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
                         <div>
                             <h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">{title}</h1>
-                            <p className="text-[var(--app-muted)] mt-1 text-sm">
+                            <p className="text-[var(--app-text)] mt-1 text-sm">
                                 {isView ? "Read-only view of a blacklisted customer" : "Individual (PR) or Corporate (PT) customer"}
                             </p>
                         </div>
@@ -373,7 +377,7 @@ const BlackListFormPage: React.FC = () => {
                             ))}
                         </div>
                         {!isCreate && (
-                            <p className="text-xs text-[var(--app-muted)] mt-1">Customer type cannot be changed after creation.</p>
+                            <p className="text-xs text-[var(--app-text)] mt-1">Customer type cannot be changed after creation.</p>
                         )}
                     </div>
 
@@ -419,7 +423,9 @@ const BlackListFormPage: React.FC = () => {
                         {isPR ? (
                             <>
                                 <Field label="Date of Birth">
-                                    <AsOfDatePickerComponent label="" value={dob} onChange={(d: Date | null) => setDob(d)} />
+                                    <div className={dateFieldClass}>
+                                        <AsOfDatePickerComponent label="" value={dob} onChange={(d: Date | null) => setDob(d)} />
+                                    </div>
                                 </Field>
                                 <Field label="Spouse Name">
                                     <input type="text" value={spouseName} disabled={!editable}
@@ -433,8 +439,10 @@ const BlackListFormPage: React.FC = () => {
                         ) : (
                             <>
                                 <Field label="Establishment Date">
-                                    <AsOfDatePickerComponent value={establishmentDate}
-                                        onChange={(d: Date | null) => setEstablishmentDate(d)} />
+                                    <div className={dateFieldClass}>
+                                        <AsOfDatePickerComponent label="" value={establishmentDate}
+                                            onChange={(d: Date | null) => setEstablishmentDate(d)} />
+                                    </div>
                                 </Field>
                                 <Field label="Contact Person">
                                     <input type="text" value={contactPerson} disabled={!editable}
@@ -500,11 +508,11 @@ const BlackListFormPage: React.FC = () => {
                 </div>
 
                 {!isPR && (
-                    <div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+                    <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h2 className="text-lg font-bold text-[var(--app-text)]">Composition of BOD / BOC</h2>
-                                <p className="text-[var(--app-muted)] text-sm mt-0.5">
+                                <p className="text-[var(--app-text)] text-sm mt-0.5">
                                     Each person needs a BOD or BOC position. Images max 2 MB (JPEG, PNG, GIF).
                                 </p>
                             </div>
@@ -523,7 +531,7 @@ const BlackListFormPage: React.FC = () => {
                                         <thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
                                             <tr>
                                                 {["No.", "Name", "BOD", "BOC", "Other", "ID Card", "Address", "City", "Image", ""].map((h) => (
-                                                    <th key={h} className="py-3 px-3 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+                                                    <th key={h} className="py-3 px-3 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
                                                         {h}
                                                     </th>
                                                 ))}
@@ -532,13 +540,13 @@ const BlackListFormPage: React.FC = () => {
                                         <tbody className="divide-y divide-[var(--app-border)]">
                                             {members.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={10} className="py-8 text-center text-[var(--app-muted)] text-sm">
+                                                    <td colSpan={10} className="py-8 text-center text-[var(--app-text)] text-sm">
                                                         No composition recorded
                                                     </td>
                                                 </tr>
                                             ) : members.map((m, i) => (
                                                 <tr key={m.id_blacklist ?? `new-${i}`} className="align-top">
-                                                    <td className="py-2 px-3 text-sm text-[var(--app-muted)]">{i + 1}</td>
+                                                    <td className="py-2 px-3 text-sm text-[var(--app-text)]">{i + 1}</td>
                                                     <td className="py-2 px-3">
                                                         <input type="text" value={m.name} disabled={!editable}
                                                             onChange={(e) => updateMember(i, { name: e.target.value })}
@@ -649,7 +657,7 @@ const BlackListFormPage: React.FC = () => {
                     </div>
                 )}
 
-                <div className="bg-[var(--app-card)] rounded-2xl shadow-lg px-6 py-4 flex justify-end gap-3">
+                <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg px-6 py-4 flex justify-end gap-3">
                     <button onClick={goToList} disabled={saving}
                         className="px-5 py-2 border border-[var(--app-border)] rounded-lg text-sm text-[var(--app-text)] hover:bg-[var(--app-surface)] transition-colors">
                         {isView ? "Back" : "Cancel"}

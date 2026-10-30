@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import Pagination from '@/helpers/Pagination';
@@ -34,6 +35,8 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const CmoDailyProductivityByBranchPage: React.FC = () => {
 	const [startDate, setStartDate] = useState<Date | null>(null);
 	const [endDate, setEndDate] = useState<Date | null>(null);
@@ -43,6 +46,7 @@ const CmoDailyProductivityByBranchPage: React.FC = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [hasSearched, setHasSearched] = useState(false);
+	const [searchedRange, setSearchedRange] = useState<{ start: string; end: string } | null>(null);
 
 	const [page, setPage] = useState(1);
 	const totalPages = Math.ceil(rows.length / PAGE_SIZE);
@@ -66,6 +70,7 @@ const CmoDailyProductivityByBranchPage: React.FC = () => {
 			);
 			setRows(response.data.data);
 			setTotals(response.data.totals);
+			setSearchedRange({ start: toISO(startDate), end: toISO(endDate) });
 		} catch (err) {
 			console.error('CMO daily productivity by-branch summary error:', err);
 			setError('Failed to load report. Please try again.');
@@ -74,20 +79,19 @@ const CmoDailyProductivityByBranchPage: React.FC = () => {
 		}
 	};
 
-	const buildDrillDownHref = (branchCd: string) => {
-		if (!startDate || !endDate) return '#';
+	const buildDrillDownPath = (branchCd: string) => {
 		const params = new URLSearchParams({
-			lempar_start_dt: toISO(startDate),
-			lempar_end_dt: toISO(endDate),
+			lempar_start_dt: searchedRange?.start ?? '',
+			lempar_end_dt: searchedRange?.end ?? '',
 			lempar_branch: branchCd,
 		});
-		return `/CAM/CMO/daily-productivity-by-cmo?${params.toString()}`;
+		return `/report-cmo-daily-productivity-by-cmo?${params.toString()}`;
 	};
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="mb-6">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">
 							Credit Marketing Officer Daily Productivity Global Report — By Branch
@@ -96,12 +100,16 @@ const CmoDailyProductivityByBranchPage: React.FC = () => {
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 text-sm items-end max-w-md">
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Start Date</label>
-							<AsOfDatePicker label="" value={startDate} onChange={setStartDate} required />
+							<label className="text-[var(--app-text)] block mb-1">Start Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={startDate} onChange={setStartDate} required />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">End Date</label>
-							<AsOfDatePicker label="" value={endDate} onChange={setEndDate} required />
+							<label className="text-[var(--app-text)] block mb-1">End Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={endDate} onChange={setEndDate} required />
+							</div>
 						</div>
 					</div>
 
@@ -144,15 +152,13 @@ const CmoDailyProductivityByBranchPage: React.FC = () => {
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={8} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-muted)]">
-											Choose a period, then click Search.
-										</td>
+										<td colSpan={8} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : (
 									<>
 										{pageRows.length === 0 ? (
 											<tr>
-												<td colSpan={8} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-muted)]">
+												<td colSpan={8} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-text)] opacity-70">
 													No branch activity found for this period.
 												</td>
 											</tr>
@@ -161,12 +167,12 @@ const CmoDailyProductivityByBranchPage: React.FC = () => {
 												<tr key={row.branch_cd} className="odd:bg-[var(--app-surface)]">
 													<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.no}</td>
 													<td className="border border-[var(--app-border)] px-2 py-1 text-center">
-														<a
-															href={buildDrillDownHref(row.branch_cd)}
-															className="text-blue-600 hover:text-blue-800 hover:underline"
+														<Link
+															to={buildDrillDownPath(row.branch_cd)}
+															className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
 														>
 															{row.branch_name}
-														</a>
+														</Link>
 													</td>
 													<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.total_created}</td>
 													<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.total_reject}</td>

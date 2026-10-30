@@ -85,11 +85,11 @@ const UserAccessPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
             <div className="max-w-full mx-auto">
-                <div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+                <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
                     <div className="mb-6">
                         <h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">User Access</h1>
-                        <p className="text-[var(--app-muted)] mt-1">Manage menu access rights per access level</p>
+                        <p className="text-[var(--app-text)] mt-1">Manage menu access rights per access level</p>
                     </div>
 
                     <div className="bg-[var(--app-surface)] rounded-xl p-4 border border-[var(--app-border)] mb-6">
@@ -127,13 +127,13 @@ const UserAccessPage: React.FC = () => {
                                 <table className="w-full text-sm">
                                     <thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
                                         <tr>
-                                            <th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] w-36">
+                                            <th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] w-36">
                                                 Menu ID
                                             </th>
-                                            <th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">
+                                            <th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]">
                                                 Menu Description
                                             </th>
-                                            <th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] w-44">
+                                            <th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] w-44">
                                                 User Right
                                             </th>
                                         </tr>
@@ -152,7 +152,7 @@ const UserAccessPage: React.FC = () => {
                                             </tr>
                                         ) : menuRights.length === 0 ? (
                                             <tr>
-                                                <td colSpan={3} className="py-10 px-6 text-center text-[var(--app-muted)]">
+                                                <td colSpan={3} className="py-10 px-6 text-center text-[var(--app-text)]">
                                                     No menu entries found.
                                                 </td>
                                             </tr>
@@ -224,11 +224,8 @@ const UserAccessPage: React.FC = () => {
                     )}
 
                     {!accesscam && (
-                        <div className="py-10 text-center text-[var(--app-muted)]">
-                            <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                            <p className="text-lg">Select an access level to manage menu rights</p>
+                        <div className="py-10 text-center text-[var(--app-text)]">
+                            <p className="text-lg"></p>
                         </div>
                     )}
 

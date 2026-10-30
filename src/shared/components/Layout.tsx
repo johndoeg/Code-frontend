@@ -30,7 +30,6 @@ export default function Layout() {
 					onClose={() => setSidebarOpen(false)}
 				/>
 
-				{/* Mobile overlay */}
 				{sidebarOpen && (
 					<div
 						onClick={() => setSidebarOpen(false)}

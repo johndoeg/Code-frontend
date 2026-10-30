@@ -5,6 +5,8 @@ export type { CKEditorNotesProps };
 
 const CKEditorNotesImpl = lazy(() => import("./CKEditorNotesImpl"));
 
+export const prefetchCKEditor = () => import("./CKEditorNotesImpl");
+
 export default function CKEditorNotes(props: CKEditorNotesProps) {
     const { minHeight = 300, className = "" } = props;
     return (

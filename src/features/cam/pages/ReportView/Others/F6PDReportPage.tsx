@@ -51,14 +51,14 @@ function MonthYearSelect({ month, year, onMonthChange, onYearChange }: {
 	month: number; year: number;
 	onMonthChange: (m: number) => void; onYearChange: (y: number) => void;
 }) {
-	const cls = "px-2 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-[var(--app-card)] focus:outline-none focus:ring-2 focus:ring-blue-500";
+	const cls = "px-2 py-1.5 text-sm border border-[var(--app-border)] rounded-lg bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500";
 	return (
 		<>
 			<select value={month} onChange={(e) => onMonthChange(Number(e.target.value))} className={cls} style={{ width: 110 }}>
-				{MONTHS_ID.slice(1).map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
+				{MONTHS_ID.slice(1).map((m, i) => <option key={i + 1} value={i + 1} className="bg-white text-slate-900">{m}</option>)}
 			</select>
 			<select value={year} onChange={(e) => onYearChange(Number(e.target.value))} className={cls} style={{ width: 80 }}>
-				{YEARS.map((y) => <option key={y} value={y}>{y}</option>)}
+				{YEARS.map((y) => <option key={y} value={y} className="bg-white text-slate-900">{y}</option>)}
 			</select>
 		</>
 	);
@@ -72,7 +72,7 @@ interface SummaryTableProps<T> {
 }
 
 function SummaryTable<T extends object>({ rows, labelKey, labelHeader, isBold }: SummaryTableProps<T>) {
-	const thCls = "px-3 py-1.5 text-xs font-medium text-[var(--app-muted)] bg-[var(--app-surface)] border-b border-[var(--app-border)] text-center whitespace-nowrap";
+	const thCls = "px-3 py-1.5 text-xs font-medium text-[var(--app-text)] bg-[var(--app-surface)] border-b border-[var(--app-border)] text-center whitespace-nowrap";
 	const tdCls = (bold: boolean, right = false) =>
 		`px-3 py-1.5 border-b border-[var(--app-border)] text-xs ${right ? "text-right tabular-nums" : "text-center"} ${bold ? "font-semibold text-[var(--app-text)]" : "text-[var(--app-text)]"}`;
 
@@ -179,25 +179,25 @@ const F6PDReportPage: React.FC = () => {
 				<div className="mb-6">
 					<h1 className="text-2xl font-semibold text-[var(--app-text)]">F6PD Report</h1>
 					{data && (
-						<p className="text-sm text-[var(--app-muted)] mt-1">As of {data.formatted_date}</p>
+						<p className="text-sm text-[var(--app-text)] mt-1">As of {data.formatted_date}</p>
 					)}
 				</div>
 
-				<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] p-4 mb-6 flex flex-wrap gap-3 items-end">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] p-4 mb-6 flex flex-wrap gap-3 items-end">
 					<div>
-						<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">Period</label>
+						<label className="block text-xs font-medium text-[var(--app-text)] mb-1">Period</label>
 						<div className="flex gap-2">
 							<MonthYearSelect month={bulan} year={tahun} onMonthChange={setBulan} onYearChange={setTahun} />
 						</div>
 					</div>
 
 					<button onClick={handlePreview} disabled={loading || exporting}
-						className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--app-surface)] text-blue-800 border border-blue-200 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed">
+						className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white border border-blue-700 hover:bg-blue-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed">
 						{loading ? "Memuat…" : "Preview"}
 					</button>
 
 					<button onClick={handleExport} disabled={loading || exporting}
-						className="px-4 py-2 text-sm font-medium rounded-lg bg-green-50 text-green-800 border border-green-200 hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed">
+						className="px-4 py-2 text-sm font-medium rounded-lg bg-green-600 text-white border border-green-700 hover:bg-green-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed">
 						{exporting ? "Mengunduh…" : "Export to Excel"}
 					</button>
 				</div>
@@ -206,21 +206,14 @@ const F6PDReportPage: React.FC = () => {
 					<div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{error}</div>
 				)}
 
-				{loading && <div className="py-16 text-center text-sm text-[var(--app-muted)]">Memuat data…</div>}
-
-				{!loading && !data && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
-						Pilih periode dan klik <span className="font-medium">Preview</span> untuk menampilkan data,
-						atau klik <span className="font-medium">Export to Excel</span> untuk langsung mengunduh
-					</div>
-				)}
+				{loading && <div className="py-16 text-center text-sm text-[var(--app-text)]">Memuat data…</div>}
 
 				{!loading && data && (
 					<>
-						<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden mb-4">
+						<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] overflow-hidden mb-4">
 							<div className="px-4 py-3 border-b border-[var(--app-border)] flex items-center gap-2">
 								<span className="text-sm font-medium text-[var(--app-text)]">Summary by CMO</span>
-								<span className="text-xs text-[var(--app-muted)] ml-auto">
+								<span className="text-xs text-[var(--app-text)] ml-auto">
 									<span className="inline-block w-2.5 h-2.5 rounded bg-blue-100 mr-1" />CMH row (bold)
 								</span>
 							</div>
@@ -232,7 +225,7 @@ const F6PDReportPage: React.FC = () => {
 							/>
 						</div>
 
-						<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden mb-4">
+						<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] overflow-hidden mb-4">
 							<div className="px-4 py-3 border-b border-[var(--app-border)]">
 								<span className="text-sm font-medium text-[var(--app-text)]">Summary by Month</span>
 							</div>
@@ -243,17 +236,17 @@ const F6PDReportPage: React.FC = () => {
 							/>
 						</div>
 
-						<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden">
+						<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] overflow-hidden">
 							<div className="px-4 py-3 border-b border-[var(--app-border)] flex items-center gap-2">
 								<span className="text-sm font-medium text-[var(--app-text)]">Raw Data</span>
-								<span className="text-xs text-[var(--app-muted)]">{rawTotal} records</span>
+								<span className="text-xs text-[var(--app-text)]">{rawTotal} records</span>
 							</div>
 							<div className="overflow-x-auto">
 								<table className="w-full border-collapse text-sm">
 									<thead>
 										<tr className="bg-[var(--app-surface)]">
 											{["Contract No.", "Customer Name", "OD Days", "Outstanding Principal", "CMO"].map((h) => (
-												<th key={h} className="px-3 py-2 text-xs font-medium text-[var(--app-muted)] border-b border-[var(--app-border)] text-center whitespace-nowrap">
+												<th key={h} className="px-3 py-2 text-xs font-medium text-[var(--app-text)] border-b border-[var(--app-border)] text-center whitespace-nowrap">
 													{h}
 												</th>
 											))}
@@ -276,12 +269,12 @@ const F6PDReportPage: React.FC = () => {
 							{rawPages > 1 && (
 								<div className="flex items-center justify-center gap-1.5 py-3 border-t border-[var(--app-border)] flex-wrap">
 									<button onClick={() => setRawPage(p => Math.max(1, p - 1))} disabled={rawPage === 1}
-										className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
+										className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
 										Previous
 									</button>
 									{rawPageNums.map((p, i) =>
 										p === "…" ? (
-											<span key={`el-${i}`} className="px-2 py-1 text-sm text-[var(--app-muted)]">…</span>
+											<span key={`el-${i}`} className="px-2 py-1 text-sm text-[var(--app-text)]">…</span>
 										) : (
 											<button key={p} onClick={() => setRawPage(p as number)}
 												className={`px-3 py-1 text-sm rounded border transition-colors ${rawPage === p ? "bg-blue-600 text-white border-blue-600" : "border-[var(--app-border)] hover:bg-[var(--app-surface)]"}`}>
@@ -290,7 +283,7 @@ const F6PDReportPage: React.FC = () => {
 										),
 									)}
 									<button onClick={() => setRawPage(p => Math.min(rawPages, p + 1))} disabled={rawPage === rawPages}
-										className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
+										className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
 										Next
 									</button>
 								</div>

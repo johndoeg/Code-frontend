@@ -12,6 +12,9 @@ const toISO = (d: Date): string => {
 
 type SearchBy = '' | '1' | '2';
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 interface WatchlistRow {
 	no: number;
 	name: string;
@@ -140,7 +143,7 @@ const SHOW_CUSTOMER_LINK = false;
 
 const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
 	<div className="border border-[var(--app-border)] rounded-lg px-3 py-2">
-		<div className="text-xs font-medium text-[var(--app-muted)]">{label}</div>
+		<div className="text-xs font-medium text-[var(--app-text)]">{label}</div>
 		<div className="text-sm text-[var(--app-text)] mt-0.5">{children || '-'}</div>
 	</div>
 );
@@ -164,7 +167,7 @@ const DocumentList: React.FC<{ title: string; rows: DocumentRow[] }> = ({ title,
 		<div className="space-y-1">
 			{rows.map((row) => (
 				<div key={row.label} className="flex justify-between text-sm border-b border-[var(--app-border)] py-1">
-					<span className="text-[var(--app-muted)]">{row.label}</span>
+					<span className="text-[var(--app-text)]">{row.label}</span>
 					<span className="text-[var(--app-text)]">{row.filename ?? '-'}</span>
 				</div>
 			))}
@@ -343,7 +346,7 @@ const WatchlistReportPage: React.FC = () => {
 			`}</style>
 
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 							Watchlist Report
@@ -355,19 +358,21 @@ const WatchlistReportPage: React.FC = () => {
 							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
 								Branch
 							</label>
-							<div className="px-3 py-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-muted)] text-sm">
+							<div className="px-3 py-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] text-sm">
 								Consolidate
 							</div>
 						</div>
 
-						<AsOfDatePicker
-							label="As Of"
-							format="DD-MM-YYYY"
-							placeholder="dd-mm-yyyy"
-							value={asOf}
-							onChange={(date) => { if (date) setAsOf(date); }}
-							required
-						/>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="As Of"
+								format="DD-MM-YYYY"
+								placeholder="dd-mm-yyyy"
+								value={asOf}
+								onChange={(date) => { if (date) setAsOf(date); }}
+								required
+							/>
+						</div>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -378,12 +383,12 @@ const WatchlistReportPage: React.FC = () => {
 							<select
 								value={searchBy}
 								onChange={handleSearchByChange}
-								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-[var(--app-text)] text-sm
+								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm
 								           focus:outline-none focus:ring-2 focus:ring-emerald-500"
 							>
-								<option value="" className="bg-white text-[var(--app-text)]">Select</option>
-								<option value="1" className="bg-white text-[var(--app-text)]">Customer No</option>
-								<option value="2" className="bg-white text-[var(--app-text)]">Customer Name</option>
+								<option value="" className="bg-white text-slate-900">Select</option>
+								<option value="1" className="bg-white text-slate-900">Customer No</option>
+								<option value="2" className="bg-white text-slate-900">Customer Name</option>
 							</select>
 						</div>
 
@@ -398,9 +403,9 @@ const WatchlistReportPage: React.FC = () => {
 									onChange={(e) => setSearchByText(e.target.value)}
 									disabled={searchBy === ''}
 									placeholder={searchBy === '' ? 'Choose "Search by" first' : ''}
-									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] text-sm
+									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 placeholder:text-slate-400 text-sm
 									           focus:outline-none focus:ring-2 focus:ring-emerald-500
-									           disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)]"
+									           disabled:bg-slate-100 disabled:text-slate-500"
 								/>
 								{searchByText && (
 									<button
@@ -408,7 +413,7 @@ const WatchlistReportPage: React.FC = () => {
 										onClick={() => setSearchByText('')}
 										aria-label="Clear keyword"
 										className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-										           text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+										           text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 									>
 										<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 											<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -501,15 +506,15 @@ const WatchlistReportPage: React.FC = () => {
 				</div>
 
 				{hasSearched && (
-					<div id="watchlist-print-area" className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div id="watchlist-print-area" className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<h2 className="text-xl font-bold text-[var(--app-text)] text-center">
 							WATCHLIST REPORT
 						</h2>
-						<p className="text-center text-sm text-[var(--app-muted)] mb-4">
+						<p className="text-center text-sm text-[var(--app-text)] mb-4">
 							As of {asOf.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
 						</p>
 
-						<div className="text-sm text-[var(--app-muted)] mb-4 space-y-1">
+						<div className="text-sm text-[var(--app-text)] mb-4 space-y-1">
 							<p><span className="font-medium text-[var(--app-text)]">Branch:</span> Consolidate</p>
 							<p><span className="font-medium text-[var(--app-text)]">Search by:</span> {searchDesc}</p>
 							<p><span className="font-medium text-[var(--app-text)]">View:</span> {viewDesc}</p>
@@ -616,10 +621,10 @@ const WatchlistReportPage: React.FC = () => {
 
 			{detailOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-						<div className="flex justify-between items-center p-6 border-b">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+						<div className="flex justify-between items-center p-6 border-b border-[var(--app-border)]">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">Customer Detail Review</h2>
-							<button onClick={() => setDetailOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={() => setDetailOpen(false)} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
 								</svg>
@@ -643,7 +648,7 @@ const WatchlistReportPage: React.FC = () => {
 								<div className="space-y-6">
 									<div>
 										<h3 className="text-lg font-bold text-[var(--app-text)]">{detail.name}</h3>
-										<p className="text-sm text-[var(--app-muted)]">
+										<p className="text-sm text-[var(--app-text)]">
 											{detail.lessee_type === 'PR' ? 'Individual (PR)' : 'Company (PT)'}
 											{' · '}{detail.customer_type}
 										</p>
@@ -701,10 +706,10 @@ const WatchlistReportPage: React.FC = () => {
 												<table className="w-full text-sm">
 													<thead className="bg-[var(--app-surface)]">
 														<tr>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">No.</th>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Name</th>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Phone</th>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Remark</th>
+															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">No.</th>
+															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Name</th>
+															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Phone</th>
+															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Remark</th>
 														</tr>
 													</thead>
 													<tbody className="divide-y divide-[var(--app-border)]">
@@ -749,7 +754,7 @@ const WatchlistReportPage: React.FC = () => {
 							)}
 						</div>
 
-						<div className="p-4 border-t flex justify-end">
+						<div className="p-4 border-t border-[var(--app-border)] flex justify-end">
 							<button
 								onClick={() => setDetailOpen(false)}
 								className="px-4 py-2 border border-[var(--app-border)] rounded-md text-sm text-[var(--app-text)] hover:bg-[var(--app-surface)] transition-colors"

@@ -24,7 +24,9 @@ type Notice = { type: 'success' | 'error'; text: string } | null;
 const toLocalISO = (d: Date) =>
 	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-const thCls = "py-2 px-3 text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)]";
+const thCls = "py-2 px-3 text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)]";
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
 const tdCls = "py-2 px-3 whitespace-nowrap text-sm border border-[var(--app-border)]";
 const errMsg = (e: any, fallback: string) => e?.response?.data?.error || e?.message || fallback;
 
@@ -127,11 +129,11 @@ const SettleEspayPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Settle ESPAY</h1>
-							<p className="text-[var(--app-muted)] mt-1">Search an ESPAY transaction, then reset or settle it</p>
+							<p className="text-[var(--app-text)] mt-1">Search an ESPAY transaction, then reset or settle it</p>
 						</div>
 						{searched && (
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium self-start md:self-auto">
@@ -156,7 +158,7 @@ const SettleEspayPage: React.FC = () => {
 								value={idInput}
 								onChange={e => setIdInput(e.target.value)}
 								onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
-								className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md bg-[var(--app-card)] text-[var(--app-text)]
+								className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md bg-white text-slate-900 placeholder:text-slate-400
 								           focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
 							/>
 						</div>
@@ -214,8 +216,8 @@ const SettleEspayPage: React.FC = () => {
 									</tr>
 								) : !hasRows ? (
 									<tr>
-										<td colSpan={13} className="py-10 text-center text-[var(--app-muted)]">
-											{searched ? 'Data not found' : 'Enter an ID Transaksi ESPAY and press Search'}
+										<td colSpan={13} className="py-10 text-center text-[var(--app-text)]">
+											{searched ? 'Data not found' : ''}
 										</td>
 									</tr>
 								) : (
@@ -246,7 +248,7 @@ const SettleEspayPage: React.FC = () => {
 
 			{confirmDelete && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
 						<div className="p-6">
 							<h2 className="text-xl font-bold text-[var(--app-text)] mb-3">Delete history?</h2>
 							<p className="text-sm text-[var(--app-text)]">
@@ -254,7 +256,7 @@ const SettleEspayPage: React.FC = () => {
 								resets their BGIRO Status and Payment. It cannot be undone.
 							</p>
 						</div>
-						<div className="p-4 border-t flex justify-end gap-3">
+						<div className="p-4 border-t border-[var(--app-border)] flex justify-end gap-3">
 							<button
 								onClick={() => setConfirmDelete(false)}
 								disabled={deleting}
@@ -276,10 +278,10 @@ const SettleEspayPage: React.FC = () => {
 
 			{updateOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
-						<div className="flex justify-between items-center p-6 border-b">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+						<div className="flex justify-between items-center p-6 border-b border-[var(--app-border)]">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">Update Payment</h2>
-							<button onClick={() => !updating && setUpdateOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-text)]">
+							<button onClick={() => !updating && setUpdateOpen(false)} className="text-[var(--app-text)] hover:opacity-70">
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
 								</svg>
@@ -292,15 +294,17 @@ const SettleEspayPage: React.FC = () => {
 									type="text"
 									value={appliedId}
 									readOnly
-									className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md bg-[var(--app-surface)] text-[var(--app-text)]"
+									className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md bg-slate-100 text-slate-600"
 								/>
 							</div>
-							<AsOfDatePicker
-								label="Payment Date"
-								value={payDate}
-								onChange={(d) => { if (d) setPayDate(d); }}
-								required
-							/>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker
+									label="Payment Date"
+									value={payDate}
+									onChange={(d) => { if (d) setPayDate(d); }}
+									required
+								/>
+							</div>
 							<div>
 								<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Debit From</label>
 								<input
@@ -309,7 +313,7 @@ const SettleEspayPage: React.FC = () => {
 									onChange={e => setDebitFrom(e.target.value)}
 									disabled={updating}
 									placeholder="VA number"
-									className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md bg-[var(--app-card)] text-[var(--app-text)]
+									className="w-full px-3 py-2 border border-[var(--app-border)] rounded-md bg-white text-slate-900 placeholder:text-slate-400
 									           focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
 								/>
 							</div>
@@ -317,7 +321,7 @@ const SettleEspayPage: React.FC = () => {
 								<div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{updateError}</div>
 							)}
 						</div>
-						<div className="p-4 border-t flex justify-end gap-3">
+						<div className="p-4 border-t border-[var(--app-border)] flex justify-end gap-3">
 							<button
 								onClick={() => setUpdateOpen(false)}
 								disabled={updating}

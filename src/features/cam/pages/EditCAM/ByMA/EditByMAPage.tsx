@@ -79,7 +79,7 @@ const EditByMAPage: React.FC<EditByMAPageProps> = ({ onEdit }) => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)] mb-6">Edit CAM</h1>
 
 					<div className="flex flex-wrap gap-2 items-center mb-6">
@@ -97,14 +97,14 @@ const EditByMAPage: React.FC<EditByMAPageProps> = ({ onEdit }) => {
 								value={searchVal}
 								onChange={(e) => setSearchVal(e.target.value)}
 								placeholder="Search value"
-								className="px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm w-full pr-8"
+								className="px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm w-full pr-8 bg-white text-slate-900"
 							/>
 							{searchVal && (
 								<button
 									type="button"
 									onClick={() => setSearchVal('')}
 									aria-label="Clear search value"
-									className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none"
+									className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none"
 								>
 									&times;
 								</button>
@@ -139,7 +139,7 @@ const EditByMAPage: React.FC<EditByMAPageProps> = ({ onEdit }) => {
 									<tbody>
 										{rows.length === 0 && hasSearched ? (
 											<tr>
-												<td colSpan={6} className="border border-[var(--app-border)] px-2 py-3 text-center text-[var(--app-muted)]">
+												<td colSpan={6} className="border border-[var(--app-border)] px-2 py-3 text-center text-[var(--app-text)]">
 													No records found.
 												</td>
 											</tr>
@@ -154,7 +154,7 @@ const EditByMAPage: React.FC<EditByMAPageProps> = ({ onEdit }) => {
 													<td className="border border-[var(--app-border)] px-2 py-1 text-center">
 														<button
 															onClick={() => handleEditClick(row)}
-															className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-xs"
+															className="bg-gray-200 hover:bg-gray-300 text-slate-900 px-3 py-1 rounded text-xs"
 														>
 															Edit
 														</button>

@@ -65,6 +65,8 @@ const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const ctxFromEditParams = (p: Record<string, string | number | null>, custName?: string): CamCtx => ({
 	finType: String(p.id1 ?? ''),
 	indCor: String(p.id2 ?? ''),
@@ -247,7 +249,7 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="mb-6">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">
 							List Approved by Dealer per Disbursement Date
@@ -256,20 +258,24 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 text-sm items-end">
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Start Disbursement Date</label>
-							<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							<label className="text-[var(--app-text)] block mb-1">Start Disbursement Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">End Disbursement Date</label>
-							<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							<label className="text-[var(--app-text)] block mb-1">End Disbursement Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Branch</label>
+							<label className="text-[var(--app-text)] block mb-1">Branch</label>
 							<select
 								value={branchCd}
 								onChange={(e) => setBranchCd(e.target.value)}
 								disabled={branchRestricted}
-								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-[var(--app-surface-alt)]"
+								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
 							>
 								{!branchRestricted && <option value="000" style={optionStyle}>All Branches</option>}
 								{branches.map((b) => (
@@ -280,7 +286,7 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 							</select>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">
+							<label className="text-[var(--app-text)] block mb-1">
 								<button onClick={openPicker} className="text-blue-600 hover:underline">
 									Dealer Nickname
 								</button>
@@ -292,14 +298,14 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 									readOnly
 									onClick={openPicker}
 									placeholder="Click to search"
-									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-[var(--app-surface)] cursor-pointer pr-8"
+									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 cursor-pointer pr-8"
 								/>
 								{dealerNickname && (
 									<button
 										type="button"
 										onClick={(e) => { e.stopPropagation(); setDealerNickname(''); }}
 										aria-label="Clear dealer nickname"
-										className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none"
+										className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none"
 									>
 										&times;
 									</button>
@@ -359,9 +365,7 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-muted)]">
-											Choose your filters and click Preview.
-										</td>
+										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : rows.length === 0 ? (
 									<tr>
@@ -436,10 +440,10 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 
 			{pickerOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-4 border-b">
 							<h3 className="font-bold text-[var(--app-text)]">List Dealer</h3>
-							<button onClick={() => setPickerOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">
+							<button onClick={() => setPickerOpen(false)} className="text-[var(--app-text)] opacity-70 hover:opacity-100 text-2xl leading-none">
 								×
 							</button>
 						</div>
@@ -451,14 +455,14 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 									onChange={(e) => setPickerSearch(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && runPickerSearch()}
 									placeholder="Search by nickname"
-									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none pr-8"
+									className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none pr-8"
 								/>
 								{pickerSearch && (
 									<button
 										type="button"
 										onClick={() => setPickerSearch('')}
 										aria-label="Clear search"
-										className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none"
+										className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none"
 									>
 										&times;
 									</button>
@@ -480,12 +484,12 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 								<table className="w-full text-sm">
 									<thead className="bg-[var(--app-surface)] sticky top-0">
 										<tr>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Dealer Code</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Dealer Name</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Nickname</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Address</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Phone</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Contact</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Dealer Code</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Dealer Name</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Nickname</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Address</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Phone</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Contact</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-[var(--app-border)]">
@@ -494,13 +498,13 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 												<td className="py-2 px-3 text-blue-600 font-medium">{d.supp}</td>
 												<td className="py-2 px-3">{d.name}</td>
 												<td className="py-2 px-3">{d.nickname}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{d.address}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{d.phone}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{d.contact}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{d.address}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{d.phone}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{d.contact}</td>
 											</tr>
 										))}
 										{pickerResults.length === 0 && (
-											<tr><td colSpan={6} className="py-8 text-center text-[var(--app-muted)] text-sm">No dealers found.</td></tr>
+											<tr><td colSpan={6} className="py-8 text-center text-[var(--app-text)] opacity-70 text-sm">No dealers found.</td></tr>
 										)}
 									</tbody>
 								</table>

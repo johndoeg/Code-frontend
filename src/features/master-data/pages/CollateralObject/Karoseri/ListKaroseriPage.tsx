@@ -161,7 +161,7 @@ const ListKaroseriPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">List of Karoseri</h1>
 
 					<div className="mb-6">
@@ -170,11 +170,11 @@ const ListKaroseriPage: React.FC = () => {
 							<select
 								value={model}
 								onChange={(e) => handleModelChange(e.target.value)}
-								className="w-full border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg pl-3 pr-14 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								className="w-full border border-[var(--app-border)] bg-white text-slate-900 rounded-lg pl-3 pr-14 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 							>
-								<option value="" className="bg-white text-[var(--app-text)]">Select</option>
+								<option value="" className="bg-white text-slate-900">Select</option>
 								{modelOptions.map((m) => (
-									<option key={m.value} value={m.value} className="bg-white text-[var(--app-text)]">{m.label}</option>
+									<option key={m.value} value={m.value} className="bg-white text-slate-900">{m.label}</option>
 								))}
 							</select>
 							{model && (
@@ -183,7 +183,7 @@ const ListKaroseriPage: React.FC = () => {
 									onClick={handleClearModel}
 									aria-label="Clear model"
 									className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5
-                             text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+                             text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -243,7 +243,7 @@ const ListKaroseriPage: React.FC = () => {
 				</div>
 
 				{previewed && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<div className="flex items-center justify-between mb-4">
 							<h2 className="text-lg font-semibold text-[var(--app-text)]">Results</h2>
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -262,9 +262,9 @@ const ListKaroseriPage: React.FC = () => {
 							<table className="w-full">
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider w-16">No.</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider w-48">Model</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Karoseri</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-16">No.</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-48">Model</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Karoseri</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[var(--app-border)]">
@@ -280,7 +280,7 @@ const ListKaroseriPage: React.FC = () => {
 												key={(page - 1) * limit + idx}
 												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
 											>
-												<td className="py-4 px-6 text-sm text-[var(--app-muted)]">{(page - 1) * limit + idx + 1}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{(page - 1) * limit + idx + 1}</td>
 												<td className="py-4 px-6 text-sm font-medium text-[var(--app-text)]">{row.MODEL_NM}</td>
 												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.KAROSERI_DESC}</td>
 											</tr>

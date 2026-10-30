@@ -130,12 +130,12 @@ const AmortizationReport: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-[1920px] mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 							Amortization Report
 						</h1>
-						<p className="text-[var(--app-muted)] mt-1">
+						<p className="text-[var(--app-text)] mt-1">
 							View and export amortization schedules for lease contracts
 						</p>
 					</div>
@@ -157,7 +157,7 @@ const AmortizationReport: React.FC = () => {
 									onKeyPress={(e) => e.key === "Enter" && handlePreview()}
 									placeholder="Enter contract number"
 									maxLength={16}
-									className="w-full px-3 py-2.5 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+									className="w-full px-3 py-2.5 border border-[var(--app-border)] rounded-lg bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
 								/>
 							</div>
 							<div>
@@ -168,7 +168,7 @@ const AmortizationReport: React.FC = () => {
 									type="text"
 									value={data?.customerName || ""}
 									readOnly
-									className="w-full px-3 py-2.5 bg-[var(--app-surface-alt)] border border-[var(--app-border)] rounded-lg text-[var(--app-text)] cursor-not-allowed"
+									className="w-full px-3 py-2.5 bg-slate-100 border border-[var(--app-border)] rounded-lg text-slate-600 cursor-not-allowed"
 								/>
 							</div>
 						</div>
@@ -346,76 +346,76 @@ const AmortizationReport: React.FC = () => {
 									<tr>
 										<th
 											rowSpan={2}
-											className="py-3 px-2 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
+											className="py-3 px-2 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
 										>
 											Period
 										</th>
 										<th
 											rowSpan={2}
-											className="py-3 px-2 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
+											className="py-3 px-2 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
 										>
 											Due Date
 										</th>
 										<th
 											rowSpan={2}
-											className="py-3 px-2 text-right text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
+											className="py-3 px-2 text-right text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
 										>
 											Installment
 										</th>
 										<th
 											colSpan={7}
-											className="py-3 px-2 text-center text-xs font-medium text-blue-700 uppercase tracking-wider border border-[var(--app-border)] bg-blue-100"
+											className="py-3 px-2 text-center text-xs font-medium text-blue-800 uppercase tracking-wider border border-[var(--app-border)] bg-blue-100"
 										>
 											Contractual ({data.declrate}%)
 										</th>
 										<th
 											rowSpan={2}
-											className="py-3 px-2 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
+											className="py-3 px-2 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)]"
 										>
 											Payment Date
 										</th>
 										<th
 											colSpan={5}
-											className="py-3 px-2 text-center text-xs font-medium text-green-700 uppercase tracking-wider border border-[var(--app-border)] bg-green-100"
+											className="py-3 px-2 text-center text-xs font-medium text-green-800 uppercase tracking-wider border border-[var(--app-border)] bg-green-100"
 										>
 											PSAK ({data.irr}%)
 										</th>
 									</tr>
 									<tr className="bg-[var(--app-surface)]">
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-text)] border border-[var(--app-border)] bg-[var(--app-surface)]">
 											Accrual 1
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-text)] border border-[var(--app-border)] bg-[var(--app-surface)]">
 											Accrual 2
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-text)] border border-[var(--app-border)] bg-[var(--app-surface)]">
 											Interest Income
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-text)] border border-[var(--app-border)] bg-[var(--app-surface)]">
 											Recovery
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-text)] border border-[var(--app-border)] bg-[var(--app-surface)]">
 											Outstanding Principal
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-text)] border border-[var(--app-border)] bg-[var(--app-surface)]">
 											Unearned Income
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-[var(--app-surface)]">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-text)] border border-[var(--app-border)] bg-[var(--app-surface)]">
 											Outstanding Receivable
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-green-50">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-slate-700 border border-[var(--app-border)] bg-green-50">
 											Interest Income
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-green-50">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-slate-700 border border-[var(--app-border)] bg-green-50">
 											Recovery
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-green-50">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-slate-700 border border-[var(--app-border)] bg-green-50">
 											Outstanding Principal
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-green-50">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-slate-700 border border-[var(--app-border)] bg-green-50">
 											Unearned Income
 										</th>
-										<th className="py-2 px-2 text-right text-[10px] font-medium text-[var(--app-muted)] border border-[var(--app-border)] bg-green-50">
+										<th className="py-2 px-2 text-right text-[10px] font-medium text-slate-700 border border-[var(--app-border)] bg-green-50">
 											Attribute
 										</th>
 									</tr>
@@ -505,34 +505,18 @@ const AmortizationReport: React.FC = () => {
 									></path>
 								</svg>
 							</div>
-							<p className="mt-4 text-[var(--app-muted)]">Loading amortization data...</p>
+							<p className="mt-4 text-[var(--app-text)]">Loading amortization data...</p>
 						</div>
 					)}
 
 					{!loading && !data && !error && (
-						<div className="py-10 text-center text-[var(--app-muted)]">
-							<svg
-								className="w-16 h-16 text-gray-300 mx-auto mb-4"
-								fill="none"
-								stroke="currentColor"
-								viewBox="0 0 24 24"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth="2"
-									d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-								/>
-							</svg>
-							<p className="text-lg">Enter a Contract No. to view amortization</p>
-							<p className="text-sm mt-1">
-								Preview will show the amortization schedule for the contract
-							</p>
+						<div className="py-10 text-center text-[var(--app-text)]">
+							<p></p>
 						</div>
 					)}
 				</div>
 
-				<div className="text-center text-sm text-[var(--app-muted)] mt-4">
+				<div className="text-center text-sm text-[var(--app-text)] mt-4">
 					<p>
 						Contractual rate: <span className="font-medium text-blue-600">{data?.declrate}%</span> |
 						PSAK rate: <span className="font-medium text-green-600">{data?.irr}%</span>
@@ -622,6 +606,7 @@ const AmortizationReport: React.FC = () => {
 				
 				tbody tr:hover {
 					background-color: #eff6ff !important;
+					color: #0f172a !important;
 					transform: translateX(0);
 					transition: background-color 0.15s ease;
 				}

@@ -87,14 +87,14 @@ const PrecheckingInProgressPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 								Prechecking - In Progress
 							</h1>
-							<p className="text-[var(--app-muted)] mt-1">View and manage prechecking requests</p>
+							<p className="text-[var(--app-text)] mt-1">View and manage prechecking requests</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -103,11 +103,11 @@ const PrecheckingInProgressPage: React.FC = () => {
 						</div>
 					</div>
 
-					<div className="flex flex-col md:flex-row gap-4 mb-6">
+					<div className="flex flex-col md:flex-row gap-3 mb-6">
 						<select
 							value={searchBy}
 							onChange={(e) => setSearchBy(e.target.value as "1" | "2")}
-							className="border border-[var(--app-border)] rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-[var(--app-card)]"
+							className="w-full md:w-48 shrink-0 border border-[var(--app-border)] rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900"
 						>
 							<option value="1">Customer No.</option>
 							<option value="2">Customer Name</option>
@@ -123,10 +123,10 @@ const PrecheckingInProgressPage: React.FC = () => {
 								}
 								value={searchVal}
 								onChange={(e) => setSearchVal(e.target.value)}
-								className="w-full pl-10 pr-10 py-3 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+								className="w-full pl-10 pr-10 py-3 text-sm border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400"
 							/>
 							<svg
-								className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 transform -translate-y-1/2"
+								className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2"
 								focusable="false"
 								aria-hidden="true"
 								viewBox="0 0 24 24"
@@ -143,7 +143,7 @@ const PrecheckingInProgressPage: React.FC = () => {
 									onClick={handleSearch}
 									aria-label="Clear search"
 									title="Clear"
-									className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-alt)] transition-colors"
+									className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
 								>
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -158,8 +158,7 @@ const PrecheckingInProgressPage: React.FC = () => {
 								fetchRecords();
 							}}
 							disabled={loading}
-							className={`bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-3 rounded-lg font-medium shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 ${loading ? "opacity-75 cursor-not-allowed" : ""
-								}`}
+							className={`bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 ${loading ? "opacity-75 cursor-not-allowed" : ""}`}
 						>
 							{loading ? (
 								<>
@@ -200,23 +199,23 @@ const PrecheckingInProgressPage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Date</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Customer No.</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Customer Name</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Prechecking ID</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Date</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Customer No.</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Customer Name</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Prechecking ID</th>
 									{!isCMO && (
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">CMO</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">CMO</th>
 									)}
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">
 										{isCMO ? "Status" : "Status"}
 									</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Actions</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Actions</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{records.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={isCMO ? 6 : 7} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={isCMO ? 6 : 7} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center justify-center">
 												<svg
 													className="w-16 h-16 text-gray-300 mb-4"
@@ -239,22 +238,22 @@ const PrecheckingInProgressPage: React.FC = () => {
 												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"
 													}`}
 											>
-												<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-muted)]">{r.date || "—"}</td>
+												<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-text)]">{r.date || "—"}</td>
 												<td className="py-4 px-6 whitespace-nowrap text-sm font-medium text-blue-600 cursor-pointer hover:underline"
 													onClick={() => handleView(r.apless, r.prechecking_id)}
 												>
 													{r.customer_no}
 												</td>
 												<td className="py-4 px-6 text-sm text-[var(--app-text)] font-medium">{r.customer_name}</td>
-												<td className="py-4 px-6 whitespace-nowrap text-sm font-mono text-[var(--app-muted)]">{r.prechecking_id}</td>
+												<td className="py-4 px-6 whitespace-nowrap text-sm font-mono text-[var(--app-text)]">{r.prechecking_id}</td>
 												{!isCMO && (
-													<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-muted)]">{r.cmo}</td>
+													<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-text)]">{r.cmo}</td>
 												)}
-												<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-muted)]">{r.approver}</td>
+												<td className="py-4 px-6 whitespace-nowrap text-sm text-[var(--app-text)]">{r.approver}</td>
 												<td className="py-4 px-6 whitespace-nowrap text-sm flex items-center gap-2">
 													<button
 														onClick={() => handleView(r.apless, r.prechecking_id)}
-														className="px-3 py-1 bg-[var(--app-surface)]0 text-white text-xs rounded hover:bg-blue-600"
+														className="px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
 													>
 														View
 													</button>

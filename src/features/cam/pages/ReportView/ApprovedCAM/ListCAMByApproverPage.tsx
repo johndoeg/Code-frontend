@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
+import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
+import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
 
 interface BranchOption {
     branch_cd: string;
@@ -23,6 +25,7 @@ interface DetailRow {
     net_finance_new_cam: number;
     total_outstanding: number;
     cmo: string;
+    edit_link_params: Record<string, string | number | null>;
 }
 
 interface Section {
@@ -68,19 +71,36 @@ const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
+const ctxFromEditParams = (p: Record<string, string | number | null>, custName?: string): CamCtx => ({
+    finType: String(p.id1 ?? ''),
+    indCor: String(p.id2 ?? ''),
+    repeat: String(p.id3 ?? ''),
+    guarantor: String(p.id4 ?? ''),
+    newCar: String(p.id5 ?? ''),
+    status: String(p.id6 ?? ''),
+    purpoffinc: String(p.id7 ?? ''),
+    c2c: String(p.id8 ?? ''),
+    contType: String(p.id9 ?? ''),
+    apless: String(p.apless ?? ''),
+    applno: String(p.applno ?? ''),
+    custName,
+});
+
 const CamInfoBlock: React.FC<{ info: CamInfo }> = ({ info }) => (
     <table className="w-full text-sm border-collapse mb-4">
         <tbody>
             <tr>
-                <td className="w-1/5 py-1 text-[var(--app-muted)]">CAM No.</td>
+                <td className="w-1/5 py-1 text-[var(--app-text)] opacity-70">CAM No.</td>
                 <td className="py-1">{info.appl_no_display}</td>
             </tr>
             <tr>
-                <td className="py-1 text-[var(--app-muted)]">Customer Name</td>
+                <td className="py-1 text-[var(--app-text)] opacity-70">Customer Name</td>
                 <td className="py-1">{info.customer_name}</td>
             </tr>
             <tr>
-                <td className="py-1 text-[var(--app-muted)]">CMO Name</td>
+                <td className="py-1 text-[var(--app-text)] opacity-70">CMO Name</td>
                 <td className="py-1">{info.cmo_name}</td>
             </tr>
             <tr>
@@ -96,7 +116,7 @@ const CamInfoBlock: React.FC<{ info: CamInfo }> = ({ info }) => (
                         <tbody>
                             {info.history.length === 0 ? (
                                 <tr>
-                                    <td colSpan={3} className="border border-[var(--app-border)] px-2 py-2 text-center text-[var(--app-muted)]">
+                                    <td colSpan={3} className="border border-[var(--app-border)] px-2 py-2 text-center text-[var(--app-text)] opacity-70">
                                         No history found.
                                     </td>
                                 </tr>
@@ -148,6 +168,8 @@ const ListCAMByApproverPage: React.FC = () => {
     const [commentsOpen, setCommentsOpen] = useState(false);
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [comments, setComments] = useState<CommentsResponse | null>(null);
+
+    const [activeCam, setActiveCam] = useState<{ ctx: CamCtx } | null>(null);
 
     useEffect(() => {
         (async () => {
@@ -267,27 +289,31 @@ const ListCAMByApproverPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
             <div className="max-w-full mx-auto">
-                <div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+                <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
                     <div className="mb-6">
                         <h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">List CAM by Approver</h1>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 text-sm items-end">
                         <div>
-                            <label className="text-[var(--app-muted)] block mb-1">Start Date</label>
-                            <AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+                            <label className="text-[var(--app-text)] block mb-1">Start Date</label>
+                            <div className={dateFieldClass}>
+                                <AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+                            </div>
                         </div>
                         <div>
-                            <label className="text-[var(--app-muted)] block mb-1">End Date</label>
-                            <AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+                            <label className="text-[var(--app-text)] block mb-1">End Date</label>
+                            <div className={dateFieldClass}>
+                                <AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+                            </div>
                         </div>
                         <div>
-                            <label className="text-[var(--app-muted)] block mb-1">Branch</label>
+                            <label className="text-[var(--app-text)] block mb-1">Branch</label>
                             <select
                                 value={branchCd}
                                 onChange={(e) => setBranchCd(e.target.value)}
                                 disabled={branchDisabled}
-                                className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-[var(--app-surface-alt)]"
+                                className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
                             >
                                 <option value="" style={optionStyle}>Select</option>
                                 {branches.map((b) => (
@@ -333,16 +359,14 @@ const ListCAMByApproverPage: React.FC = () => {
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto" />
                         </div>
                     ) : !hasSearched ? (
-                        <div className="py-10 text-center text-[var(--app-muted)] text-sm">
-                            Choose your filters and click Preview.
-                        </div>
+                        <div className="py-10 text-center text-[var(--app-text)] opacity-70 text-sm"></div>
                     ) : (
                         <>
                             <div className="overflow-x-auto rounded-lg border border-[var(--app-border)] mb-6">
                                 <table className="w-full text-sm border-collapse">
                                     <thead>
                                         <tr className="bg-[var(--app-surface-alt)] text-[var(--app-text)]">
-                                            <th className="border border-[var(--app-border)] px-1 py-2">No.</th>
+                                            <th className="border border-[var(--app-border)] px-2 py-2 w-12 whitespace-nowrap">No.</th>
                                             <th className="border border-[var(--app-border)] px-1 py-2">Branch</th>
                                             <th className="border border-[var(--app-border)] px-1 py-2">Customer Name</th>
                                             <th className="border border-[var(--app-border)] px-1 py-2">CAM No.</th>
@@ -375,10 +399,18 @@ const ListCAMByApproverPage: React.FC = () => {
                                                 ) : (
                                                     section.rows.map((row) => (
                                                         <tr key={row.appl_no} className="odd:bg-[var(--app-surface)]">
-                                                            <td className="border border-[var(--app-border)] px-1 py-1 text-center">{row.no}</td>
+                                                            <td className="border border-[var(--app-border)] px-2 py-1 text-center whitespace-nowrap">{row.no}</td>
                                                             <td className="border border-[var(--app-border)] px-1 py-1">{row.branch_name}</td>
                                                             <td className="border border-[var(--app-border)] px-1 py-1">{row.customer_name}</td>
-                                                            <td className="border border-[var(--app-border)] px-1 py-1">{row.cam_no}</td>
+                                                            <td className="border border-[var(--app-border)] px-1 py-1">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setActiveCam({ ctx: ctxFromEditParams(row.edit_link_params, row.customer_name) })}
+                                                                    className="text-blue-600 hover:underline"
+                                                                >
+                                                                    {row.cam_no}
+                                                                </button>
+                                                            </td>
                                                             <td className="border border-[var(--app-border)] px-1 py-1">{row.approved_date}</td>
                                                             <td className="border border-[var(--app-border)] px-1 py-1">{row.model}</td>
                                                             <td className="border border-[var(--app-border)] px-1 py-1">{row.brand_type}</td>
@@ -391,7 +423,7 @@ const ListCAMByApproverPage: React.FC = () => {
                                                             <td className="border border-[var(--app-border)] px-1 py-1 text-center">
                                                                 <button
                                                                     onClick={() => openComments(row.appl_no)}
-                                                                    className="bg-gray-200 hover:bg-gray-300 px-2 py-1 rounded text-xs"
+                                                                    className="bg-gray-200 hover:bg-gray-300 text-slate-900 px-2 py-1 rounded text-xs"
                                                                 >
                                                                     View
                                                                 </button>
@@ -406,13 +438,13 @@ const ListCAMByApproverPage: React.FC = () => {
                             </div>
 
                             {grandTotal && (
-                                <div className="text-sm max-w-md">
+                                <div className="text-sm max-w-md text-[var(--app-text)]">
                                     <div className="font-semibold underline mb-2">
                                         Grand Total* ({startDate && endDate ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}` : ''}):
                                     </div>
                                     <div>Net Finance : {fmt(grandTotal.net_finance)}</div>
                                     <div>Units : {fmt(grandTotal.units)}</div>
-                                    <div className="text-xs text-[var(--app-muted)] italic mt-2">
+                                    <div className="text-xs text-[var(--app-text)] opacity-70 italic mt-2">
                                         *Grand Total Amount and Unit Exclude CAM Revision
                                     </div>
                                 </div>
@@ -424,10 +456,10 @@ const ListCAMByApproverPage: React.FC = () => {
 
             {commentsOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
+                    <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col">
                         <div className="flex justify-between items-center p-4 border-b">
                             <h3 className="font-bold text-[var(--app-text)]">Credit Committee Comments</h3>
-                            <button onClick={() => setCommentsOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">
+                            <button onClick={() => setCommentsOpen(false)} className="text-[var(--app-text)] opacity-70 hover:opacity-100 text-2xl leading-none">
                                 ×
                             </button>
                         </div>
@@ -441,18 +473,39 @@ const ListCAMByApproverPage: React.FC = () => {
                                     <CamInfoBlock info={comments.main} />
                                     {comments.related.map((info, idx) => (
                                         <div key={idx} className="border border-[var(--app-border)] rounded-lg p-3 mb-3">
-                                            <div className="text-xs text-[var(--app-muted)] mb-2">Related CAM</div>
+                                            <div className="text-xs text-[var(--app-text)] opacity-70 mb-2">Related CAM</div>
                                             <CamInfoBlock info={info} />
                                         </div>
                                     ))}
                                 </>
                             ) : (
-                                <div className="text-center text-[var(--app-muted)] py-10">No data.</div>
+                                <div className="text-center text-[var(--app-text)] opacity-70 py-10">No data.</div>
                             )}
                         </div>
                     </div>
                 </div>
             )}
+
+            {activeCam && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`CAM ${activeCam.ctx.applno} detail`}
+                        className="flex max-h-[90vh] w-[95vw] flex-col overflow-hidden rounded-2xl bg-[var(--app-card)] shadow-2xl"
+                    >
+                        <div className="min-h-0 flex-1 overflow-y-auto">
+                            <CamViewTabs
+                                ctx={activeCam.ctx}
+                                initialMenu={1}
+                                initialSubmenu={1}
+                                onHome={() => setActiveCam(null)}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
         {printData && (
             <ReportPrintModal
                 title="LIST CAM BY APPROVER"
@@ -484,7 +537,7 @@ const ListCAMByApproverPage: React.FC = () => {
                                 ) : (
                                     section.rows.map((row) => (
                                         <tr key={row.appl_no}>
-                                            <td style={{ ...PRINT_CELL, textAlign: 'center' }}>{row.no}</td>
+                                            <td style={{ ...PRINT_CELL, textAlign: 'center', whiteSpace: 'nowrap' }}>{row.no}</td>
                                             <td style={PRINT_CELL}>{row.branch_name}</td>
                                             <td style={PRINT_CELL}>{row.customer_name}</td>
                                             <td style={PRINT_CELL}>{row.cam_no}</td>

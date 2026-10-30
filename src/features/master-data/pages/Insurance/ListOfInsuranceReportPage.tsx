@@ -37,7 +37,7 @@ const ALL = "00";
 const Th: React.FC<{ children: React.ReactNode; className?: string }> = ({
 	children, className = "",
 }) => (
-	<th className={`py-3 px-4 text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] ${className}`}>
+	<th className={`py-3 px-4 text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)] bg-[var(--app-surface-alt)] ${className}`}>
 		{children}
 	</th>
 );
@@ -45,7 +45,7 @@ const Th: React.FC<{ children: React.ReactNode; className?: string }> = ({
 const Td: React.FC<{ children: React.ReactNode; className?: string }> = ({
 	children, className = "",
 }) => (
-	<td className={`py-2 px-4 text-sm border-b border-[var(--app-border)] ${className}`}>
+	<td className={`py-2 px-4 text-sm text-[var(--app-text)] border-b border-[var(--app-border)] ${className}`}>
 		{children}
 	</td>
 );
@@ -56,7 +56,7 @@ const ClearButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick
 		onClick={onClick}
 		aria-label={label}
 		className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5
-               text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+               text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 	>
 		<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 			<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -149,7 +149,7 @@ const ListOfInsuranceReportPage: React.FC = () => {
 			`}</style>
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 print:hidden">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 print:hidden">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">
 						List of Insurance Premi
 					</h1>
@@ -164,11 +164,11 @@ const ListOfInsuranceReportPage: React.FC = () => {
 								<select
 									value={selIns}
 									onChange={e => setSelIns(e.target.value)}
-									className="w-full border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg pl-3 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+									className="w-full border border-[var(--app-border)] bg-white text-slate-900 rounded-lg pl-3 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
 								>
-									<option value={ALL} className="bg-white text-[var(--app-text)]">Select</option>
+									<option value={ALL} className="bg-white text-slate-900">Select</option>
 									{companies.map(c => (
-										<option key={c.ins_cd} value={c.ins_cd} className="bg-white text-[var(--app-text)]">{c.ins_co}</option>
+										<option key={c.ins_cd} value={c.ins_cd} className="bg-white text-slate-900">{c.ins_co}</option>
 									))}
 								</select>
 								{selIns !== ALL && (
@@ -185,11 +185,11 @@ const ListOfInsuranceReportPage: React.FC = () => {
 								<select
 									value={selModel}
 									onChange={e => setSelModel(e.target.value)}
-									className="w-full border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg pl-3 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+									className="w-full border border-[var(--app-border)] bg-white text-slate-900 rounded-lg pl-3 pr-14 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
 								>
-									<option value={ALL} className="bg-white text-[var(--app-text)]">Select</option>
+									<option value={ALL} className="bg-white text-slate-900">Select</option>
 									{models.map(m => (
-										<option key={m.model} value={m.model} className="bg-white text-[var(--app-text)]">{m.model_nm}</option>
+										<option key={m.model} value={m.model} className="bg-white text-slate-900">{m.model_nm}</option>
 									))}
 								</select>
 								{selModel !== ALL && (
@@ -262,7 +262,7 @@ const ListOfInsuranceReportPage: React.FC = () => {
 				</div>
 
 				{submitted && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mt-6 print:mt-0">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mt-6 print:mt-0">
 
 						<div className="relative mb-6">
 							<h2 className="text-xl font-bold text-[var(--app-text)] text-center tracking-widest uppercase">
@@ -276,7 +276,7 @@ const ListOfInsuranceReportPage: React.FC = () => {
 						</div>
 
 						{noResults && (
-							<div className="flex flex-col items-center justify-center py-14 text-[var(--app-muted)]">
+							<div className="flex flex-col items-center justify-center py-14 text-[var(--app-text)]">
 								<svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
 										d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />

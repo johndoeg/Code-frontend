@@ -6,8 +6,11 @@
 	--sb-text: #1f2937;
 	--sb-text-strong: #111827;
 	--sb-muted: rgba(0, 0, 0, .6);
+	--sb-bold: rgb(0, 0, 0);
 	--sb-accent: #cc7a29;
 	--sb-accent-soft: rgba(204, 122, 41, .12);
+	--sb-accent-fg: #cc7a29;
+	--sb-accent-ring: transparent;
 	--sb-tip-bg: #ffffff;
 	--sb-kbd-bg: rgba(0, 0, 0, .05);
 	--sb-kbd-border: rgba(0, 0, 0, .12);
@@ -19,6 +22,7 @@
 	--sb-danger-soft: rgba(220, 53, 69, .1);
 	--sb-danger-hard: #ff0000;
 	--sb-danger-border: rgba(220, 53, 69, .3);
+	--sb-danger-on: #ffffff;
 	--sb-tree-line: rgba(0, 0, 0, .12);
 	--sb-font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 	--sb-dur: 220ms;
@@ -28,14 +32,17 @@
 
 .dark {
 	--sb-bg: #000000;
-	--sb-hover: rgba(255, 255, 255, .07);
-	--sb-active: rgba(255, 255, 255, .09);
+	--sb-hover: rgba(255, 255, 255, .09);
+	--sb-active: rgba(255, 255, 255, .13);
 	--sb-border: rgba(255, 255, 255, .08);
 	--sb-text: #ffffff;
 	--sb-text-strong: #ffffff;
 	--sb-muted: rgba(255, 255, 255, .55);
+	--sb-bold: #ffffff;
 	--sb-accent: #cc7a29;
-	--sb-accent-soft: rgba(204, 122, 41, .18);
+	--sb-accent-soft: rgba(204, 122, 41, .26);
+	--sb-accent-fg: #f0a55c;
+	--sb-accent-ring: rgba(240, 165, 92, .42);
 	--sb-tip-bg: #2c2c2c;
 	--sb-kbd-bg: rgba(255, 255, 255, .1);
 	--sb-kbd-border: rgba(255, 255, 255, .18);
@@ -44,6 +51,9 @@
 	--sb-hamburger-hover: #242424;
 	--sb-shadow-color: rgba(0, 0, 0, .5);
 	--sb-danger: #f87171;
+	--sb-danger-soft: rgba(248, 113, 113, .14);
+	--sb-danger-border: rgba(248, 113, 113, .32);
+	--sb-danger-on: #ffffff;
 	--sb-tree-line: rgba(255, 255, 255, .22);
 	--app-border: rgba(255, 255, 255, 0.12);
 }
@@ -287,7 +297,7 @@
 	padding: 8px 16px 6px;
 	font-size: .68rem;
 	font-weight: 600;
-	color: var(--sb-muted);
+	color: var(--sb-bold);
 	white-space: nowrap;
 	transition: opacity var(--sb-dur), max-height var(--sb-dur), padding var(--sb-dur);
 }
@@ -332,7 +342,7 @@
 	bottom: 8px;
 	width: 3px;
 	border-radius: 0 3px 3px 0;
-	background: var(--sb-accent);
+	background: var(--sb-accent-fg);
 }
 
 .sb-item:not(.active):hover::before {
@@ -355,7 +365,7 @@
 }
 
 .sb-item.active .sb-icon {
-	color: var(--sb-accent);
+	color: var(--sb-accent-fg);
 }
 
 .sb-label {
@@ -397,7 +407,7 @@
 .sb-chevron.open {
 	transform: rotate(90deg);
 	opacity: 1;
-	color: var(--sb-accent);
+	color: var(--sb-accent-fg);
 }
 
 .sb-shell.collapsed .sb-chevron {
@@ -490,21 +500,18 @@
 
 .sb-child-item.active {
 	background: var(--sb-accent-soft);
-	color: var(--sb-accent);
+	color: var(--sb-accent-fg);
 	font-weight: 500;
+	box-shadow: inset 0 0 0 1px var(--sb-accent-ring);
+}
+
+.sb-child-item.active:hover {
+	background: var(--sb-accent-soft);
+	color: var(--sb-accent-fg);
 }
 
 .dark .sb-child-item {
 	color: rgba(255, 255, 255, .82);
-}
-
-.dark .sb-item.active .sb-label,
-.dark .sb-item.active .sb-icon {
-	color: #ffffff;
-}
-
-.dark .sb-child-item.active {
-	color: #ffffff;
 }
 
 .sb-footer {
@@ -536,7 +543,7 @@
 
 .sb-logout:hover .sb-icon,
 .sb-logout:hover .sb-label {
-	color: var(--sb-bg);
+	color: var(--sb-danger-on);
 }
 
 .sb-logout:hover::before {

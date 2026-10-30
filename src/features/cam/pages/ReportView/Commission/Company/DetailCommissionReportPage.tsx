@@ -41,6 +41,9 @@ const toISO = (d: Date): string => {
 
 const formatMoney = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
+const asOfFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const DetailCommissionReportPage: React.FC = () => {
 	const [asOf, setAsOf] = useState<Date>(new Date());
 	const [selectedParty, setSelectedParty] = useState<Party | null>(null);
@@ -133,7 +136,7 @@ const DetailCommissionReportPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="mb-6 text-center">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">
 							Detail of Commission/Incentive Payment Report — Company
@@ -141,20 +144,22 @@ const DetailCommissionReportPage: React.FC = () => {
 					</div>
 
 					<div className="max-w-xs mx-auto mb-6">
-						<AsOfDatePicker label="As Of" value={asOf} onChange={handleDateChange} required />
+						<div className={asOfFieldClass}>
+							<AsOfDatePicker label="As Of" value={asOf} onChange={handleDateChange} required />
+						</div>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
 						<div className="grid grid-cols-[110px_10px_1fr] gap-y-2 items-start">
-							<span className="text-[var(--app-muted)]">Registration Number</span>
+							<span className="text-[var(--app-text)]">Registration Number</span>
 							<span>:</span>
 							<span className="font-medium text-[var(--app-text)]">{selectedParty?.reg_no ?? '-'}</span>
 
-							<span className="text-[var(--app-muted)]">Type</span>
+							<span className="text-[var(--app-text)]">Type</span>
 							<span>:</span>
 							<span className="font-medium text-[var(--app-text)]">{selectedParty?.type ?? '-'}</span>
 
-							<span className="text-[var(--app-muted)]">
+							<span className="text-[var(--app-text)]">
 								<button
 									onClick={openPicker}
 									className="text-blue-600 hover:text-blue-800 hover:underline transition-colors text-left"
@@ -169,34 +174,34 @@ const DetailCommissionReportPage: React.FC = () => {
 						<div className="grid grid-cols-[110px_10px_1fr] gap-y-2 items-start">
 							{selectedParty && !isDealer ? (
 								<>
-									<span className="text-[var(--app-muted)]">NPWP No.</span>
+									<span className="text-[var(--app-text)]">NPWP No.</span>
 									<span>:</span>
 									<span className="font-medium text-[var(--app-text)]">{selectedParty.npwp || '-'}</span>
 								</>
 							) : (
 								<>
-									<span className="text-[var(--app-muted)]">Dealer Type</span>
+									<span className="text-[var(--app-text)]">Dealer Type</span>
 									<span>:</span>
 									<span className="font-medium text-[var(--app-text)]">{selectedParty?.dealer_type || '-'}</span>
 
-									<span className="text-[var(--app-muted)]">Dealer Status</span>
+									<span className="text-[var(--app-text)]">Dealer Status</span>
 									<span>:</span>
 									<span className="font-medium text-[var(--app-text)]">{selectedParty?.dealer_status || '-'}</span>
 
-									<span className="text-[var(--app-muted)]">NPWP No.</span>
+									<span className="text-[var(--app-text)]">NPWP No.</span>
 									<span>:</span>
 									<span className="font-medium text-[var(--app-text)]">{selectedParty?.npwp || '-'}</span>
 								</>
 							)}
 
-							<span className="text-[var(--app-muted)] self-start pt-0.5">Commission Receiver Address</span>
+							<span className="text-[var(--app-text)] self-start pt-0.5">Commission Receiver Address</span>
 							<span className="self-start pt-0.5">:</span>
 							<span className="font-medium text-[var(--app-text)]">{selectedParty?.address ?? '-'}</span>
 						</div>
 
 						<div>
 							<div className="grid grid-cols-[80px_10px_1fr] gap-y-2 items-start mb-4">
-								<span className="text-[var(--app-muted)]">SKB/PPN</span>
+								<span className="text-[var(--app-text)]">SKB/PPN</span>
 								<span>:</span>
 								<span className="font-medium text-[var(--app-text)]">
 									{selectedParty ? `${selectedParty.skb} / ${selectedParty.ppn}` : '-'}
@@ -204,7 +209,7 @@ const DetailCommissionReportPage: React.FC = () => {
 							</div>
 
 							<div>
-								<span className="text-[var(--app-muted)] block mb-1">Sort By</span>
+								<span className="text-[var(--app-text)] block mb-1">Sort By</span>
 								<label className="flex items-center gap-2 text-sm mb-1">
 									<input
 										type="checkbox"
@@ -256,15 +261,13 @@ const DetailCommissionReportPage: React.FC = () => {
 									</tr>
 								) : !selectedParty ? (
 									<tr>
-										<td colSpan={10} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-muted)]">
-											Choose a Commission Receiver Name above to see payment history.
-										</td>
+										<td colSpan={10} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : (
 									<>
 										{history.length === 0 ? (
 											<tr>
-												<td colSpan={10} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-muted)]">
+												<td colSpan={10} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-text)] opacity-70">
 													No commission transactions found for this period.
 												</td>
 											</tr>
@@ -303,10 +306,10 @@ const DetailCommissionReportPage: React.FC = () => {
 
 			{pickerOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-5xl max-h-[80vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-4 border-b">
 							<h3 className="font-bold text-[var(--app-text)]">List Commission Receiver</h3>
-							<button onClick={() => setPickerOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none transition-colors">
+							<button onClick={() => setPickerOpen(false)} className="text-[var(--app-text)] opacity-70 hover:opacity-100 text-2xl leading-none transition-colors">
 								×
 							</button>
 						</div>
@@ -317,7 +320,7 @@ const DetailCommissionReportPage: React.FC = () => {
 								onChange={(e) => setPickerQuery(e.target.value)}
 								onKeyDown={(e) => e.key === 'Enter' && runPickerSearch()}
 								placeholder="Search by name"
-								className="flex-1 px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+								className="flex-1 px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 							/>
 							<button
 								onClick={() => runPickerSearch()}
@@ -335,14 +338,14 @@ const DetailCommissionReportPage: React.FC = () => {
 								<table className="w-full text-sm">
 									<thead className="bg-[var(--app-surface)] sticky top-0">
 										<tr>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Name</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Reg. Number</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Type</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Address</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Dealer Type</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Dealer Status</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">NPWP</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">SKB/PPN</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Name</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Reg. Number</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Type</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Address</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Dealer Type</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">Dealer Status</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">NPWP</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] opacity-70 uppercase">SKB/PPN</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-[var(--app-border)]">
@@ -351,15 +354,15 @@ const DetailCommissionReportPage: React.FC = () => {
 												<td className="py-2 px-3 text-blue-600 font-medium">{p.name}</td>
 												<td className="py-2 px-3">{p.reg_no}</td>
 												<td className="py-2 px-3">{p.type}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{p.address}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{p.dealer_type || '-'}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{p.dealer_status || '-'}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{p.npwp || '-'}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{p.skb} / {p.ppn}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{p.address}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{p.dealer_type || '-'}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{p.dealer_status || '-'}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{p.npwp || '-'}</td>
+												<td className="py-2 px-3 text-[var(--app-text)] opacity-70">{p.skb} / {p.ppn}</td>
 											</tr>
 										))}
 										{pickerResults.length === 0 && (
-											<tr><td colSpan={8} className="py-8 text-center text-[var(--app-muted)] text-sm">Search for a commission receiver above.</td></tr>
+											<tr><td colSpan={8} className="py-8 text-center text-[var(--app-text)] opacity-70 text-sm">Search for a commission receiver above.</td></tr>
 										)}
 									</tbody>
 								</table>

@@ -1,41 +1,46 @@
-import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 import CamTabBoundary from './CamTabBoundary';
+import { prefetchCKEditor } from '@/features/cam/components/CKEditorNotes';
 
-import CAMCustomerDetailPage from '../Customer/CAMCustomerDetailPage.tsx';
-import CAMCustomerCorporateDetailPage from '../Customer/CAMCustomerCorporateDetailPage.tsx';
-import CAMCustomerAddressPage from '../Customer/CAMCustomerAddressPage.tsx';
-import CAMBusinessHistoryPage from '../Customer/CAMBusinessHistoryPage.tsx';
-import IndividualFinancialStatementPage from '../Customer/IndividualFinancialStatementPage.tsx';
-import CorporateBalanceSheetPage from '../Customer/CorporateBalanceSheetPage.tsx';
-import BusinesProfile from '../Customer/BusinesProfile/BusinessProfileMain.tsx';
-import CustIndividualDocumentPage from '../Customer/CustomerDocument/CustIndividualDocumentPage.tsx';
-import CAMSurveyFilePage from '../Customer/CAMSurveyFilePage.tsx';
-import CAMCustomerDocument from '../Customer/CustomerDocument/CAMCustomerDocumentPage.tsx';
-import CAMReferencesPage from '../Customer/CAMReferencesPage.tsx';
+const CAMCustomerDetailPage = lazy(() => import('../Customer/CAMCustomerDetailPage.tsx'));
+const CAMCustomerCorporateDetailPage = lazy(() => import('../Customer/CAMCustomerCorporateDetailPage.tsx'));
+const CAMCustomerAddressPage = lazy(() => import('../Customer/CAMCustomerAddressPage.tsx'));
+const CAMBusinessHistoryPage = lazy(() => import('../Customer/CAMBusinessHistoryPage.tsx'));
+const IndividualFinancialStatementPage = lazy(() => import('../Customer/IndividualFinancialStatementPage.tsx'));
+const CorporateBalanceSheetPage = lazy(() => import('../Customer/CorporateBalanceSheetPage.tsx'));
+const BusinesProfile = lazy(() => import('../Customer/BusinesProfile/BusinessProfileMain.tsx'));
+const CustIndividualDocumentPage = lazy(() => import('../Customer/CustomerDocument/CustIndividualDocumentPage.tsx'));
+const CAMSurveyFilePage = lazy(() => import('../Customer/CAMSurveyFilePage.tsx'));
+const CAMCustomerDocument = lazy(() => import('../Customer/CustomerDocument/CAMCustomerDocumentPage.tsx'));
+const CAMReferencesPage = lazy(() => import('../Customer/CAMReferencesPage.tsx'));
 
-import GuarantorListPage from '../Guarantor/GuarantorListPage.tsx';
+const GuarantorListPage = lazy(() => import('../Guarantor/GuarantorListPage.tsx'));
 
-import CAMEquipmentDetailPage from '../Equipment/CAMEquipmentDetailPage.tsx';
-import CAMEquipmentBpkbPage from '../Equipment/CAMEquipmentBpkbPage.tsx';
-import CAMEquipmentSurveyFilePage from '../Equipment/CAMEquipmentSurveyFilePage.tsx';
-import CAMCrossCollateralPage from '../Equipment/CAMCrossCollateralPage.tsx';
+const CAMEquipmentDetailPage = lazy(() => import('../Equipment/CAMEquipmentDetailPage.tsx'));
+const CAMEquipmentBpkbPage = lazy(() => import('../Equipment/CAMEquipmentBpkbPage.tsx'));
+const CAMEquipmentSurveyFilePage = lazy(() => import('../Equipment/CAMEquipmentSurveyFilePage.tsx'));
+const CAMCrossCollateralPage = lazy(() => import('../Equipment/CAMCrossCollateralPage.tsx'));
 
-import CAMFinancingPage from '../Financing/CAMFinancingPage.tsx';
-import CAMFinancingInsurancePage from '../Financing/CAMFinancingInsurancePage.tsx';
-import CAMFinancingCommissionPage from '../Financing/CAMFinancingCommissionPage.tsx';
-import CAMFinancingDisbursementPage from '../Financing/CAMFinancingDisbursementPage.tsx';
-import CAMFinancingOutstandingPage from '../Financing/CAMFinancingOutstandingPage.tsx';
+const CAMFinancingPage = lazy(() => import('../Financing/CAMFinancingPage.tsx'));
+const CAMFinancingInsurancePage = lazy(() => import('../Financing/CAMFinancingInsurancePage.tsx'));
+const CAMFinancingCommissionPage = lazy(() => import('../Financing/CAMFinancingCommissionPage.tsx'));
+const CAMFinancingDisbursementPage = lazy(() => import('../Financing/CAMFinancingDisbursementPage.tsx'));
+const CAMFinancingOutstandingPage = lazy(() => import('../Financing/CAMFinancingOutstandingPage.tsx'));
 
-import CAMSurveyPage from '../Survey/CAMSurveyPage.tsx';
+const CAMSurveyPage = lazy(() => import('../Survey/CAMSurveyPage.tsx'));
 
-import CAMAPUPPTPage from '../APUPPT/CAMAPUPPTPage.tsx';
+const CAMAPUPPTPage = lazy(() => import('../APUPPT/CAMAPUPPTPage.tsx'));
 
-import CAMNotesPage from '../Other/CAMNotesPage.tsx';
-import CAMCustomerNotesPage from '../Other/CAMCustomerNotesPage.tsx';
-import CAMRevisionNotesPage from '../Other/CAMRevisionNotesPage.tsx';
+const CAMNotesPage = lazy(() => import('../Other/CAMNotesPage.tsx'));
+const CAMCustomerNotesPage = lazy(() => import('../Other/CAMCustomerNotesPage.tsx'));
+const CAMRevisionNotesPage = lazy(() => import('../Other/CAMRevisionNotesPage.tsx'));
+
+// The only tabs that mount CKEditor. Hovering one starts the ~1.3 MB
+// download so the click lands on a module that is already loaded.
+const CKEDITOR_PAGES = new Set<string>(['cust_survey_file', 'eq_survey_file', 'other_notes']);
 
 export type CamMode = 'edit' | 'create';
 
@@ -461,6 +466,15 @@ const IMPLEMENTED_EDIT_PAGES: Partial<Record<string, EditComponent>> = {
 	), 'RevisionNotesTab'),
 };
 
+function TabLoading() {
+	return (
+		<div className="rounded-2xl bg-[var(--app-card)] p-10 text-center shadow">
+			<div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[var(--app-border)] border-t-orange-500" />
+			<p className="mt-3 text-sm text-[var(--app-text)]">Loading…</p>
+		</div>
+	);
+}
+
 export interface CamEditTabsProps {
 	ctx?: CamEditCtx;
 	mode?: CamMode;
@@ -507,6 +521,7 @@ export default function CamEditTabs({
 	const [submenuIndex, setSubmenuIndex] = useState<number>(initialSubmenu || 1);
 
 	const goHome = onHome ?? (() => navigate('/index'));
+	const warmEditor = () => { void prefetchCKEditor(); };
 
 	const menuTree = useMemo(
 		() =>
@@ -662,6 +677,8 @@ export default function CamEditTabs({
 							key={item.key}
 							type="button"
 							onClick={() => setSubmenuIndex(idx + 1)}
+							onPointerEnter={CKEDITOR_PAGES.has(item.page) ? warmEditor : undefined}
+							onFocus={CKEDITOR_PAGES.has(item.page) ? warmEditor : undefined}
 							className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${submenuIndex === idx + 1 ? 'bg-blue-600 text-white' : 'text-[var(--app-muted)] hover:bg-[var(--app-surface-alt)]'
 								}`}
 						>
@@ -673,11 +690,13 @@ export default function CamEditTabs({
 				<div>
 					{ActiveComponent && RenderableActiveComponent ? (
 						<CamTabBoundary key={activeSubmenu?.page}>
-							<RenderableActiveComponent
-								ctx={ctx}
-								onSaved={handleSaved}
-								ref={activeTabRef}
-							/>
+							<Suspense fallback={<TabLoading />}>
+								<RenderableActiveComponent
+									ctx={ctx}
+									onSaved={handleSaved}
+									ref={activeTabRef}
+								/>
+							</Suspense>
 						</CamTabBoundary>
 					) : (
 						<div className="rounded-2xl bg-[var(--app-card)] p-8 text-center shadow">

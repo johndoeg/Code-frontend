@@ -90,12 +90,12 @@ const InsurancePage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 					<div className="flex items-center justify-between mb-6">
 						<div>
 							<h1 className="text-2xl font-bold text-[var(--app-text)]">Insurance</h1>
-							<p className="text-sm text-[var(--app-muted)] mt-0.5">
+							<p className="text-sm text-[var(--app-text)] mt-0.5">
 								View and manage insurance records
 							</p>
 						</div>
@@ -121,13 +121,13 @@ const InsurancePage: React.FC = () => {
 
 					<div className="flex gap-3 mb-5">
 						<select value={searchBy} onChange={e => setSearchBy(e.target.value as SearchBy)}
-							className="border border-[var(--app-border)] bg-white text-[var(--app-text)] rounded-lg px-3 py-2.5 text-sm
+							className="border border-[var(--app-border)] bg-white text-slate-900 rounded-lg px-3 py-2.5 text-sm
                          focus:ring-2 focus:ring-blue-500 sm:w-48">
-							<option value="1" className="bg-white text-[var(--app-text)]">Insurance Code</option>
-							<option value="2" className="bg-white text-[var(--app-text)]">Insurance Company</option>
+							<option value="1" className="bg-white text-slate-900">Insurance Code</option>
+							<option value="2" className="bg-white text-slate-900">Insurance Company</option>
 						</select>
 						<div className="relative flex-1">
-							<svg className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2"
+							<svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"
 								fill="none" viewBox="0 0 24 24">
 								<path fill="currentColor" d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16
 									9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11
@@ -141,14 +141,14 @@ const InsurancePage: React.FC = () => {
 								onChange={e => setSearchVal(e.target.value)}
 								onKeyDown={e => e.key === "Enter" && handleSearch()}
 								className="w-full pl-10 pr-10 py-2.5 border border-[var(--app-border)] rounded-lg text-sm
-                           focus:ring-2 focus:ring-blue-500" />
+                           focus:ring-2 focus:ring-blue-500 bg-white text-slate-900 placeholder:text-slate-400" />
 							{searchVal && (
 								<button
 									type="button"
 									onClick={handleClearSearch}
 									aria-label="Clear search"
 									className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-                             text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+                             text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 								>
 									<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 										<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -180,13 +180,13 @@ const InsurancePage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider w-36">
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-36">
 										Insurance Code
 									</th>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider">
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
 										Insurance Company
 									</th>
-									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-muted)] uppercase tracking-wider whitespace-nowrap w-px">
+									<th className="py-3 px-5 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider whitespace-nowrap w-px">
 										Actions
 									</th>
 								</tr>
@@ -194,7 +194,7 @@ const InsurancePage: React.FC = () => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{insurances.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={3} className="py-12 text-center text-[var(--app-muted)]">
+										<td colSpan={3} className="py-12 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center gap-2">
 												<svg className="w-12 h-12 text-gray-200" fill="none"
 													stroke="currentColor" viewBox="0 0 24 24">
@@ -247,8 +247,8 @@ const InsurancePage: React.FC = () => {
 															<button
 																onClick={() => navigate(`/ins-company?id=View&ins_cd=${ins.INS_CD}&akses=${akses}`)}
 																className="inline-flex shrink-0 items-center gap-1 px-3 py-1.5 rounded-md
-																	text-xs font-semibold whitespace-nowrap bg-[var(--app-surface-alt)] hover:bg-gray-200
-																	active:bg-gray-300 text-[var(--app-text)] shadow-sm transition-all">
+																	text-xs font-semibold whitespace-nowrap bg-[var(--app-surface-alt)] hover:bg-[var(--app-surface)]
+																	active:bg-[var(--app-border)] text-[var(--app-text)] shadow-sm transition-all">
 																<svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 																	<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
 																		d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -288,7 +288,7 @@ const InsurancePage: React.FC = () => {
 
 			{deleteTarget && (
 				<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl p-6 max-w-sm w-full">
 						<div className="flex items-center gap-3 mb-4">
 							<div className="bg-red-100 p-2 rounded-full">
 								<svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -298,7 +298,7 @@ const InsurancePage: React.FC = () => {
 							</div>
 							<h2 className="text-lg font-semibold text-[var(--app-text)]">Confirm Delete</h2>
 						</div>
-						<p className="text-[var(--app-muted)] mb-6">
+						<p className="text-[var(--app-text)] mb-6">
 							Delete insurance{" "}
 							<span className="font-semibold text-[var(--app-text)]">{deleteTarget.INS_CD} – {deleteTarget.INS_CO}</span>?
 							This will also remove all associated premium, clause, and liability records.

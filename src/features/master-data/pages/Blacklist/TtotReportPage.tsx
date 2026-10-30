@@ -4,6 +4,9 @@ import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 
 const toISO = (d: Date): string => d.toISOString().split('T')[0];
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 interface TtotRow {
 	no: number;
 	blacklist_id: string | number;
@@ -101,7 +104,7 @@ const TtotReportPage: React.FC = () => {
 			`}</style>
 
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 							List Pelaporan Terduga Teroris dan Organisasi Teroris
@@ -109,20 +112,24 @@ const TtotReportPage: React.FC = () => {
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-						<AsOfDatePicker
-							label="Periode Dari"
-							value={dateFrom}
-							onChange={handleDateFromChange}
-							maxDate={dateTo}
-							required
-						/>
-						<AsOfDatePicker
-							label="Periode Sampai"
-							value={dateTo}
-							onChange={(d) => { if (d) setDateTo(d); }}
-							minDate={dateFrom}
-							required
-						/>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="Periode Dari"
+								value={dateFrom}
+								onChange={handleDateFromChange}
+								maxDate={dateTo}
+								required
+							/>
+						</div>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="Periode Sampai"
+								value={dateTo}
+								onChange={(d) => { if (d) setDateTo(d); }}
+								minDate={dateFrom}
+								required
+							/>
+						</div>
 					</div>
 
 					{error && (
@@ -170,11 +177,11 @@ const TtotReportPage: React.FC = () => {
 				</div>
 
 				{hasSearched && (
-					<div id="ttot-print-area" className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div id="ttot-print-area" className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<h2 className="text-xl font-bold text-[var(--app-text)] text-center">
 							LIST PELAPORAN TERDUGA TERORIS DAN ORGANISASI TERORIS
 						</h2>
-						<p className="text-center text-sm text-[var(--app-muted)] mb-4">
+						<p className="text-center text-sm text-[var(--app-text)] mb-4">
 							Periode {dateFrom.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}
 							{' - '}
 							{dateTo.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' })}

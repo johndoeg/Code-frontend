@@ -27,6 +27,8 @@ interface MonthlyRow {
 	month_name: string;
 	total_income: number;
 	incentive_3rd_party: number;
+	incentive_excess: number;
+	paid_incentive: number;
 	monthly_fee_pct: number | null;
 	ytd_fee_pct: number | null;
 }
@@ -37,7 +39,7 @@ const YEAR_OPTIONS = Array.from({ length: 21 }, (_, i) => currentYear + 10 - i);
 const formatMoney = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 const formatPct = (n: number | null) => (n === null ? '-' : `${n.toFixed(2)}%`);
 
-const HistoryIncentive3rdPartyReportPage: React.FC = () => {
+const DetailIncentive3rdPartyReportPage: React.FC = () => {
 	const [year, setYear] = useState(currentYear);
 	const [branches, setBranches] = useState<Branch[]>([]);
 	const [branchCd, setBranchCd] = useState('');
@@ -59,7 +61,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		api.get<Branch[]>('/CAM/Incentive/history-incentive-3rd-party-report/branches')
+		api.get<Branch[]>('/CAM/Incentive/detail-incentive-3rd-party-report/branches')
 			.then((res) => setBranches(res.data))
 			.catch((err) => console.error('Branch list error:', err));
 	}, []);
@@ -70,7 +72,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 		let cancelled = false;
 		setCmoLoading(true);
 
-		api.get<CmoOption[]>('/CAM/Incentive/history-incentive-3rd-party-report/cmo-options', {
+		api.get<CmoOption[]>('/CAM/Incentive/detail-incentive-3rd-party-report/cmo-options', {
 			params: { branch_cd: branchCd },
 		})
 			.then((res) => {
@@ -113,7 +115,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 	const runDealerSearch = async () => {
 		setDealerLoading(true);
 		try {
-			const response = await api.get<Dealer[]>('/CAM/Incentive/history-incentive-3rd-party-report/dealers', {
+			const response = await api.get<Dealer[]>('/CAM/Incentive/detail-incentive-3rd-party-report/dealers', {
 				params: { branch_cd: branchCd, search: dealerQuery },
 			});
 			setDealerResults(response.data);
@@ -134,7 +136,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 		setError(null);
 		try {
 			const response = await api.get<{ data: MonthlyRow[]; year: number }>(
-				'/CAM/Incentive/history-incentive-3rd-party-report/monthly-summary',
+				'/CAM/Incentive/detail-incentive-3rd-party-report/monthly',
 				{
 					params: {
 						year,
@@ -147,7 +149,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 			setResults(response.data.data);
 			setHasSearched(true);
 		} catch (err) {
-			console.error('Monthly summary report error:', err);
+			console.error('Monthly report error:', err);
 			setError('Failed to load report. Please try again.');
 		} finally {
 			setLoading(false);
@@ -174,8 +176,8 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 				}
 				@media print {
 					body * { visibility: hidden; }
-					#incentive-summary-print-area, #incentive-summary-print-area * { visibility: visible; }
-					#incentive-summary-print-area {
+					#incentive-print-area, #incentive-print-area * { visibility: visible; }
+					#incentive-print-area {
 						position: absolute;
 						inset: 0;
 						width: 100%;
@@ -184,21 +186,21 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 						box-shadow: none;
 						border-radius: 0;
 					}
-					#incentive-summary-print-area .overflow-x-auto {
+					#incentive-print-area .overflow-x-auto {
 						overflow: visible !important;
 					}
-					#incentive-summary-print-area table {
+					#incentive-print-area table {
 						width: 100% !important;
 					}
-					#incentive-summary-print-area th,
-					#incentive-summary-print-area td {
+					#incentive-print-area th,
+					#incentive-print-area td {
 						white-space: normal !important;
 					}
 				}
 			`}</style>
 
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
 					<div className="mb-6 text-center">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 							Incentive to 3rd Party Monthly Report
@@ -211,10 +213,10 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 							<select
 								value={year}
 								onChange={(e) => setYear(Number(e.target.value))}
-								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-[var(--app-text)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 							>
 								{YEAR_OPTIONS.map((y) => (
-									<option key={y} value={y} className="bg-white text-[var(--app-text)]">{y}</option>
+									<option key={y} value={y} className="bg-white text-slate-900">{y}</option>
 								))}
 							</select>
 						</div>
@@ -224,11 +226,11 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 							<select
 								value={branchCd}
 								onChange={handleBranchChange}
-								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-[var(--app-text)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 							>
-								<option value="" className="bg-white text-[var(--app-text)]">All Branches</option>
+								<option value="" className="bg-white text-slate-900">All Branches</option>
 								{branches.map((b) => (
-									<option key={b.branch_cd} value={b.branch_cd} className="bg-white text-[var(--app-text)]">{b.branch_name}</option>
+									<option key={b.branch_cd} value={b.branch_cd} className="bg-white text-slate-900">{b.branch_name}</option>
 								))}
 							</select>
 						</div>
@@ -251,7 +253,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 							<button
 								onClick={openDealerPicker}
 								disabled={searchMode !== 'dealer'}
-								className="bg-[var(--app-surface-alt)] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed
+								className="border border-[var(--app-border)] bg-[var(--app-surface-alt)] hover:bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed
 								           text-[var(--app-text)] px-3 py-1.5 rounded-lg text-sm transition-colors"
 							>
 								{selectedDealer ? selectedDealer.name : 'Choose dealer…'}
@@ -273,18 +275,18 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 								value={selectedCmo}
 								onChange={(e) => setSelectedCmo(e.target.value)}
 								disabled={searchMode !== 'cmo' || cmoLoading}
-								className="px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-[var(--app-text)] text-sm min-w-[200px]
-								           disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)] focus:ring-2 focus:ring-blue-500 focus:outline-none"
+								className="px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm min-w-[200px]
+								           disabled:bg-slate-100 disabled:text-slate-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 							>
-								<option value="" className="bg-white text-[var(--app-text)]">
+								<option value="" className="bg-white text-slate-900">
 									{cmoLoading ? 'Loading…' : 'Select'}
 								</option>
 								{cmoOptions.map((c) => (
-									<option key={c.employee_id} value={c.employee_id} className="bg-white text-[var(--app-text)]">{c.full_name}</option>
+									<option key={c.employee_id} value={c.employee_id} className="bg-white text-slate-900">{c.full_name}</option>
 								))}
 							</select>
 							{searchMode === 'cmo' && !cmoLoading && cmoOptions.length === 0 && (
-								<span className="text-sm text-[var(--app-muted)]">No CMO found for this branch.</span>
+								<span className="text-sm text-[var(--app-text)]">No CMO found for this branch.</span>
 							)}
 						</div>
 					</div>
@@ -317,7 +319,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 						<button
 							onClick={handlePrint}
 							disabled={results.length === 0}
-							className="bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] disabled:opacity-60
+							className="bg-[var(--app-surface-alt)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed
 							           px-4 py-2 text-sm rounded-lg font-medium transition-colors"
 						>
 							Print
@@ -326,13 +328,13 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 				</div>
 
 				{hasSearched && (
-					<div id="incentive-summary-print-area" className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div id="incentive-print-area" className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<h2 className="text-xl font-bold text-[var(--app-text)] text-center">
 							Incentive to 3rd Party Monthly Report
 						</h2>
-						<p className="text-center text-sm text-[var(--app-muted)] mb-4">Year {year}</p>
+						<p className="text-center text-sm text-[var(--app-text)] mb-4">Year {year}</p>
 
-						<div className="text-sm text-[var(--app-muted)] mb-4 space-y-1">
+						<div className="text-sm text-[var(--app-text)] mb-4 space-y-1">
 							<p><span className="font-medium text-[var(--app-text)]">Branch:</span> {branchName || 'All Branches'}</p>
 							{searchMode === 'dealer' && selectedDealer && (
 								<p><span className="font-medium text-[var(--app-text)]">Search by:</span> {selectedDealer.name}</p>
@@ -349,6 +351,8 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 										<th rowSpan={2} className="border border-[var(--app-border)] px-2 py-2">Month</th>
 										<th rowSpan={2} className="border border-[var(--app-border)] px-2 py-2">Total Income (Include Subsidy)</th>
 										<th rowSpan={2} className="border border-[var(--app-border)] px-2 py-2">Incentive to 3rd Party</th>
+										<th rowSpan={2} className="border border-[var(--app-border)] px-2 py-2">Incentive Excess</th>
+										<th rowSpan={2} className="border border-[var(--app-border)] px-2 py-2">Paid Incentive</th>
 										<th colSpan={2} className="border border-[var(--app-border)] px-2 py-2">Incentive Fee (%)</th>
 									</tr>
 									<tr className="bg-[var(--app-surface-alt)] text-[var(--app-text)]">
@@ -359,7 +363,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 								<tbody>
 									{results.length === 0 ? (
 										<tr>
-											<td colSpan={5} className="border border-[var(--app-border)] px-2 py-4 text-center text-red-600 font-medium">
+											<td colSpan={7} className="border border-[var(--app-border)] px-2 py-4 text-center text-red-600 font-medium">
 												Data Not Found
 											</td>
 										</tr>
@@ -369,6 +373,8 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 												<td className="border border-[var(--app-border)] px-2 py-1">{row.month_name}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-right">{formatMoney(row.total_income)}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-right">{formatMoney(row.incentive_3rd_party)}</td>
+												<td className="border border-[var(--app-border)] px-2 py-1 text-right">{formatMoney(row.incentive_excess)}</td>
+												<td className="border border-[var(--app-border)] px-2 py-1 text-right">{formatMoney(row.paid_incentive)}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{formatPct(row.monthly_fee_pct)}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{formatPct(row.ytd_fee_pct)}</td>
 											</tr>
@@ -383,10 +389,10 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 
 			{dealerPickerOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-4 border-b">
 							<h3 className="font-bold text-[var(--app-text)]">Dealer Information</h3>
-							<button onClick={() => setDealerPickerOpen(false)} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none transition-colors">
+							<button onClick={() => setDealerPickerOpen(false)} className="text-[var(--app-text)] text-2xl leading-none transition-colors">
 								×
 							</button>
 						</div>
@@ -398,7 +404,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 									onChange={(e) => setDealerQuery(e.target.value)}
 									onKeyDown={(e) => e.key === 'Enter' && runDealerSearch()}
 									placeholder="Search by name"
-									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
 								/>
 								{dealerQuery && (
 									<button
@@ -406,7 +412,7 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 										onClick={() => { setDealerQuery(''); setDealerResults([]); }}
 										aria-label="Clear search"
 										className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
-										           text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+										           text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 									>
 										<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 											<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -430,10 +436,10 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 								<table className="w-full text-sm">
 									<thead className="bg-[var(--app-surface)] sticky top-0">
 										<tr>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Code</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Name</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Address</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-muted)] uppercase">Contact</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Code</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Name</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Address</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Contact</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-[var(--app-border)]">
@@ -441,12 +447,12 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 											<tr key={d.supp} className="hover:bg-[var(--app-surface)] cursor-pointer transition-colors" onClick={() => selectDealer(d)}>
 												<td className="py-2 px-3 text-blue-600 font-medium">{d.supp}</td>
 												<td className="py-2 px-3">{d.name}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{d.address}</td>
-												<td className="py-2 px-3 text-[var(--app-muted)]">{d.contact}</td>
+												<td className="py-2 px-3 text-[var(--app-text)]">{d.address}</td>
+												<td className="py-2 px-3 text-[var(--app-text)]">{d.contact}</td>
 											</tr>
 										))}
 										{dealerResults.length === 0 && (
-											<tr><td colSpan={4} className="py-8 text-center text-[var(--app-muted)] text-sm">Search for a dealer above.</td></tr>
+											<tr><td colSpan={4} className="py-8 text-center text-[var(--app-text)] text-sm">Search for a dealer above.</td></tr>
 										)}
 									</tbody>
 								</table>
@@ -459,4 +465,4 @@ const HistoryIncentive3rdPartyReportPage: React.FC = () => {
 	);
 };
 
-export default HistoryIncentive3rdPartyReportPage;
+export default DetailIncentive3rdPartyReportPage;

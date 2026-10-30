@@ -102,7 +102,7 @@ const ListModelPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">List of Model</h1>
 
 					<div className="flex flex-wrap gap-3">
@@ -155,7 +155,7 @@ const ListModelPage: React.FC = () => {
 				</div>
 
 				{previewed && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<div className="flex items-center justify-between mb-4">
 							<h2 className="text-lg font-semibold text-[var(--app-text)]">Results</h2>
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -174,8 +174,8 @@ const ListModelPage: React.FC = () => {
 							<table className="w-full">
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider w-20">No.</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Model</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-20">No.</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Model</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[var(--app-border)]">
@@ -191,7 +191,7 @@ const ListModelPage: React.FC = () => {
 												key={idx}
 												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
 											>
-												<td className="py-4 px-6 text-sm text-[var(--app-muted)]">{idx + 1}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{idx + 1}</td>
 												<td className="py-4 px-6 text-sm text-[var(--app-text)] font-medium">{row.MODEL_NM}</td>
 											</tr>
 										))

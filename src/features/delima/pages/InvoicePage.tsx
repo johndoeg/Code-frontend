@@ -106,11 +106,11 @@ const DelimaInvoice: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Invoice</h1>
-							<p className="text-[var(--app-muted)] mt-1">View and manage your invoice records</p>
+							<p className="text-[var(--app-text)] mt-1">View and manage your invoice records</p>
 						</div>
 						<div className="flex items-center gap-3">
 							<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
@@ -135,28 +135,28 @@ const DelimaInvoice: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}>Invoice No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}>Disbursement Month</th>
-									<th colSpan={2} className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '20%' }}>Total Invoice</th>
-									<th colSpan={2} className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '20%' }}>Total System</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}></th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>No.</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}>Invoice No.</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}>Disbursement Month</th>
+									<th colSpan={2} className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '20%' }}>Total Invoice</th>
+									<th colSpan={2} className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '20%' }}>Total System</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}></th>
 								</tr>
 								<tr>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}></th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}></th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}></th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>Contract</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>Amount</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>Contract</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>Amount</th>
-									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}></th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}></th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}></th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}></th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>Contract</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>Amount</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>Contract</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>Amount</th>
+									<th className="py-3 px-4 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}></th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{loading ? (
 									<tr>
-										<td colSpan={8} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={8} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex justify-center">
 												<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
 											</div>
@@ -164,7 +164,7 @@ const DelimaInvoice: React.FC = () => {
 									</tr>
 								) : invoiceSummaries.length === 0 ? (
 									<tr>
-										<td colSpan={8} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={8} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center justify-center">
 												<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -220,12 +220,12 @@ const DelimaInvoice: React.FC = () => {
 
 			{detailModalOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-6 border-b">
 							<h2 className="text-xl font-bold text-[var(--app-text)]">Invoice Details - {currentInvoiceNo}</h2>
 							<button
 								onClick={closeModal}
-								className="text-[var(--app-muted)] hover:text-[var(--app-text)]"
+								className="text-[var(--app-text)] hover:text-[var(--app-text)]"
 							>
 								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -236,22 +236,22 @@ const DelimaInvoice: React.FC = () => {
 							<table className="w-full">
 								<thead className="bg-[var(--app-surface)] sticky top-0">
 									<tr>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>No.</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>Contract No.</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '15%' }}>Customer Name</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>Disbursement Date</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>Cover Date</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>Fiduciary Fee Invoice</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '10%' }}>Fiduciary Fee System</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>Invoice</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '5%' }}>System</th>
-										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider" style={{ width: '30%' }}>Remark</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>No.</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>Contract No.</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '15%' }}>Customer Name</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>Disbursement Date</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>Cover Date</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>Fiduciary Fee Invoice</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '10%' }}>Fiduciary Fee System</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>Invoice</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '5%' }}>System</th>
+										<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider" style={{ width: '30%' }}>Remark</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[var(--app-border)]">
 									{invoiceDetails.length === 0 ? (
 										<tr>
-											<td colSpan={10} className="py-10 px-6 text-center text-[var(--app-muted)]">
+											<td colSpan={10} className="py-10 px-6 text-center text-[var(--app-text)]">
 												<div className="flex flex-col items-center justify-center">
 													<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>

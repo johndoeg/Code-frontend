@@ -12,6 +12,9 @@ const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#
 
 const USERS_LIST_PATH = '/users';
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const toApiDate = (d: Date | null): string => {
 	if (!d || isNaN(d.getTime())) return "";
 	const pad = (n: number) => String(n).padStart(2, '0');
@@ -155,17 +158,17 @@ const UserEntryPage: React.FC = () => {
 		}
 	};
 
-	const inputClass = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)] disabled:cursor-not-allowed";
-	const selectClass = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)] disabled:cursor-not-allowed";
+	const inputClass = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed";
+	const selectClass = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed";
 	const labelClass = "block text-sm font-medium text-[var(--app-text)] mb-1";
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">{mode} User</h1>
-						<p className="text-[var(--app-muted)] mt-1">
+						<p className="text-[var(--app-text)] mt-1">
 							{isAdd ? "Create a new user record" : isView ? "User details (read only)" : "Edit an existing user record"}
 						</p>
 					</div>
@@ -289,10 +292,12 @@ const UserEntryPage: React.FC = () => {
 								{mode === 'Edit' && (
 									<div>
 										<label className={labelClass}>Resign Date</label>
-										<AsOfDatePickerComponent
-											value={resignDate}
-											onChange={(d: Date | null) => setResignDate(d)}
-										/>
+										<div className={dateFieldClass}>
+											<AsOfDatePickerComponent
+												value={resignDate}
+												onChange={(d: Date | null) => setResignDate(d)}
+											/>
+										</div>
 									</div>
 								)}
 							</div>

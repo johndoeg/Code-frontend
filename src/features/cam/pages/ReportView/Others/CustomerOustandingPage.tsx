@@ -89,10 +89,10 @@ function CustomerAutocomplete({ onSelect }: AutocompleteProps) {
 					placeholder="Type customer name or APLESS… (min. 2 chars)"
 					className="w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm
 						focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-						bg-[var(--app-card)] text-[var(--app-text)]"
+						bg-white text-slate-900"
 				/>
 				{fetching && (
-					<svg className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-[var(--app-muted)]"
+					<svg className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-slate-400"
 						fill="none" viewBox="0 0 24 24">
 						<circle className="opacity-25" cx="12" cy="12" r="10"
 							stroke="currentColor" strokeWidth="4" />
@@ -103,16 +103,16 @@ function CustomerAutocomplete({ onSelect }: AutocompleteProps) {
 			</div>
 
 			{open && suggestions.length > 0 && (
-				<ul className="absolute z-50 w-full mt-1 bg-[var(--app-card)] border border-[var(--app-border)]
+				<ul className="absolute z-50 w-full mt-1 bg-white text-slate-900 border border-slate-300
 					rounded-lg shadow-xl max-h-60 overflow-y-auto">
 					{suggestions.map((c) => (
 						<li
 							key={c.apless}
 							onMouseDown={() => handleSelect(c)}
-							className="px-4 py-2 text-sm cursor-pointer hover:bg-[var(--app-surface)] flex gap-2"
+							className="px-4 py-2 text-sm cursor-pointer hover:bg-slate-100 flex gap-2"
 						>
 							<span className="font-medium text-blue-700 whitespace-nowrap">{c.apless}</span>
-							<span className="text-[var(--app-muted)] truncate">— {c.lessee_nm}</span>
+							<span className="text-slate-600 truncate">— {c.lessee_nm}</span>
 						</li>
 					))}
 				</ul>
@@ -144,7 +144,7 @@ const CustomerOutstandingReport: React.FC = () => {
 		}
 	}, []);
 
-	const TH = "px-3 py-2 text-xs font-semibold text-[var(--app-muted)] bg-[var(--app-surface)] border border-[var(--app-border)] text-center";
+	const TH = "px-3 py-2 text-xs font-semibold text-[var(--app-text)] bg-[var(--app-surface)] border border-[var(--app-border)] text-center";
 	const TD = "px-3 py-1.5 text-sm border border-[var(--app-border)]";
 	const TDR = `${TD} text-right tabular-nums`;
 
@@ -154,19 +154,19 @@ const CustomerOutstandingReport: React.FC = () => {
 
 				<div className="mb-6">
 					<h1 className="text-2xl font-semibold text-[var(--app-text)]">Customer Outstanding Report</h1>
-					<p className="text-sm text-[var(--app-muted)] mt-1">
+					<p className="text-sm text-[var(--app-text)] mt-1">
 						Search by customer name or APLESS code
 					</p>
 				</div>
 
-				<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] p-4 mb-6">
-					<label className="block text-xs font-medium text-[var(--app-muted)] mb-2">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] p-4 mb-6">
+					<label className="block text-xs font-medium text-[var(--app-text)] mb-2">
 						Customer Name / APLESS
 					</label>
 					<CustomerAutocomplete onSelect={handleSelect} />
 
 					{selectedLabel && (
-						<p className="mt-2 text-xs text-[var(--app-muted)]">
+						<p className="mt-2 text-xs text-[var(--app-text)]">
 							Selected: <span className="font-medium text-[var(--app-text)]">{selectedLabel}</span>
 						</p>
 					)}
@@ -179,17 +179,11 @@ const CustomerOutstandingReport: React.FC = () => {
 				)}
 
 				{loading && (
-					<div className="py-12 text-center text-sm text-[var(--app-muted)]">Memuat data…</div>
-				)}
-
-				{!loading && !data && !error && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
-						Ketik nama customer atau APLESS untuk memulai
-					</div>
+					<div className="py-12 text-center text-sm text-[var(--app-text)]">Memuat data…</div>
 				)}
 
 				{!loading && data && data.rows.length === 0 && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
+					<div className="py-16 text-center text-sm text-[var(--app-text)] border border-dashed border-[var(--app-border)] rounded-xl">
 						Tidak ada data outstanding untuk customer ini
 					</div>
 				)}
@@ -203,13 +197,13 @@ const CustomerOutstandingReport: React.FC = () => {
 								{ label: "Grand Total", value: fmtNum(data.grand_total) },
 							].map((m) => (
 								<div key={m.label} className="bg-[var(--app-card)] rounded-lg border border-[var(--app-border)] p-3">
-									<div className="text-xs text-[var(--app-muted)] mb-1">{m.label}</div>
+									<div className="text-xs text-[var(--app-text)] mb-1">{m.label}</div>
 									<div className="text-base font-semibold tabular-nums text-[var(--app-text)]">{m.value}</div>
 								</div>
 							))}
 						</div>
 
-						<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden">
+						<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] overflow-hidden">
 							<div className="overflow-x-auto">
 								<table className="w-full border-collapse text-sm">
 									<thead>
@@ -265,7 +259,7 @@ const CustomerOutstandingReport: React.FC = () => {
 											<td className={TD} />
 										</tr>
 
-										<tr className="bg-blue-100 font-bold">
+										<tr className="bg-blue-100 text-slate-900 font-bold">
 											<td className={TD + " text-right"}>GRAND TOTAL</td>
 											<td className={TDR}>{fmtNum(data.grand_total)}</td>
 											<td className={TD} />

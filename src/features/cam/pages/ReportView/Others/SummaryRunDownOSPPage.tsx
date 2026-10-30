@@ -23,6 +23,9 @@ interface DetailRow {
 
 const toISO = (d: Date) => d.toISOString().split("T")[0];
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 function getPageNumbers(cur: number, total: number): (number | "…")[] {
 	if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
 	if (cur <= 4) return [1, 2, 3, 4, 5, "…", total];
@@ -53,27 +56,27 @@ function DetailModal({ periode, bulan, params, onClose }: DetailModalProps) {
 			.finally(() => setLoading(false));
 	}, [periode, params]);
 
-	const TH = "px-3 py-2 text-xs font-semibold text-[var(--app-muted)] bg-[var(--app-surface)] border border-[var(--app-border)] text-center whitespace-nowrap";
+	const TH = "px-3 py-2 text-xs font-semibold text-[var(--app-text)] bg-[var(--app-surface)] border border-[var(--app-border)] text-center whitespace-nowrap";
 	const TD = "px-3 py-1.5 text-sm border border-[var(--app-border)]";
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center">
 			<div className="absolute inset-0 bg-black/40" onClick={onClose} />
-			<div className="relative bg-[var(--app-card)] rounded-xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col mx-4">
+			<div className="relative bg-[var(--app-card)] text-[var(--app-text)] rounded-xl shadow-2xl w-full max-w-5xl max-h-[85vh] flex flex-col mx-4">
 
 				<div className="flex items-center justify-between px-5 py-4 border-b border-[var(--app-border)]">
 					<div>
 						<h2 className="font-semibold text-[var(--app-text)]">Detail — {bulan}</h2>
-						<p className="text-xs text-[var(--app-muted)] mt-0.5">Periode: {periode}</p>
+						<p className="text-xs text-[var(--app-text)] mt-0.5">Periode: {periode}</p>
 					</div>
-					<button onClick={onClose} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-xl leading-none">✕</button>
+					<button onClick={onClose} className="text-[var(--app-text)] text-xl leading-none">✕</button>
 				</div>
 
 				<div className="overflow-auto flex-1">
-					{loading && <div className="py-10 text-center text-sm text-[var(--app-muted)]">Memuat data…</div>}
+					{loading && <div className="py-10 text-center text-sm text-[var(--app-text)]">Memuat data…</div>}
 					{error && <div className="py-10 text-center text-sm text-red-500">{error}</div>}
 					{!loading && !error && rows.length === 0 && (
-						<div className="py-10 text-center text-sm text-[var(--app-muted)]">Tidak ada data</div>
+						<div className="py-10 text-center text-sm text-[var(--app-text)]">Tidak ada data</div>
 					)}
 					{!loading && rows.length > 0 && (
 						<table className="w-full border-collapse text-sm">
@@ -166,7 +169,8 @@ const SummaryRundownOSP: React.FC = () => {
 	);
 	const pageNumbers = useMemo(() => getPageNumbers(currentPage, totalPages), [currentPage, totalPages]);
 
-	const TH = "px-2 py-2 text-xs font-semibold text-[var(--app-muted)] bg-[var(--app-surface)] border border-[var(--app-border)] text-center whitespace-nowrap";
+	const TH = "px-2 py-2 text-xs font-semibold text-[var(--app-text)] bg-[var(--app-surface)] border border-[var(--app-border)] text-center whitespace-nowrap";
+	const THG = "px-2 py-2 text-xs font-semibold border border-[var(--app-border)] text-center whitespace-nowrap";
 	const TD = "px-2 py-1.5 text-xs border border-[var(--app-border)] text-right tabular-nums";
 	const TDC = "px-2 py-1.5 text-xs border border-[var(--app-border)] text-center";
 
@@ -178,44 +182,50 @@ const SummaryRundownOSP: React.FC = () => {
 					<h1 className="text-2xl font-semibold text-[var(--app-text)]">Summary Rundown OSP</h1>
 				</div>
 
-				<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] p-4 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] p-4 mb-6">
 					<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
-						<AsOfDatePicker
-							label="Start Disbursement Date"
-							value={startDt}
-							onChange={(d) => { if (d) { setStartDt(d); if (d > endDt) setEndDt(d); } }}
-							maxDate={endDt}
-							required
-						/>
-						<AsOfDatePicker
-							label="End Disbursement Date"
-							value={endDt}
-							onChange={(d) => { if (d) setEndDt(d); }}
-							minDate={startDt}
-							required
-						/>
-						<AsOfDatePicker
-							label="Month Until"
-							value={until}
-							onChange={(d) => { if (d) setUntil(d); }}
-							required
-						/>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="Start Disbursement Date"
+								value={startDt}
+								onChange={(d) => { if (d) { setStartDt(d); if (d > endDt) setEndDt(d); } }}
+								maxDate={endDt}
+								required
+							/>
+						</div>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="End Disbursement Date"
+								value={endDt}
+								onChange={(d) => { if (d) setEndDt(d); }}
+								minDate={startDt}
+								required
+							/>
+						</div>
+						<div className={dateFieldClass}>
+							<AsOfDatePicker
+								label="Month Until"
+								value={until}
+								onChange={(d) => { if (d) setUntil(d); }}
+								required
+							/>
+						</div>
 
 						<div>
-							<label className="block text-xs font-medium text-[var(--app-muted)] mb-1">
+							<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 								Branch
 							</label>
 							<select
 								value={branchCd}
 								onChange={(e) => setBranchCd(e.target.value)}
 								disabled={branchLoading}
-								className="w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm bg-[var(--app-card)]
+								className="w-full px-3 py-2 border border-[var(--app-border)] rounded-lg text-sm bg-white text-slate-900
 									focus:outline-none focus:ring-2 focus:ring-blue-500
 									disabled:opacity-60 disabled:cursor-not-allowed"
 							>
-								<option value="">Select</option>
+								<option value="" className="bg-white text-slate-900">Select</option>
 								{branches.map((b) => (
-									<option key={b.branch_cd} value={b.branch_cd}>{b.branch_name}</option>
+									<option key={b.branch_cd} value={b.branch_cd} className="bg-white text-slate-900">{b.branch_name}</option>
 								))}
 							</select>
 						</div>
@@ -224,8 +234,8 @@ const SummaryRundownOSP: React.FC = () => {
 					<button
 						onClick={handlePreview}
 						disabled={loading}
-						className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--app-surface)] text-blue-800
-							border border-blue-200 hover:bg-blue-100 disabled:opacity-40 disabled:cursor-not-allowed"
+						className="px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white
+							border border-blue-700 hover:bg-blue-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed"
 					>
 						{loading ? "Memuat…" : "Preview"}
 					</button>
@@ -237,33 +247,28 @@ const SummaryRundownOSP: React.FC = () => {
 					</div>
 				)}
 
-				{loading && <div className="py-12 text-center text-sm text-[var(--app-muted)]">Memuat data…</div>}
+				{loading && <div className="py-12 text-center text-sm text-[var(--app-text)]">Memuat data…</div>}
 
-				{!loading && !hasSearched && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
-						Atur filter dan klik <span className="font-medium">Preview</span> untuk menampilkan data
-					</div>
-				)}
 				{!loading && hasSearched && summaryRows.length === 0 && !error && (
-					<div className="py-16 text-center text-sm text-[var(--app-muted)] border border-dashed border-[var(--app-border)] rounded-xl">
+					<div className="py-16 text-center text-sm text-[var(--app-text)] border border-dashed border-[var(--app-border)] rounded-xl">
 						Tidak ada data untuk filter yang dipilih
 					</div>
 				)}
 
 				{!loading && summaryRows.length > 0 && (
-					<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] overflow-hidden">
 						<div className="overflow-x-auto">
 							<table className="w-full border-collapse">
 								<thead>
 									<tr>
 										<th rowSpan={2} className={TH} style={{ width: "10%" }}>Period</th>
-										<th colSpan={4} className={TH + " border-l border-blue-300 bg-[var(--app-surface)] text-blue-700"}>
+										<th colSpan={4} className={THG + " border-l border-blue-300 bg-blue-50 text-blue-800"}>
 											Installment Financing
 										</th>
-										<th colSpan={4} className={TH + " border-l border-amber-300 bg-amber-50 text-amber-700"}>
+										<th colSpan={4} className={THG + " border-l border-amber-300 bg-amber-50 text-amber-800"}>
 											Sale &amp; Leaseback
 										</th>
-										<th colSpan={4} className={TH + " border-l border-green-300 bg-green-50 text-green-700"}>
+										<th colSpan={4} className={THG + " border-l border-green-300 bg-green-50 text-green-800"}>
 											Grand Total
 										</th>
 										<th rowSpan={2} className={TH} style={{ width: "5%" }}></th>
@@ -315,12 +320,12 @@ const SummaryRundownOSP: React.FC = () => {
 							<div className="flex items-center justify-center gap-1.5 py-3 border-t border-[var(--app-border)] flex-wrap">
 								<button onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
 									disabled={currentPage === 1}
-									className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
+									className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
 									Previous
 								</button>
 								{pageNumbers.map((p, i) =>
 									p === "…" ? (
-										<span key={`el-${i}`} className="px-2 py-1 text-sm text-[var(--app-muted)]">…</span>
+										<span key={`el-${i}`} className="px-2 py-1 text-sm text-[var(--app-text)]">…</span>
 									) : (
 										<button key={p} onClick={() => setCurrentPage(p as number)}
 											className={`px-3 py-1 text-sm rounded border transition-colors ${currentPage === p ? "bg-blue-600 text-white border-blue-600" : "border-[var(--app-border)] hover:bg-[var(--app-surface)]"}`}>
@@ -330,7 +335,7 @@ const SummaryRundownOSP: React.FC = () => {
 								)}
 								<button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
 									disabled={currentPage === totalPages}
-									className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
+									className="px-3 py-1 text-sm rounded border border-[var(--app-border)] disabled:opacity-60 disabled:cursor-not-allowed hover:bg-[var(--app-surface)]">
 									Next
 								</button>
 							</div>

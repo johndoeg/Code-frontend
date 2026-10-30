@@ -46,6 +46,9 @@ const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass =
+	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const DetailAgingReportPage: React.FC = () => {
 	const [asof, setAsof] = useState<Date | null>(null);
 	const [branchCd, setBranchCd] = useState<string>("");
@@ -130,12 +133,12 @@ const DetailAgingReportPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="mb-6">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 							Detail Aging Report
 						</h1>
-						<p className="text-[var(--app-muted)] mt-1">
+						<p className="text-[var(--app-text)] mt-1">
 							Generate detailed aging reports by branch and equipment type
 						</p>
 					</div>
@@ -152,8 +155,10 @@ const DetailAgingReportPage: React.FC = () => {
 					<div className="bg-[var(--app-surface)] rounded-xl p-4 border border-[var(--app-border)] no-print">
 						<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 							<div>
-								<AsOfDatePicker value={asof} onChange={setAsof} format="DD-MM-YYYY" label="As of" required />
-								<p className="text-xs text-[var(--app-muted)] mt-1">Format: DD-MM-YYYY</p>
+								<div className={dateFieldClass}>
+									<AsOfDatePicker value={asof} onChange={setAsof} format="DD-MM-YYYY" label="As of" required />
+								</div>
+								<p className="text-xs text-[var(--app-text)] mt-1">Format: DD-MM-YYYY</p>
 							</div>
 
 							<div>

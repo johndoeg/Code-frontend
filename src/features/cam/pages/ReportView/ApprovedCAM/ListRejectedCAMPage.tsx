@@ -66,6 +66,8 @@ const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
+const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
+
 const ctxFromEditParams = (p: Record<string, string | number | null>, custName?: string): CamCtx => ({
 	finType: String(p.id1 ?? ''),
 	indCor: String(p.id2 ?? ''),
@@ -247,27 +249,31 @@ const ListRejectedCAMPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="mb-6">
 						<h1 className="text-xl md:text-2xl font-bold text-[var(--app-text)]">List Rejected CAM</h1>
 					</div>
 
 					<div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 text-sm items-end">
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Start Rejected Date</label>
-							<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							<label className="text-[var(--app-text)] block mb-1">Start Rejected Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={startDate} onChange={setStartDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">End Rejected Date</label>
-							<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							<label className="text-[var(--app-text)] block mb-1">End Rejected Date</label>
+							<div className={dateFieldClass}>
+								<AsOfDatePicker label="" value={endDate} onChange={setEndDate} />
+							</div>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Branch</label>
+							<label className="text-[var(--app-text)] block mb-1">Branch</label>
 							<select
 								value={branchCd}
 								onChange={(e) => setBranchCd(e.target.value)}
 								disabled={branchDisabled}
-								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-[var(--app-surface-alt)]"
+								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
 							>
 								<option value="" style={optionStyle}>Select</option>
 								{branches.map((b) => (
@@ -278,7 +284,7 @@ const ListRejectedCAMPage: React.FC = () => {
 							</select>
 						</div>
 						<div>
-							<label className="text-[var(--app-muted)] block mb-1">Rejected By</label>
+							<label className="text-[var(--app-text)] block mb-1">Rejected By</label>
 							<div className="flex gap-2">
 								<select
 									value={rejectedBy}
@@ -355,9 +361,7 @@ const ListRejectedCAMPage: React.FC = () => {
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={5} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-muted)]">
-											Choose who rejected the CAM (and optionally a period/branch), then click Preview.
-										</td>
+										<td colSpan={5} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : rows.length === 0 ? (
 									<tr>
@@ -447,7 +451,7 @@ const ListRejectedCAMPage: React.FC = () => {
 									</tbody>
 								</table>
 							</div>
-							<div className="text-xs text-[var(--app-muted)] mt-1 italic">
+							<div className="text-xs text-[var(--app-text)] opacity-70 mt-1 italic">
 								*Grand Total Net Finance and Unit based on latest revised CAM (if any)
 							</div>
 						</div>

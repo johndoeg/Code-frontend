@@ -133,14 +133,14 @@ const PreCheckingOnHandPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 								Prechecking — On Hand
 							</h1>
-							<p className="text-[var(--app-muted)] mt-1 text-sm">
+							<p className="text-[var(--app-text)] mt-1 text-sm">
 								{isCMO ? "Your active prechecking submissions" : "Submissions pending your review"}
 							</p>
 						</div>
@@ -153,7 +153,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 						<select
 							value={searchBy}
 							onChange={(e) => setSearchBy(e.target.value)}
-							className="border border-[var(--app-border)] rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-[var(--app-card)]"
+							className="w-full md:w-48 shrink-0 border border-[var(--app-border)] rounded-lg px-3 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900"
 						>
 							{searchOptions.map((o) => (
 								<option key={o.value} value={o.value}>{o.label}</option>
@@ -166,9 +166,9 @@ const PreCheckingOnHandPage: React.FC = () => {
 								placeholder="Search..."
 								value={searchVal}
 								onChange={(e) => setSearchVal(e.target.value)}
-								className="w-full pl-10 pr-10 py-2 border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								className="w-full pl-10 pr-10 py-3 text-sm border border-[var(--app-border)] rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all bg-white text-slate-900 placeholder:text-slate-400"
 							/>
-							<svg className="w-5 h-5 text-[var(--app-muted)] absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none">
+							<svg className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none">
 								<path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="currentColor" />
 							</svg>
 							{searchVal && (
@@ -177,7 +177,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 									onClick={() => setSearchVal("")}
 									aria-label="Clear search"
 									title="Clear"
-									className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-surface-alt)] transition-colors"
+									className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
 								>
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -189,9 +189,24 @@ const PreCheckingOnHandPage: React.FC = () => {
 						<button
 							onClick={handleSearch}
 							disabled={loading}
-							className={`bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-2 rounded-lg font-medium shadow-md transition-all flex items-center gap-2 ${loading ? "opacity-75 cursor-not-allowed" : ""}`}
+							className={`bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-3 rounded-lg text-sm font-medium shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 ${loading ? "opacity-75 cursor-not-allowed" : ""}`}
 						>
-							{loading ? "Searching..." : "Search"}
+							{loading ? (
+								<>
+									<svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+										<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+										<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+									</svg>
+									Searching...
+								</>
+							) : (
+								<>
+									<svg className="w-5 h-5" focusable="false" aria-hidden="true" viewBox="0 0 24 24" fill="none">
+										<path d="M15.5 14H14.71L14.43 13.73C15.41 12.59 16 11.11 16 9.5C16 5.91 13.09 3 9.5 3C5.91 3 3 5.91 3 9.5C3 13.09 5.91 16 9.5 16C11.11 16 12.59 15.41 13.73 14.43L14 14.71V15.5L19 20.49L20.49 19L15.5 14ZM9.5 14C7.01 14 5 11.99 5 9.5C5 7.01 7.01 5 9.5 5C11.99 5 14 7.01 14 9.5C14 11.99 11.99 14 9.5 14Z" fill="currentColor" />
+									</svg>
+									Search
+								</>
+							)}
 						</button>
 					</div>
 
@@ -208,7 +223,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
 										{["Date", "Customer No.", "Customer Name", "Prechecking ID", "Status", "Action", "Send"].map((h) => (
-											<th key={h} className="py-4 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider whitespace-nowrap">
+											<th key={h} className="py-4 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider whitespace-nowrap">
 												{h}
 											</th>
 										))}
@@ -217,7 +232,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 								<tbody className="divide-y divide-[var(--app-border)]">
 									{rows.length === 0 && !loading ? (
 										<tr>
-											<td colSpan={7} className="py-10 px-6 text-center text-[var(--app-muted)]">
+											<td colSpan={7} className="py-10 px-6 text-center text-[var(--app-text)]">
 												<EmptyState />
 											</td>
 										</tr>
@@ -231,9 +246,9 @@ const PreCheckingOnHandPage: React.FC = () => {
 												return (
 													<tr
 														key={`${row.PRECHECKING_ID}-${idx}`}
-														className={`transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"} ${isRejected ? "hover:bg-red-50" : "hover:bg-[var(--app-surface)]"}`}
+														className={`transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"} ${isRejected ? "hover:bg-[var(--app-surface)]" : "hover:bg-[var(--app-surface)]"}`}
 													>
-														<td className={`py-3 px-4 text-sm whitespace-nowrap ${isRejected ? "text-red-600" : "text-[var(--app-muted)]"}`}>
+														<td className={`py-3 px-4 text-sm whitespace-nowrap ${isRejected ? "text-red-600" : "text-[var(--app-text)]"}`}>
 															{row.tgl}
 														</td>
 														<td className="py-3 px-4 text-sm whitespace-nowrap">
@@ -257,7 +272,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 																	? "bg-red-100 text-red-700"
 																	: row.LastApprovalActionCode === 'pending'
 																		? "bg-yellow-100 text-yellow-700"
-																		: "bg-[var(--app-surface-alt)] text-[var(--app-muted)]"
+																		: "bg-[var(--app-surface-alt)] text-[var(--app-text)]"
 																	}`}>
 																	{row.LastApprovalActionCode}
 																</span>
@@ -310,7 +325,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
 										{["Date", "Customer No.", "Customer Name", "Prechecking ID", "CMO", "Last Checking", "Review"].map((h) => (
-											<th key={h} className="py-4 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider whitespace-nowrap">
+											<th key={h} className="py-4 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider whitespace-nowrap">
 												{h}
 											</th>
 										))}
@@ -319,7 +334,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 								<tbody className="divide-y divide-[var(--app-border)]">
 									{rows.length === 0 && !loading ? (
 										<tr>
-											<td colSpan={7} className="py-10 px-6 text-center text-[var(--app-muted)]">
+											<td colSpan={7} className="py-10 px-6 text-center text-[var(--app-text)]">
 												<EmptyState />
 											</td>
 										</tr>
@@ -330,7 +345,7 @@ const PreCheckingOnHandPage: React.FC = () => {
 													key={`${row.Prechecking_Id}-${idx}`}
 													className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
 												>
-													<td className="py-3 px-4 text-sm text-[var(--app-muted)] whitespace-nowrap">{row.tgl}</td>
+													<td className="py-3 px-4 text-sm text-[var(--app-text)] whitespace-nowrap">{row.tgl}</td>
 													<td className="py-3 px-4 text-sm whitespace-nowrap">
 														<button
 															onClick={() => navigate(`/view-prechecking?apless=${encodeURIComponent(row.APLESS)}&prechecking_id=${encodeURIComponent(row.Prechecking_Id)}`)}
@@ -341,8 +356,8 @@ const PreCheckingOnHandPage: React.FC = () => {
 													</td>
 													<td className="py-3 px-4 text-sm text-[var(--app-text)] whitespace-nowrap">{row.LESSEE_NM}</td>
 													<td className="py-3 px-4 text-sm font-mono text-[var(--app-text)] whitespace-nowrap">{row.Prechecking_Id}</td>
-													<td className="py-3 px-4 text-sm text-[var(--app-muted)] whitespace-nowrap">{row.NAMACMO}</td>
-													<td className="py-3 px-4 text-sm text-[var(--app-muted)] whitespace-nowrap">{row.tgl_cek}</td>
+													<td className="py-3 px-4 text-sm text-[var(--app-text)] whitespace-nowrap">{row.NAMACMO}</td>
+													<td className="py-3 px-4 text-sm text-[var(--app-text)] whitespace-nowrap">{row.tgl_cek}</td>
 													<td className="py-3 px-4">
 														<button
 															onClick={() => navigate(`/cam-request-onhand-detail?apless=${encodeURIComponent(row.APLESS)}&prechecking_id=${encodeURIComponent(row.Prechecking_Id)}`)}

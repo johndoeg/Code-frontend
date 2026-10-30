@@ -107,7 +107,7 @@ const MenuEntryPage: React.FC = () => {
 			<div className="max-w-full mx-auto">
 
 				{canEdit && (
-					<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 						<h2 className="text-xl font-bold text-[var(--app-text)] mb-4">Add Menu</h2>
 
 						<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -136,11 +136,11 @@ const MenuEntryPage: React.FC = () => {
 										value={formDesc}
 										onChange={(e) => setFormDesc(e.target.value)}
 										placeholder="Enter menu description"
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-8"
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-8"
 									/>
 									{formDesc && (
 										<button type="button" onClick={() => setFormDesc("")} aria-label="Clear menu description"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
@@ -155,11 +155,11 @@ const MenuEntryPage: React.FC = () => {
 										value={formUrl}
 										onChange={(e) => setFormUrl(e.target.value)}
 										placeholder="/path/to/page"
-										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-8"
+										className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-8"
 									/>
 									{formUrl && (
 										<button type="button" onClick={() => setFormUrl("")} aria-label="Clear menu URL"
-											className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--app-muted)] hover:text-[var(--app-text)] text-base leading-none">
+											className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 text-base leading-none">
 											&times;
 										</button>
 									)}
@@ -185,11 +185,11 @@ const MenuEntryPage: React.FC = () => {
 					</div>
 				)}
 
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">Menu</h1>
-							<p className="text-[var(--app-muted)] mt-1">View and manage application menu entries</p>
+							<p className="text-[var(--app-text)] mt-1">View and manage application menu entries</p>
 						</div>
 						<span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium self-start md:self-auto">
 							Total: {total}
@@ -207,19 +207,19 @@ const MenuEntryPage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Menu ID</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Description</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Parent</th>
-									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">URL</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Menu ID</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Description</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Parent</th>
+									<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">URL</th>
 									{canEdit && (
-										<th className="py-4 px-6 text-center text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Action</th>
+										<th className="py-4 px-6 text-center text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Action</th>
 									)}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{menus.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={5} className="py-10 px-6 text-center text-[var(--app-muted)]">
+										<td colSpan={5} className="py-10 px-6 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center justify-center">
 												<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -241,8 +241,8 @@ const MenuEntryPage: React.FC = () => {
 													</span>
 												</td>
 												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.menu_desc}</td>
-												<td className="py-4 px-6 text-sm text-[var(--app-muted)]">{row.parent_label}</td>
-												<td className="py-4 px-6 text-sm text-[var(--app-muted)] font-mono">{row.url}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.parent_label}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)] font-mono">{row.url}</td>
 												{canEdit && (
 													<td className="py-4 px-6 text-center">
 														<div className="flex justify-center gap-2">

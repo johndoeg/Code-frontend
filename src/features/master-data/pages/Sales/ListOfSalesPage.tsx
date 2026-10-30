@@ -257,7 +257,7 @@ const ListOfSalesPage: React.FC = () => {
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] rounded-2xl shadow-lg p-6 mb-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="mb-6 flex items-center justify-between">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">List of Sales</h1>
 						{activeBranch && total > 0 && (
@@ -278,11 +278,11 @@ const ListOfSalesPage: React.FC = () => {
 									value={selectedBranch}
 									onChange={(e) => setSelectedBranch(e.target.value)}
 									onKeyDown={handleKeyPress}
-									className="w-full h-11 pl-4 pr-14 bg-white text-[var(--app-text)] border border-[var(--app-border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+									className="w-full h-11 pl-4 pr-14 bg-white text-slate-900 border border-[var(--app-border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								>
-									<option value="" className="bg-white text-[var(--app-text)]">Select</option>
+									<option value="" className="bg-white text-slate-900">Select</option>
 									{branches.map((branch) => (
-										<option key={branch.branchCd} value={branch.branchCd} className="bg-white text-[var(--app-text)]">
+										<option key={branch.branchCd} value={branch.branchCd} className="bg-white text-slate-900">
 											{branch.branchName}
 										</option>
 									))}
@@ -292,7 +292,7 @@ const ListOfSalesPage: React.FC = () => {
 										type="button"
 										onClick={handleClearBranch}
 										aria-label="Clear branch"
-										className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-[var(--app-muted)] hover:bg-[var(--app-surface)] hover:text-[var(--app-text)]"
+										className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
 									>
 										<svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
 											<path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
@@ -358,27 +358,23 @@ const ListOfSalesPage: React.FC = () => {
 						<table className="w-full">
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider w-12">No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Sales No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Name</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Address</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Acc No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Bank</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Bank Branch</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">NPWP</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-muted)] uppercase tracking-wider">Status</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-12">No.</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Sales No.</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Name</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Address</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Acc No.</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Bank</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Bank Branch</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">NPWP</th>
+									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Status</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{records.length === 0 && !loading ? (
 									<tr>
-										<td colSpan={9} className="py-10 px-4 text-center text-[var(--app-muted)]">
+										<td colSpan={9} className="py-10 px-4 text-center text-[var(--app-text)]">
 											<div className="flex flex-col items-center justify-center">
-												<svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-													<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-												</svg>
-												<p className="text-lg">No sales records found</p>
-												<p className="text-sm mt-1">Select a branch and click Preview</p>
+												<p className="text-lg"></p>
 											</div>
 										</td>
 									</tr>

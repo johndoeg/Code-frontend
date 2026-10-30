@@ -75,14 +75,15 @@ const defLrEdit: LoadingEditForm = { lr_age: "", lr_next: false };
 
 const inp =
     "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm " +
+    "bg-white text-slate-900 placeholder:text-slate-400 [color-scheme:light] " +
     "focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " +
-    "disabled:bg-[var(--app-surface-alt)] disabled:cursor-not-allowed";
-const sel = inp;
+    "disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed";
+const sel = inp + " [&>option]:bg-white [&>option]:text-slate-900";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-[var(--app-muted)]">{label}</label>
+            <label className="text-xs font-medium text-[var(--app-text)]">{label}</label>
             {children}
         </div>
     );
@@ -103,7 +104,7 @@ function PctInput({ value, onChange }: { value: string; onChange: (v: string) =>
         <div className="flex items-center gap-1">
             <input className={`${inp} text-right`} value={value}
                 onChange={e => onChange(e.target.value)} />
-            <span className="text-sm text-[var(--app-muted)] shrink-0">%</span>
+            <span className="text-sm text-[var(--app-text)] shrink-0">%</span>
         </div>
     );
 }
@@ -113,19 +114,19 @@ function AmtInput({ value, onChange, suffix }: { value: string; onChange: (v: st
         <div className="flex items-center gap-1">
             <input className={`${inp} text-right`} value={value}
                 onChange={e => onChange(e.target.value.replace(/[^0-9,]/g, ""))} />
-            {suffix && <span className="text-sm text-[var(--app-muted)] shrink-0">{suffix}</span>}
+            {suffix && <span className="text-sm text-[var(--app-text)] shrink-0">{suffix}</span>}
         </div>
     );
 }
 
 function StubTab({ title, desc }: { title: string; desc: string }) {
     return (
-        <div className="py-16 text-center text-[var(--app-muted)]">
-            <svg className="w-12 h-12 mx-auto mb-3 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="py-16 text-center text-[var(--app-text)]">
+            <svg className="w-12 h-12 mx-auto mb-3 text-[var(--app-text)] opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p className="font-semibold text-[var(--app-muted)]">{title}</p>
+            <p className="font-semibold text-[var(--app-text)]">{title}</p>
             <p className="text-sm mt-1">{desc}</p>
         </div>
     );
@@ -143,7 +144,7 @@ function SubTable({ headers, rows, loading }: {
                 <thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
                     <tr>
                         {headers.map(h => (
-                            <th key={h} className="py-2.5 px-3 text-left font-semibold text-[var(--app-muted)] uppercase tracking-wide">
+                            <th key={h} className="py-2.5 px-3 text-left font-semibold text-[var(--app-text)] uppercase tracking-wide">
                                 {h}
                             </th>
                         ))}
@@ -160,7 +161,7 @@ function SubTable({ headers, rows, loading }: {
                             </div>
                         </td></tr>
                     ) : rows.length === 0 ? (
-                        <tr><td colSpan={span} className="py-10 text-center text-[var(--app-muted)]">No records</td></tr>
+                        <tr><td colSpan={span} className="py-10 text-center text-[var(--app-text)]">No records</td></tr>
                     ) : rows.map((cells, idx) => (
                         <tr key={idx} className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}>
                             {cells.map((c, ci) => (
@@ -198,10 +199,10 @@ function Modal({ title, onClose, onSave, saving, children, msg, onMsgClose }: {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
             onClick={e => e.target === e.currentTarget && onClose()}>
-            <div className="bg-[var(--app-card)] rounded-2xl shadow-2xl w-full max-w-md animate-in slide-in-from-top-4">
+            <div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-md animate-in slide-in-from-top-4">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--app-border)]">
                     <h2 className="font-semibold text-[var(--app-text)]">{title}</h2>
-                    <button onClick={onClose} className="text-[var(--app-muted)] hover:text-[var(--app-muted)] text-2xl leading-none">×</button>
+                    <button onClick={onClose} className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none">×</button>
                 </div>
                 <div className="px-6 py-5 space-y-3">
                     {children}
@@ -654,7 +655,7 @@ const InsuranceEntryPage: React.FC = () => {
     if (loading) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] flex items-center justify-center">
-                <div className="flex items-center gap-3 text-[var(--app-muted)]">
+                <div className="flex items-center gap-3 text-[var(--app-text)]">
                     <svg className="animate-spin w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -673,7 +674,7 @@ const InsuranceEntryPage: React.FC = () => {
                         <h1 className="text-xl font-bold text-[var(--app-text)]">
                             {mode === "Add" ? "Add Insurance" : `Insurance — ${currentCd}`}
                         </h1>
-                        <p className="text-sm text-[var(--app-muted)] mt-0.5">
+                        <p className="text-sm text-[var(--app-text)] mt-0.5">
                             {mode === "Add" ? "Create a new insurance record" : mode === "View" ? "View only" : canEdit ? "Edit mode" : "Read-only"}
                         </p>
                     </div>
@@ -683,7 +684,7 @@ const InsuranceEntryPage: React.FC = () => {
                     </button>
                 </div>
 
-                <div className="rounded-2xl bg-[var(--app-card)] shadow-lg overflow-hidden">
+                <div className="rounded-2xl bg-[var(--app-card)] text-[var(--app-text)] shadow-lg overflow-hidden">
                     <div className="flex border-b border-[var(--app-border)] bg-[var(--app-surface)] overflow-x-auto">
                         {TABS.map(t => {
                             const disabled = t.id !== "company" && !mainSaved;
@@ -695,8 +696,8 @@ const InsuranceEntryPage: React.FC = () => {
                                         activeTab === t.id
                                             ? "border-b-2 border-blue-600 text-blue-700 bg-[var(--app-card)]"
                                             : disabled
-                                                ? "text-gray-300 cursor-not-allowed"
-                                                : "text-[var(--app-muted)] hover:text-[var(--app-text)] hover:bg-[var(--app-card)]",
+                                                ? "text-[var(--app-text)] opacity-40 cursor-not-allowed"
+                                                : "text-[var(--app-text)] hover:opacity-70 hover:bg-[var(--app-card)]",
                                     ].join(" ")}>
                                     {t.label}
                                 </button>
@@ -708,7 +709,7 @@ const InsuranceEntryPage: React.FC = () => {
 
                         {activeTab === "company" && (
                             <div className="max-w-xl space-y-4">
-                                <h2 className="text-sm font-semibold text-[var(--app-muted)] pb-2 border-b border-[var(--app-border)]">Insurance Company</h2>
+                                <h2 className="text-sm font-semibold text-[var(--app-text)] pb-2 border-b border-[var(--app-border)]">Insurance Company</h2>
                                 <Field label="Insurance Code">
                                     <input className={inp} readOnly value={company.ins_cd} style={{ fontFamily: "monospace" }} />
                                 </Field>
@@ -772,7 +773,7 @@ const InsuranceEntryPage: React.FC = () => {
                             <div>
                                 {canEdit && (
                                     <div className="mb-6 p-4 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
-                                        <h3 className="text-sm font-semibold text-[var(--app-muted)] mb-4">Add Premium Record</h3>
+                                        <h3 className="text-sm font-semibold text-[var(--app-text)] mb-4">Add Premium Record</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <Field label="Insurance Area *">
                                                 <select className={sel} value={premForm.insurance_area}
@@ -825,7 +826,7 @@ const InsuranceEntryPage: React.FC = () => {
                             <div>
                                 {canEdit && (
                                     <div className="mb-6 p-4 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
-                                        <h3 className="text-sm font-semibold text-[var(--app-muted)] mb-4">Add 3rd Party Record</h3>
+                                        <h3 className="text-sm font-semibold text-[var(--app-text)] mb-4">Add 3rd Party Record</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <Field label="Model Name">
                                                 <select className={sel} value={tpForm.model}
@@ -867,7 +868,7 @@ const InsuranceEntryPage: React.FC = () => {
                             <div>
                                 {canEdit && (
                                     <div className="mb-6 p-4 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
-                                        <h3 className="text-sm font-semibold text-[var(--app-muted)] mb-4">Add Clause Record</h3>
+                                        <h3 className="text-sm font-semibold text-[var(--app-text)] mb-4">Add Clause Record</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <Field label="Insurance Area">
                                                 <select className={sel} value={clForm.insurance_area}
@@ -916,7 +917,7 @@ const InsuranceEntryPage: React.FC = () => {
                             <div>
                                 {canEdit && (
                                     <div className="mb-6 p-4 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
-                                        <h3 className="text-sm font-semibold text-[var(--app-muted)] mb-4">Add P.A. Driver Record</h3>
+                                        <h3 className="text-sm font-semibold text-[var(--app-text)] mb-4">Add P.A. Driver Record</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                             <Field label="PA Amount">
                                                 <AmtInput value={drForm.pa_amount} onChange={v => setDrForm(f => ({ ...f, pa_amount: v }))} />
@@ -950,7 +951,7 @@ const InsuranceEntryPage: React.FC = () => {
                             <div>
                                 {canEdit && (
                                     <div className="mb-6 p-4 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
-                                        <h3 className="text-sm font-semibold text-[var(--app-muted)] mb-4">Add P.A. Passenger Record</h3>
+                                        <h3 className="text-sm font-semibold text-[var(--app-text)] mb-4">Add P.A. Passenger Record</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <Field label="Seat Amount">
                                                 <AmtInput value={psForm.seat_amount} onChange={v => setPsForm(f => ({ ...f, seat_amount: v }))} />
@@ -990,7 +991,7 @@ const InsuranceEntryPage: React.FC = () => {
                             <div>
                                 {canEdit && (
                                     <div className="mb-6 p-4 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-xl">
-                                        <h3 className="text-sm font-semibold text-[var(--app-muted)] mb-4">Add Loading Rate Record</h3>
+                                        <h3 className="text-sm font-semibold text-[var(--app-text)] mb-4">Add Loading Rate Record</h3>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                             <Field label="Model Name">
                                                 <select className={sel} value={lrForm.model}
@@ -1022,7 +1023,7 @@ const InsuranceEntryPage: React.FC = () => {
                                     rows={loadings.map(r => [
                                         r.model_nm,
                                         <span className="tabular-nums text-right block">{r.lr_age}</span>,
-                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${r.lr_next ? "bg-green-100 text-green-700" : "bg-[var(--app-surface-alt)] text-[var(--app-muted)]"}`}>
+                                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${r.lr_next ? "bg-green-100 text-green-700" : "bg-[var(--app-surface-alt)] text-[var(--app-text)]"}`}>
                                             {r.lr_next ? "Yes" : "No"}
                                         </span>,
                                         ...(canEdit ? [<><EditBtn onClick={() => openEditLr(r)} /><DelBtn onClick={() => handleDeleteLr(r)} /></>] : [] as React.ReactNode[]),

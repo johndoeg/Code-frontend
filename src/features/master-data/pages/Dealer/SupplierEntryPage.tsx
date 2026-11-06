@@ -269,11 +269,69 @@ interface FilePreviewState {
 	open: boolean;
 	name: string;
 	url: string;
+	fileId?: number;
 }
 
 const FILE_PREVIEW_CLOSED: FilePreviewState = { open: false, name: "", url: "" };
 
-function FilePreviewModal({ state, onClose }: { state: FilePreviewState; onClose: () => void }) {
+const FILE_ACTION_BTN =
+	"inline-flex items-center gap-1.5 rounded-md border border-blue-300 bg-blue-50 " +
+	"px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors " +
+	"hover:border-blue-400 hover:bg-blue-100 disabled:opacity-50";
+
+function EyeIcon() {
+	return (
+		<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+				d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+				d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+		</svg>
+	);
+}
+
+function DownloadIcon() {
+	return (
+		<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+			<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+				d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4 4m0 0l-4-4m4 4V4" />
+		</svg>
+	);
+}
+
+function FileAlertModal({ message, onClose }: { message: string; onClose: () => void }) {
+	useEffect(() => {
+		if (!message) return;
+		const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+		window.addEventListener("keydown", onKey);
+		return () => window.removeEventListener("keydown", onKey);
+	}, [message, onClose]);
+
+	if (!message) return null;
+
+	return (
+		<div onClick={onClose} className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 p-4">
+			<div onClick={e => e.stopPropagation()}
+				className="w-full max-w-sm rounded-2xl bg-[var(--app-card)] p-6 text-center text-[var(--app-text)] shadow-2xl">
+				<svg className="mx-auto mb-3 h-10 w-10 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
+						d="M12 9v3.75m0 3.5h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+				</svg>
+				<p className="text-sm font-medium">{message}</p>
+				<button type="button" onClick={onClose}
+					className="mt-5 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+					Close
+				</button>
+			</div>
+		</div>
+	);
+}
+
+function FilePreviewModal({ state, onClose, onDownload }: {
+	state: FilePreviewState;
+	onClose: () => void;
+	onDownload?: () => void;
+}) {
 	const [imgError, setImgError] = useState(false);
 
 	useEffect(() => { setImgError(false); }, [state.url]);
@@ -296,6 +354,12 @@ function FilePreviewModal({ state, onClose }: { state: FilePreviewState; onClose
 				<div className="flex items-center justify-between border-b border-[var(--app-border)] px-4 py-3">
 					<span className="truncate text-sm font-semibold text-[var(--app-text)]">{state.name}</span>
 					<div className="flex flex-shrink-0 items-center gap-3">
+						{onDownload && (
+							<button type="button" onClick={onDownload} title="Download file" className={FILE_ACTION_BTN}>
+								<DownloadIcon />
+								Download
+							</button>
+						)}
 						<a href={state.url} target="_blank" rel="noreferrer" title="Open in new tab"
 							className="text-[var(--app-text)] transition-colors hover:text-blue-600">
 							<svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -403,6 +467,8 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 	const [docLainnya, setDocLainnya] = useState("");
 	const [uploading, setUploading] = useState<string | null>(null);
 	const [filePreview, setFilePreview] = useState<FilePreviewState>(FILE_PREVIEW_CLOSED);
+	const [fileAlert, setFileAlert] = useState<string>("");
+	const [downloading, setDownloading] = useState<number | null>(null);
 
 	const [notes, setNotes] = useState("");
 	const [savingNotes, setSavingNotes] = useState(false);
@@ -695,19 +761,24 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 		}
 	};
 
-	const handleToggleDevi = async (dev_cd: string, checked: boolean) => {
+	const handleToggleDeviation = async (dev_cd: string, checked: boolean) => {
+		const prev = deviItems;
 		setDeviItems(items =>
 			items.map(i => i.dev_cd === dev_cd ? { ...i, is_check: checked ? "1" : "0" } : i)
 		);
 		try {
-			await api.put(
-				`/MasterData/dealer/${currentSup}/deviation/${dev_cd}`,
+			const r = await api.put(
+				`/MasterData/dealer/${currentSup}/deviation/${encodeURIComponent(dev_cd)}`,
 				{ is_check: checked },
 			);
-		} catch {
-			setDeviItems(items =>
-				items.map(i => i.dev_cd === dev_cd ? { ...i, is_check: checked ? "0" : "1" } : i)
-			);
+			if (!r.data?.success) throw new Error(r.data?.message || "Save failed");
+			setMsg("dev", undefined);
+		} catch (e: any) {
+			setDeviItems(prev);
+			setMsg("dev", {
+				type: "error",
+				text: e?.response?.data?.message || e?.message || "Failed to save checklist.",
+			});
 		}
 	};
 
@@ -769,18 +840,51 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 		}
 	};
 
-	const handleFilePreview = async (f: DealerFile) => {
+	const handleFilePreview = (f: DealerFile) => {
+		if (!f.download_url) {
+			setMsg("doc", { type: "error", text: "This file has no storage key." });
+			return;
+		}
+		setFilePreview({
+			open: true,
+			fileId: f.id,
+			name: `${f.file_nm}${f.file_ext ? `.${f.file_ext}` : ""}`,
+			url: f.download_url,
+		});
+	};
+
+	const triggerDownload = (url: string) => {
+		const frame = document.createElement("iframe");
+		frame.style.display = "none";
+		frame.src = url;
+		document.body.appendChild(frame);
+		window.setTimeout(() => frame.remove(), 60000);
+	};
+
+	const downloadFileById = async (fileId?: number) => {
+		if (!fileId || !currentSup) {
+			setFileAlert("No data found for this file.");
+			return;
+		}
+		setDownloading(fileId);
 		try {
-			const r = await api.get(f.download_url);
-			setFilePreview({
-				open: true,
-				name: r.data.file_name || `${f.file_nm}${f.file_ext ? `.${f.file_ext}` : ""}`,
-				url: r.data.url,
-			});
-		} catch {
-			setMsg("doc", { type: "error", text: "Failed to get preview link." });
+			const r = await api.get(
+				`/MasterData/dealer/${currentSup}/files/${fileId}/download`,
+				{ params: { mode: "attachment" } },
+			);
+			if (!r.data?.url) {
+				setFileAlert("No data found for this file.");
+				return;
+			}
+			triggerDownload(r.data.url);
+		} catch (e: any) {
+			setFileAlert(e?.response?.data?.error || "No data found for this file.");
+		} finally {
+			setDownloading(null);
 		}
 	};
+
+	const handleFileDownload = (f: DealerFile) => downloadFileById(f.id);
 
 	const handleSaveNotes = async () => {
 		setSavingNotes(true);
@@ -819,7 +923,12 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
-			<FilePreviewModal state={filePreview} onClose={() => setFilePreview(FILE_PREVIEW_CLOSED)} />
+			<FilePreviewModal
+				state={filePreview}
+				onClose={() => setFilePreview(FILE_PREVIEW_CLOSED)}
+				onDownload={() => downloadFileById(filePreview.fileId)}
+			/>
+			<FileAlertModal message={fileAlert} onClose={() => setFileAlert("")} />
 			<div className="mx-auto max-w-6xl">
 
 				<div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -1460,24 +1569,24 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 													</select>
 												</Field>
 												<Field label="Default">
-												<label className="flex items-center gap-2 pt-2 cursor-pointer select-none">
-													<input
-														type="checkbox"
-														className="sr-only"
-														checked={bankForm.is_default}
-														onChange={e => setBankForm(f => ({ ...f, is_default: e.target.checked }))}
-													/>
-													<span
-														aria-hidden="true"
-														className={`inline-flex h-5 w-5 items-center justify-center rounded border text-sm font-bold leading-none ${bankForm.is_default
-															? "bg-blue-600 border-blue-600 text-white"
-															: "bg-white border-[var(--app-border)] text-transparent"}`}
-													>
-														✔
-													</span>
-													<span className="text-sm text-[var(--app-text)]">Set as Default</span>
-												</label>
-											</Field>
+													<label className="flex items-center gap-2 pt-2 cursor-pointer select-none">
+														<input
+															type="checkbox"
+															className="sr-only"
+															checked={bankForm.is_default}
+															onChange={e => setBankForm(f => ({ ...f, is_default: e.target.checked }))}
+														/>
+														<span
+															aria-hidden="true"
+															className={`inline-flex h-5 w-5 items-center justify-center rounded border text-sm font-bold leading-none ${bankForm.is_default
+																? "bg-blue-600 border-blue-600 text-white"
+																: "bg-white border-[var(--app-border)] text-transparent"}`}
+														>
+															✔
+														</span>
+														<span className="text-sm text-[var(--app-text)]">Set as Default</span>
+													</label>
+												</Field>
 											</div>
 											<div className="mt-4 flex gap-3">
 												<button onClick={handleBankSave} disabled={saving.bank}
@@ -1582,7 +1691,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 																name={`dev_${item.dev_cd}`}
 																disabled={!canEdit}
 																checked={item.is_check === "1"}
-																onChange={() => handleToggleDevi(item.dev_cd, true)}
+																onChange={() => handleToggleDeviation(item.dev_cd, true)}
 																className="w-4 h-4 accent-green-600" />
 														</td>
 														<td className="py-2 px-4 text-center border-b border-[var(--app-border)]">
@@ -1590,7 +1699,7 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 																name={`dev_${item.dev_cd}`}
 																disabled={!canEdit}
 																checked={item.is_check !== "1"}
-																onChange={() => handleToggleDevi(item.dev_cd, false)}
+																onChange={() => handleToggleDeviation(item.dev_cd, false)}
 																className="w-4 h-4 accent-red-500" />
 														</td>
 														<td className="py-2 px-4 text-[var(--app-text)] border-b border-[var(--app-border)]">
@@ -1616,7 +1725,6 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 											<textarea key={k} rows={1}
 												className={`${inp} resize-none`}
 												disabled={!canEdit}
-												placeholder={`Note ${i + 1}`}
 												value={devNotes[k]}
 												onChange={e => setDevNotes(n => ({ ...n, [k]: e.target.value }))} />
 										))}
@@ -1712,20 +1820,27 @@ const SupplierEntryPage: React.FC<SupplierEntryPageProps> = ({ suppId, mode: mod
 																	return (
 																		<div key={f.id}
 																			className="flex items-center gap-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] px-2.5 py-1.5">
-																			<button
-																				onClick={() => handleFilePreview(f)}
-																				className="inline-flex items-center gap-1.5 rounded-md border border-blue-300
-                                                                                    bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors
-                                                                                    hover:border-blue-400 hover:bg-blue-100"
-																			>
-																				<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-																					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-																						d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-																					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-																						d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-																				</svg>
-																				View
-																			</button>
+																			<div className="flex flex-shrink-0 items-center gap-1.5">
+																				<button
+																					type="button"
+																					onClick={() => handleFilePreview(f)}
+																					title="View file"
+																					className={FILE_ACTION_BTN}
+																				>
+																					<EyeIcon />
+																					View
+																				</button>
+																				<button
+																					type="button"
+																					onClick={() => handleFileDownload(f)}
+																					title="Download file"
+																					disabled={downloading === f.id}
+																					className={FILE_ACTION_BTN}
+																				>
+																					<DownloadIcon />
+																					{downloading === f.id ? "Downloading…" : "Download"}
+																				</button>
+																			</div>
 																			<span className="max-w-[180px] truncate text-xs text-[var(--app-text)]" title={fullName}>
 																				{fullName}
 																			</span>

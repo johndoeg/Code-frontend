@@ -57,8 +57,12 @@ interface ListResponse {
 	total_pages: number;
 	grand_totals: GrandTotals;
 	period_label: string;
+	grand_total_period: string;
 	disabled: boolean;
 	search_branch: string;
+	company_name: string;
+	printed_by: string;
+	branch_name: string;
 }
 
 interface HistoryEntry {
@@ -87,7 +91,20 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
-const fmt = (n: number) => (n ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+	'July', 'August', 'September', 'October', 'November', 'December'];
+
+const ddmmyyyy = (d: Date | null): string => {
+	if (!d) return '';
+	return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+const longDate = (d: Date | null): string =>
+	d ? `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '';
+
+const todayShort = (): string => ddmmyyyy(new Date());
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
@@ -215,6 +232,7 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 	const [rows, setRows] = useState<DetailRow[]>([]);
 	const [grandTotals, setGrandTotals] = useState<GrandTotals | null>(null);
 	const [periodLabel, setPeriodLabel] = useState('');
+	const [grandTotalPeriod, setGrandTotalPeriod] = useState('');
 	const [page, setPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
 	const [totalCount, setTotalCount] = useState(0);
@@ -230,7 +248,10 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 		rows: DetailRow[];
 		grandTotals: GrandTotals;
 		periodLabel: string;
+		grandTotalPeriod: string;
 		branchLabel: string;
+		companyName: string;
+		printedBy: string;
 	} | null>(null);
 
 	const [commentsOpen, setCommentsOpen] = useState(false);
@@ -277,6 +298,7 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 			setRows(response.data.rows);
 			setGrandTotals(response.data.grand_totals);
 			setPeriodLabel(response.data.period_label);
+			setGrandTotalPeriod(response.data.grand_total_period);
 			setPage(response.data.page);
 			setTotalPages(response.data.total_pages);
 			setTotalCount(response.data.total_count);
@@ -319,7 +341,11 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 				rows: pages.flatMap((p) => p.rows),
 				grandTotals: pages[0].grand_totals,
 				periodLabel: pages[0].period_label,
-				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+				grandTotalPeriod: pages[0].grand_total_period,
+				branchLabel: pages[0].branch_name
+					|| (branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? ''),
+				companyName: pages[0].company_name,
+				printedBy: pages[0].printed_by,
 			});
 		} catch (err) {
 			console.error('Print error:', err);
@@ -545,7 +571,7 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 							{grandTotals && (
 								<div className="text-[var(--app-text)]">
 									<div className="font-semibold underline mb-2 text-sm">
-										Grand Total* ({periodLabel.replace('Period : ', '') || 'All Dates'}):
+										Grand Total* ({grandTotalPeriod || 'All Dates'}):
 									</div>
 									<div className="overflow-x-auto">
 										<table className="text-sm border-collapse w-full max-w-4xl">
@@ -641,9 +667,16 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 
 			{printData && (
 				<ReportPrintModal
-					title="LIST CAM BY APPROVAL DATE"
-					leftHeader={printData.branchLabel ? `${printData.branchLabel} Branch` : 'All Branches'}
-					periodLabel={printData.periodLabel}
+					title="List CAM by Approval Date"
+					legacyTitle
+					rightHeaderAlign="right"
+					companyName={printData.companyName}
+					printedBy={printData.printedBy}
+					dateText={todayShort()}
+					headerLines={[
+						`Branch : ${printData.branchLabel || 'Consolidate'}`,
+						printData.periodLabel,
+					]}
 					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
 					onClose={() => setPrintData(null)}
 				>
@@ -664,7 +697,7 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 								printData.rows.map((row, i) => (
 									<tr key={row.appl_no}>
 										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{i + 1}</td>
-										<td style={PRINT_CELL}>{row.cam_no}{row.is_revision ? ' (Revised)' : ''}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.cam_no}</td>
 										<td style={PRINT_CELL}>{row.customer_name}</td>
 										<td style={PRINT_CELL}>{row.brand_type}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance)}</td>
@@ -681,7 +714,7 @@ const ListCAMByApprovalDatePage: React.FC = () => {
 
 					<div className="rpt-keep">
 						<div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
-							Grand Total* ({printData.periodLabel.replace('Period : ', '') || 'All Dates'}):
+							Grand Total* ({printData.grandTotalPeriod || 'All Dates'}):
 						</div>
 						<table className="rpt-table" style={{ borderCollapse: 'collapse', width: '70%' }}>
 							<thead>

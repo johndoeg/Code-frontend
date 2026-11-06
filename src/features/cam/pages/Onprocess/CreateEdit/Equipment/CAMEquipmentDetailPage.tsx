@@ -190,7 +190,7 @@ function SupplierSearchModal({
 							checked={allBranch}
 							onChange={e => { setAllBranch(e.target.checked); setPage(1); }}
 						/>
-						All Branches
+						Consolidate
 					</label>
 					<button
 						type="button"

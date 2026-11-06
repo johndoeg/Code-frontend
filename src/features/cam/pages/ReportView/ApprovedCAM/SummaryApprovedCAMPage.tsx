@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
 
 interface BranchOption {
 	branch_cd: string;
@@ -23,6 +24,10 @@ interface ListResponse {
 	data: SummaryRow[];
 	disabled: boolean;
 	search_branch: string;
+	company_name: string;
+	printed_by: string;
+	branch_name: string;
+	period_label: string;
 }
 
 const toISO = (d: Date): string => {
@@ -32,7 +37,14 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
-const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+const ddmmyyyy = (d: Date | null): string => {
+	if (!d) return '';
+	return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+const todayShort = (): string => ddmmyyyy(new Date());
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
@@ -51,6 +63,15 @@ const SummaryApprovedCamPage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [hasSearched, setHasSearched] = useState(false);
 	const [exporting, setExporting] = useState(false);
+
+	const [printing, setPrinting] = useState(false);
+	const [printData, setPrintData] = useState<{
+		rows: SummaryRow[];
+		periodLabel: string;
+		branchLabel: string;
+		companyName: string;
+		printedBy: string;
+	} | null>(null);
 
 	useEffect(() => {
 		(async () => {
@@ -97,17 +118,32 @@ const SummaryApprovedCamPage: React.FC = () => {
 		}
 	};
 
-	const handlePrint = () => {
+	const handlePrint = async () => {
 		if (!startDate || !endDate || !branchCd) {
 			alert('Please fill in all required fields');
 			return;
 		}
-		const params = new URLSearchParams(buildQueryParams());
-		const baseURL = (api.defaults.baseURL || '').replace(/\/$/, '');
-		window.open(
-			`${baseURL}/CAM/Approved/summary-approved-cam/print?${params.toString()}`,
-			'_blank'
-		);
+		setPrinting(true);
+		setError(null);
+		try {
+			const res = await api.get<ListResponse>('/CAM/Approved/summary-approved-cam/list', {
+				params: buildQueryParams(),
+			});
+			setPrintData({
+				rows: res.data.data,
+				periodLabel: res.data.period_label
+					|| `Period : ${ddmmyyyy(startDate)} to ${ddmmyyyy(endDate)}`,
+				branchLabel: res.data.branch_name
+					|| (branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? ''),
+				companyName: res.data.company_name,
+				printedBy: res.data.printed_by,
+			});
+		} catch (err) {
+			console.error('Print error:', err);
+			setError('Failed to prepare print. Please try again.');
+		} finally {
+			setPrinting(false);
+		}
 	};
 
 	const handleExport = async () => {
@@ -191,9 +227,10 @@ const SummaryApprovedCamPage: React.FC = () => {
 						</button>
 						<button
 							onClick={handlePrint}
-							className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+							disabled={printing}
+							className="bg-gray-600 hover:bg-gray-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 						>
-							Print
+							{printing ? 'Preparing…' : 'Print'}
 						</button>
 						<button
 							onClick={handleExport}
@@ -288,6 +325,94 @@ const SummaryApprovedCamPage: React.FC = () => {
 					</div>
 				</div>
 			</div>
+
+			{printData && (
+				<ReportPrintModal
+					title="Summary Approved CAM"
+					legacyTitle
+					rightHeaderAlign="right"
+					companyName={printData.companyName}
+					printedBy={printData.printedBy}
+					dateText={todayShort()}
+					headerLines={[
+						`Branch : ${printData.branchLabel || 'Consolidate'}`,
+						printData.periodLabel,
+					]}
+					summaryText={`${printData.rows.filter((r) => r.type === 'detail').length} record${printData.rows.filter((r) => r.type === 'detail').length !== 1 ? 's' : ''}`}
+					onClose={() => setPrintData(null)}
+				>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, tableLayout: 'fixed' }}>
+						<colgroup>
+							<col style={{ width: '20%' }} />
+							<col style={{ width: '12%' }} />
+							<col style={{ width: '8%' }} />
+							<col style={{ width: '15%' }} />
+							<col style={{ width: '8%' }} />
+							<col style={{ width: '15%' }} />
+							<col style={{ width: '7%' }} />
+							<col style={{ width: '15%' }} />
+						</colgroup>
+						<thead>
+							<tr>
+								<th style={PRINT_HEAD} rowSpan={2}>CMO</th>
+								<th style={PRINT_HEAD} rowSpan={2}>Approval Date</th>
+								<th style={PRINT_HEAD} colSpan={2}>New CAM</th>
+								<th style={PRINT_HEAD} colSpan={2}>Revisi</th>
+								<th style={PRINT_HEAD} colSpan={2}>Total</th>
+							</tr>
+							<tr>
+								{['Unit', 'Net Finance', 'Unit', 'Net Finance', 'Unit', 'Net Finance'].map((h, i) => (
+									<th key={i} style={PRINT_HEAD}>{h}</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{printData.rows.length === 0 ? (
+								<tr>
+									<td colSpan={8} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+								</tr>
+							) : (
+								printData.rows.map((row, idx) => {
+									const amounts = (
+										<>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.unit_new)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance_new)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.unit_rev)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance_rev)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.total_unit)}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.total_net_finance)}</td>
+										</>
+									);
+									if (row.type === 'grand_total') {
+										return (
+											<tr key={idx} style={{ fontWeight: 'bold', backgroundColor: '#e5e7eb' }}>
+												<td colSpan={2} style={PRINT_CELL}>Grand Total</td>
+												{amounts}
+											</tr>
+										);
+									}
+									if (row.type === 'subtotal') {
+										return (
+											<tr key={idx} style={{ fontWeight: 'bold', backgroundColor: '#f3f4f6' }}>
+												<td style={PRINT_CELL}></td>
+												<td style={{ ...PRINT_CELL, textAlign: 'right' }}>Total</td>
+												{amounts}
+											</tr>
+										);
+									}
+									return (
+										<tr key={idx}>
+											<td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.cmo_name}</td>
+											<td style={{ ...PRINT_CELL, textAlign: 'right', whiteSpace: 'nowrap' }}>{row.approval_date}</td>
+											{amounts}
+										</tr>
+									);
+								})
+							)}
+						</tbody>
+					</table>
+				</ReportPrintModal>
+			)}
 		</div>
 	);
 };

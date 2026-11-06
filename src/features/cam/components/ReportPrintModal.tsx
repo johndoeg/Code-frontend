@@ -45,18 +45,31 @@ export const PRINT_HEAD: React.CSSProperties = { ...PRINT_CELL, textAlign: 'cent
 const todayLong = () =>
 	new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
+const todayShort = () =>
+	new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
+		.replace(/\//g, '-');
+
 interface ReportPrintModalProps {
 	title: string;
 	leftHeader?: string;
 	periodLabel?: string;
 	summaryText?: string;
 	landscape?: boolean;
+	companyName?: string;
+	printedBy?: string;
+	dateText?: string;
+	headerLines?: string[];
+	legacyTitle?: boolean;
+	rightHeaderAlign?: 'left' | 'right';
 	onClose: () => void;
 	children: React.ReactNode;
 }
 
 const ReportPrintModal: React.FC<ReportPrintModalProps> = ({
-	title, leftHeader, periodLabel, summaryText, landscape = true, onClose, children,
+	title, leftHeader, periodLabel, summaryText, landscape = true,
+	companyName, printedBy, dateText, headerLines, legacyTitle = false,
+	rightHeaderAlign = 'left',
+	onClose, children,
 }) => {
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -146,18 +159,33 @@ const ReportPrintModal: React.FC<ReportPrintModalProps> = ({
 					<table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 4 }}>
 						<tbody>
 							<tr>
-								<td style={{ width: '76%' }}>{leftHeader ?? ''}</td>
-								<td>Date: {todayLong()}</td>
+								<td style={{ width: rightHeaderAlign === 'right' ? '70%' : '76%', verticalAlign: 'top' }}>
+									{companyName ?? leftHeader ?? ''}
+								</td>
+								<td style={{ verticalAlign: 'top', textAlign: rightHeaderAlign }}>
+									<span style={{ display: 'inline-block', textAlign: 'left', whiteSpace: 'nowrap' }}>
+										{printedBy ? 'Date : ' : 'Date: '}{dateText ?? todayLong()}
+										{printedBy && (<><br />Print By : {printedBy}</>)}
+									</span>
+								</td>
 							</tr>
 						</tbody>
 					</table>
 
 					<div style={{ textAlign: 'center', marginBottom: 8 }}>
-						<strong>
-							<u>{title}</u>
-							{periodLabel && (<><br />{periodLabel}</>)}
+						<strong style={legacyTitle ? { fontSize: 16, letterSpacing: '0.2em' } : undefined}>
+							{legacyTitle ? title : <u>{title}</u>}
+							{periodLabel && !headerLines && (<><br />{periodLabel}</>)}
 						</strong>
 					</div>
+
+					{headerLines && headerLines.length > 0 && (
+						<div style={{ marginBottom: 8 }}>
+							{headerLines.filter(Boolean).map((line, i) => (
+								<div key={i} style={{ whiteSpace: 'nowrap' }}>{line}</div>
+							))}
+						</div>
+					)}
 
 					{children}
 				</div>

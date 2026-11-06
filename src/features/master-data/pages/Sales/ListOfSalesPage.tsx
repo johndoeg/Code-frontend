@@ -206,7 +206,7 @@ const ListOfSalesPage: React.FC = () => {
 			}
 
 			const branchName = selectedBranch === '000'
-				? 'All Branches'
+				? 'Consolidate'
 				: branches.find(b => b.branchCd === selectedBranch)?.branchName ?? selectedBranch;
 
 			printWindow.document.open();

@@ -228,7 +228,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 								onChange={handleBranchChange}
 								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 							>
-								<option value="" className="bg-white text-slate-900">All Branches</option>
+								<option value="" className="bg-white text-slate-900">Consolidate</option>
 								{branches.map((b) => (
 									<option key={b.branch_cd} value={b.branch_cd} className="bg-white text-slate-900">{b.branch_name}</option>
 								))}
@@ -335,7 +335,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 						<p className="text-center text-sm text-[var(--app-text)] mb-4">Year {year}</p>
 
 						<div className="text-sm text-[var(--app-text)] mb-4 space-y-1">
-							<p><span className="font-medium text-[var(--app-text)]">Branch:</span> {branchName || 'All Branches'}</p>
+							<p><span className="font-medium text-[var(--app-text)]">Branch:</span> {branchName || 'Consolidate'}</p>
 							{searchMode === 'dealer' && selectedDealer && (
 								<p><span className="font-medium text-[var(--app-text)]">Search by:</span> {selectedDealer.name}</p>
 							)}

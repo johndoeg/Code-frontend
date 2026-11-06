@@ -40,6 +40,8 @@ interface ListResponse {
 	grand_total: GrandTotal;
 	period_label: string;
 	branch_name: string;
+	company_name: string;
+	printed_by: string;
 }
 
 interface HistoryEntry {
@@ -68,7 +70,20 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
-const fmt = (n: number) => (n ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+	'July', 'August', 'September', 'October', 'November', 'December'];
+
+const longPeriod = (periodLabel: string): string => {
+	const found = periodLabel.match(/(\d{2})-(\d{2})-(\d{4})/g);
+	if (!found || found.length < 2) return periodLabel.replace('Period : ', '');
+	const spell = (ddmmyyyy: string) => {
+		const [d, m, y] = ddmmyyyy.split('-');
+		return `${d} ${MONTHS[Number(m) - 1] ?? m} ${y}`;
+	};
+	return `${spell(found[0])} - ${spell(found[1])}`;
+};
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
@@ -171,6 +186,8 @@ const ListCAMByCustomerGroupPage: React.FC = () => {
 		grandTotal: GrandTotal;
 		periodLabel: string;
 		branchName: string;
+		companyName: string;
+		printedBy: string;
 	} | null>(null);
 
 	const [commentsOpen, setCommentsOpen] = useState(false);
@@ -258,6 +275,8 @@ const ListCAMByCustomerGroupPage: React.FC = () => {
 				grandTotal: pages[0].grand_total,
 				periodLabel: pages[0].period_label,
 				branchName: pages[0].branch_name,
+				companyName: pages[0].company_name,
+				printedBy: pages[0].printed_by,
 			});
 		} catch (err) {
 			console.error('Print error:', err);
@@ -481,7 +500,7 @@ const ListCAMByCustomerGroupPage: React.FC = () => {
 							{grandTotal && (
 								<div className="text-sm max-w-md text-[var(--app-text)]">
 									<div className="font-semibold underline mb-2">
-										Grand Total* ({periodLabel.replace('Period : ', '') || 'All Dates'}):
+										Grand Total* ({longPeriod(periodLabel) || 'All Dates'}):
 									</div>
 									<div>Net Finance : {fmt(grandTotal.net_finance)}</div>
 									<div>Units : {fmt(grandTotal.units)}</div>
@@ -548,13 +567,33 @@ const ListCAMByCustomerGroupPage: React.FC = () => {
 
 			{printData && (
 				<ReportPrintModal
-					title="LIST CAM BY CUSTOMER / GROUP"
-					leftHeader={printData.branchName ? `${printData.branchName} Branch` : ''}
-					periodLabel={printData.periodLabel}
+					title="List CAM by Customer / Group"
+					legacyTitle
+					rightHeaderAlign="right"
+					companyName={printData.companyName}
+					printedBy={printData.printedBy}
+					dateText={new Date().toLocaleDateString('en-GB', {
+						day: '2-digit', month: '2-digit', year: 'numeric',
+					}).replace(/\//g, '-')}
+					headerLines={[
+						`Branch : ${printData.branchName || 'Consolidate'}`,
+						printData.periodLabel,
+					]}
 					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
 					onClose={() => setPrintData(null)}
 				>
-					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, tableLayout: 'fixed' }}>
+						<colgroup>
+							<col style={{ width: '3%' }} />
+							<col style={{ width: '17%' }} />
+							<col style={{ width: '17%' }} />
+							<col style={{ width: '13%' }} />
+							<col style={{ width: '13%' }} />
+							<col style={{ width: '7%' }} />
+							<col style={{ width: '6%' }} />
+							<col style={{ width: '12%' }} />
+							<col style={{ width: '12%' }} />
+						</colgroup>
 						<thead>
 							<tr>
 								{['No.', 'CAM No.', 'Customer Name', 'Brand/Type', 'Net Finance', 'Interest (%)', 'Tenor (Month)', 'Approval Date', 'CMO'].map((h) => (
@@ -571,13 +610,13 @@ const ListCAMByCustomerGroupPage: React.FC = () => {
 								printData.rows.map((row, i) => (
 									<tr key={row.appl_no}>
 										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{i + 1}</td>
-										<td style={PRINT_CELL}>{row.cam_no}{row.is_revision ? ' (Revised)' : ''}</td>
-										<td style={PRINT_CELL}>{row.customer_name}</td>
-										<td style={PRINT_CELL}>{row.brand_type}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.cam_no}</td>
+										<td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.customer_name}</td>
+										<td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.brand_type}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance)}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{row.interest.toFixed(4)}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{row.tenor}</td>
-										<td style={PRINT_CELL}>{row.approval_date}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.approval_date}</td>
 										<td style={PRINT_CELL}>{row.cmo}</td>
 									</tr>
 								))
@@ -587,7 +626,7 @@ const ListCAMByCustomerGroupPage: React.FC = () => {
 
 					<div className="rpt-keep">
 						<div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
-							Grand Total* ({printData.periodLabel.replace('Period : ', '') || 'All Dates'}):
+							Grand Total* ({longPeriod(printData.periodLabel) || 'All Dates'}):
 						</div>
 						<div>Net Finance : {fmt(printData.grandTotal.net_finance)}</div>
 						<div>Units : {fmt(printData.grandTotal.units)}</div>

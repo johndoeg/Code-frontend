@@ -83,7 +83,7 @@ export function SalesDealerPickerModal({
 								setPage(1);
 							}}
 						/>
-						All Branches
+						Consolidate
 					</label>
 					<button
 						type="button"

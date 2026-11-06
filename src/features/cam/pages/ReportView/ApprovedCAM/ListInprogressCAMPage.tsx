@@ -49,6 +49,9 @@ interface ListResponse {
 	total_pages: number;
 	grand_totals: GrandTotals;
 	period_label: string;
+	grand_total_period: string;
+	company_name: string;
+	printed_by: string;
 	disabled: boolean;
 	search_branch: string;
 	branch_name: string;
@@ -61,7 +64,7 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
-const fmt = (n: number) => (n ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
@@ -101,6 +104,7 @@ const ListInProgressCAMPage: React.FC = () => {
 	const [rows, setRows] = useState<DetailRow[]>([]);
 	const [grandTotals, setGrandTotals] = useState<GrandTotals | null>(null);
 	const [periodLabel, setPeriodLabel] = useState('');
+	const [grandTotalPeriod, setGrandTotalPeriod] = useState('');
 	const [branchName, setBranchName] = useState('');
 	const [page, setPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
@@ -117,7 +121,10 @@ const ListInProgressCAMPage: React.FC = () => {
 		rows: DetailRow[];
 		grandTotals: GrandTotals;
 		periodLabel: string;
+		grandTotalPeriod: string;
 		branchName: string;
+		companyName: string;
+		printedBy: string;
 	} | null>(null);
 
 	const [activeCam, setActiveCam] = useState<{ ctx: CamCtx } | null>(null);
@@ -158,6 +165,7 @@ const ListInProgressCAMPage: React.FC = () => {
 			setRows(response.data.rows);
 			setGrandTotals(response.data.grand_totals);
 			setPeriodLabel(response.data.period_label);
+			setGrandTotalPeriod(response.data.grand_total_period);
 			setBranchName(response.data.branch_name);
 			setPage(response.data.page);
 			setTotalPages(response.data.total_pages);
@@ -201,7 +209,10 @@ const ListInProgressCAMPage: React.FC = () => {
 				rows: pages.flatMap((p) => p.rows),
 				grandTotals: pages[0].grand_totals,
 				periodLabel: pages[0].period_label,
+				grandTotalPeriod: pages[0].grand_total_period,
 				branchName: pages[0].branch_name,
+				companyName: pages[0].company_name,
+				printedBy: pages[0].printed_by,
 			});
 		} catch (err) {
 			console.error('Print error:', err);
@@ -334,8 +345,8 @@ const ListInProgressCAMPage: React.FC = () => {
 						<div className="py-10 text-center text-[var(--app-muted)] text-sm"></div>
 					) : (
 						<>
-							{branchName && (
-								<p className="text-sm text-[var(--app-text)] mb-3">Branch : {branchName}</p>
+							{hasSearched && (
+								<p className="text-sm text-[var(--app-text)] mb-3">Branch : {branchName || 'Consolidate'}</p>
 							)}
 
 							<div className="overflow-x-auto rounded-lg border border-[var(--app-border)] mb-6">
@@ -404,7 +415,7 @@ const ListInProgressCAMPage: React.FC = () => {
 							{grandTotals && (
 								<div className="text-[var(--app-text)]">
 									<div className="font-semibold underline mb-2 text-sm">
-										Grand Total* ({periodLabel.replace('Period : ', '') || 'All Dates'}):
+										Grand Total* ({grandTotalPeriod || 'All Dates'}):
 									</div>
 									<div className="overflow-x-auto">
 										<table className="text-sm border-collapse w-full max-w-xl">
@@ -470,13 +481,35 @@ const ListInProgressCAMPage: React.FC = () => {
 
 			{printData && (
 				<ReportPrintModal
-					title="LIST IN PROGRESS CAM"
-					leftHeader={printData.branchName ? `${printData.branchName} Branch` : 'All Branches'}
-					periodLabel={printData.periodLabel}
+					title="List In Progress CAM"
+					legacyTitle
+					companyName={printData.companyName}
+					printedBy={printData.printedBy}
+					dateText={new Date().toLocaleDateString('en-GB', {
+						day: '2-digit', month: '2-digit', year: 'numeric',
+					}).replace(/\//g, '-')}
+					rightHeaderAlign="right"
+					headerLines={[
+						`Branch : ${printData.branchName || 'Consolidate'}`,
+						printData.periodLabel,
+					]}
 					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
 					onClose={() => setPrintData(null)}
 				>
-					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, tableLayout: 'fixed' }}>
+						<colgroup>
+							<col style={{ width: '3%' }} />
+							<col style={{ width: '12%' }} />
+							<col style={{ width: '15%' }} />
+							<col style={{ width: '17%' }} />
+							<col style={{ width: '9%' }} />
+							<col style={{ width: '10%' }} />
+							<col style={{ width: '6%' }} />
+							<col style={{ width: '6%' }} />
+							<col style={{ width: '7%' }} />
+							<col style={{ width: '9%' }} />
+							<col style={{ width: '9%' }} />
+						</colgroup>
 						<thead>
 							<tr>
 								{['No.', 'CAM No.', 'Customer Name', 'Brand/Type', 'Net Finance', 'Total Outstanding', 'Interest (%)', 'Tenor (Month)', 'Create Date', 'CMO', 'Status'].map((h) => (
@@ -493,14 +526,14 @@ const ListInProgressCAMPage: React.FC = () => {
 								printData.rows.map((row, i) => (
 									<tr key={row.appl_no}>
 										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{i + 1}</td>
-										<td style={PRINT_CELL}>{row.cam_no}{row.is_revision ? ' (Revised)' : ''}</td>
-										<td style={PRINT_CELL}>{row.customer_name}</td>
-										<td style={PRINT_CELL}>{row.brand_type}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.cam_no}</td>
+										<td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.customer_name}</td>
+										<td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.brand_type}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance)}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.total_outstanding)}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{row.interest.toFixed(4)}</td>
 										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{row.tenor}</td>
-										<td style={PRINT_CELL}>{row.create_date}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.create_date}</td>
 										<td style={PRINT_CELL}>{row.cmo}</td>
 										<td style={PRINT_CELL}>{row.status}</td>
 									</tr>
@@ -511,7 +544,7 @@ const ListInProgressCAMPage: React.FC = () => {
 
 					<div className="rpt-keep">
 						<div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
-							Grand Total* ({printData.periodLabel.replace('Period : ', '') || 'All Dates'}):
+							Grand Total* ({printData.grandTotalPeriod || 'All Dates'}):
 						</div>
 						<table className="rpt-table" style={{ borderCollapse: 'collapse', width: '45%' }}>
 							<thead>

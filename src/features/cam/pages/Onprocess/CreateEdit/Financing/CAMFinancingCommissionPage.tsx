@@ -273,7 +273,7 @@ function SalesPicker({
 						checked={allBranches}
 						onChange={(e) => runSearch(e.target.checked)}
 					/>
-					All Branches
+					Consolidate
 				</label>
 				<button type="button" onClick={() => runSearch(allBranches)} className={buttonClass}>
 					Search

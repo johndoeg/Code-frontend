@@ -48,6 +48,10 @@ interface ListResponse {
 	grand_total: GrandTotal;
 	disabled: boolean;
 	search_branch: string;
+	company_name: string;
+	printed_by: string;
+	branch_name: string;
+	period_label: string;
 }
 
 const REJECTED_BY_OPTIONS = ['CMH', 'BM', 'CRH', 'Arya.M', 'Maryanna', 'Fendy.K', 'Christian.H'];
@@ -62,7 +66,20 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
-const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+	'July', 'August', 'September', 'October', 'November', 'December'];
+
+const ddmmyyyy = (d: Date | null): string => {
+	if (!d) return '';
+	return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+const longDate = (d: Date | null): string =>
+	d ? `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '';
+
+const todayShort = (): string => ddmmyyyy(new Date());
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
@@ -108,7 +125,10 @@ const ListRejectedCAMPage: React.FC = () => {
 		rows: DetailRow[];
 		grandTotal: GrandTotal;
 		periodLabel: string;
+		rejectedByLabel: string;
 		branchLabel: string;
+		companyName: string;
+		printedBy: string;
 	} | null>(null);
 
 	const [activeCam, setActiveCam] = useState<{ ctx: CamCtx } | null>(null);
@@ -201,12 +221,17 @@ const ListRejectedCAMPage: React.FC = () => {
 				(first) => Math.ceil(first.total_count / PAGE_SIZE),
 			);
 			const rejLabel = rejectDetailOptions.find((o) => o.value === rejectDetail)?.label ?? rejectDetail;
-			const per = startDate && endDate ? `Period : ${startDate.toLocaleDateString('en-GB')} - ${endDate.toLocaleDateString('en-GB')}` : '';
+			const per = pages[0].period_label
+				|| (startDate && endDate ? `Period : ${ddmmyyyy(startDate)} to ${ddmmyyyy(endDate)}` : '');
 			setPrintData({
 				rows: pages.flatMap((p) => p.data),
 				grandTotal: pages[0].grand_total,
-				periodLabel: [per, `Rejected By : ${rejLabel}`].filter(Boolean).join('   '),
-				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+				periodLabel: per,
+				rejectedByLabel: rejLabel,
+				branchLabel: pages[0].branch_name
+					|| (branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? ''),
+				companyName: pages[0].company_name,
+				printedBy: pages[0].printed_by,
 			});
 		} catch (err) {
 			console.error('Print error:', err);
@@ -480,9 +505,17 @@ const ListRejectedCAMPage: React.FC = () => {
 			)}
 			{printData && (
 				<ReportPrintModal
-					title="LIST REJECTED CAM"
-					leftHeader={printData.branchLabel ? `${printData.branchLabel} Branch` : 'All Branches'}
-					periodLabel={printData.periodLabel}
+					title="List Rejected CAM"
+					legacyTitle
+					rightHeaderAlign="right"
+					companyName={printData.companyName}
+					printedBy={printData.printedBy}
+					dateText={todayShort()}
+					headerLines={[
+						`Branch : ${printData.branchLabel || 'Consolidate'}`,
+						printData.periodLabel,
+						`Rejected By : ${printData.rejectedByLabel}`,
+					]}
 					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
 					onClose={() => setPrintData(null)}
 				>

@@ -44,6 +44,10 @@ interface ListResponse {
 	has_data: boolean;
 	disabled: boolean;
 	search_branch: string;
+	company_name: string;
+	printed_by: string;
+	branch_name: string;
+	period_label: string;
 }
 
 const toISO = (d: Date): string => {
@@ -53,7 +57,20 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
-const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+	'July', 'August', 'September', 'October', 'November', 'December'];
+
+const ddmmyyyy = (d: Date | null): string => {
+	if (!d) return '';
+	return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+const longDate = (d: Date | null): string =>
+	d ? `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '';
+
+const todayShort = (): string => ddmmyyyy(new Date());
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
@@ -82,6 +99,8 @@ const ListCAMByCarConditionPage: React.FC = () => {
 		hasData: boolean;
 		periodLabel: string;
 		branchLabel: string;
+		companyName: string;
+		printedBy: string;
 	} | null>(null);
 
 	useEffect(() => {
@@ -144,8 +163,12 @@ const ListCAMByCarConditionPage: React.FC = () => {
 				rows: res.data.data,
 				summary: res.data.summary,
 				hasData: res.data.has_data,
-				periodLabel: `Period : ${startDate.toLocaleDateString('en-GB')} - ${endDate.toLocaleDateString('en-GB')}`,
-				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+				periodLabel: res.data.period_label
+					|| (startDate && endDate ? `Period : ${ddmmyyyy(startDate)} to ${ddmmyyyy(endDate)}` : ''),
+				branchLabel: res.data.branch_name
+					|| (branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? ''),
+				companyName: res.data.company_name,
+				printedBy: res.data.printed_by,
 			});
 		} catch (err) {
 			console.error('Print error:', err);
@@ -374,9 +397,16 @@ const ListCAMByCarConditionPage: React.FC = () => {
 			</div>
 			{printData && (
 				<ReportPrintModal
-					title="LIST APPROVED CAM BY CAR'S CONDITION"
-					leftHeader={printData.branchLabel ? `${printData.branchLabel} Branch` : ''}
-					periodLabel={printData.periodLabel}
+					title="List Approved Cam By Car's Condition"
+					legacyTitle
+					rightHeaderAlign="right"
+					companyName={printData.companyName}
+					printedBy={printData.printedBy}
+					dateText={todayShort()}
+					headerLines={[
+						`Branch : ${printData.branchLabel || 'Consolidate'}`,
+						printData.periodLabel,
+					]}
 					summaryText={printData.hasData ? `${printData.rows.length} row${printData.rows.length !== 1 ? 's' : ''}` : 'No data'}
 					onClose={() => setPrintData(null)}
 				>

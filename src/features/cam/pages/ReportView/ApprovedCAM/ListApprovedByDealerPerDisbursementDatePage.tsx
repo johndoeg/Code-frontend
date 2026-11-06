@@ -41,6 +41,10 @@ interface ListResponse {
 	summary: Summary;
 	show_branch_column: boolean;
 	show_dealer_column: boolean;
+	company_name: string;
+	printed_by: string;
+	branch_name: string;
+	period_label: string;
 }
 
 interface Dealer {
@@ -61,7 +65,20 @@ const toISO = (d: Date): string => {
 	return `${year}-${month}-${day}`;
 };
 
-const fmt = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
+const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+	'July', 'August', 'September', 'October', 'November', 'December'];
+
+const ddmmyyyy = (d: Date | null): string => {
+	if (!d) return '';
+	return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+};
+
+const longDate = (d: Date | null): string =>
+	d ? `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '';
+
+const todayShort = (): string => ddmmyyyy(new Date());
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
@@ -111,6 +128,8 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 		periodLabel: string;
 		branchLabel: string;
 		dealerLabel: string;
+		companyName: string;
+		printedBy: string;
 	} | null>(null);
 
 	const [pickerOpen, setPickerOpen] = useState(false);
@@ -182,9 +201,13 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 				summary: pages[0].summary,
 				showBranch: pages[0].show_branch_column,
 				showDealer: pages[0].show_dealer_column,
-				periodLabel: startDate && endDate ? `Period : ${startDate.toLocaleDateString('en-GB')} - ${endDate.toLocaleDateString('en-GB')}` : '',
-				branchLabel: branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '',
+				periodLabel: pages[0].period_label
+					|| (startDate && endDate ? `Period : ${ddmmyyyy(startDate)} to ${ddmmyyyy(endDate)}` : ''),
+				branchLabel: pages[0].branch_name
+					|| (branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? ''),
 				dealerLabel: dealerNickname,
+				companyName: pages[0].company_name,
+				printedBy: pages[0].printed_by,
 			});
 		} catch (err) {
 			console.error('Print error:', err);
@@ -277,7 +300,6 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 								disabled={branchRestricted}
 								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] text-sm bg-white text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:bg-slate-100 disabled:text-slate-500"
 							>
-								{!branchRestricted && <option value="000" style={optionStyle}>All Branches</option>}
 								{branches.map((b) => (
 									<option key={b.branch_cd} value={b.branch_cd} style={optionStyle}>
 										{b.branch_name}
@@ -537,9 +559,17 @@ const ListApprovedByDealerPerDisbursementDatePage: React.FC = () => {
 				const colCount = 5 + (printData.showBranch ? 1 : 0) + (printData.showDealer ? 1 : 0);
 				return (
 					<ReportPrintModal
-						title="LIST APPROVED CAM BY DEALER PER DISBURSEMENT DATE"
-						leftHeader={[printData.branchLabel && `${printData.branchLabel} Branch`, printData.dealerLabel && `Dealer : ${printData.dealerLabel}`].filter(Boolean).join(' / ')}
-						periodLabel={printData.periodLabel}
+						title="List Approved by Dealer per Disbursement Date"
+						legacyTitle
+						rightHeaderAlign="right"
+						companyName={printData.companyName}
+						printedBy={printData.printedBy}
+						dateText={todayShort()}
+						headerLines={[
+							printData.periodLabel,
+							`Branch : ${printData.branchLabel || 'Consolidate'}`,
+							`Dealer : ${printData.dealerLabel || 'Consolidate'}`,
+						]}
 						summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
 						onClose={() => setPrintData(null)}
 					>

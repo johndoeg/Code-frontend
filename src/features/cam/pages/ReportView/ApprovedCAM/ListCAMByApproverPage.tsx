@@ -413,7 +413,7 @@ const ListCAMByApproverPage: React.FC = () => {
                                         {sections.map((section) => (
                                             <React.Fragment key={section.role_code}>
                                                 <tr>
-                                                    <td colSpan={14} className="border border-[var(--app-border)] px-2 py-1 font-medium bg-[var(--app-surface)]">
+                                                    <td colSpan={14} className="border border-[var(--app-border)] px-2 py-1 font-bold bg-[var(--app-surface)]">
                                                         Approved by : {section.role_label}
                                                     </td>
                                                 </tr>
@@ -533,92 +533,92 @@ const ListCAMByApproverPage: React.FC = () => {
                 </div>
             )}
 
-        {printData && (
-            <ReportPrintModal
-                title="List CAM by Approver"
-                legacyTitle
-                rightHeaderAlign="right"
-                companyName={printData.companyName}
-                printedBy={printData.printedBy}
-                dateText={todayShort()}
-                headerLines={[
-                    `Branch : ${printData.branchLabel || 'Consolidate'}`,
-                    printData.periodLabel,
-                ]}
-                summaryText={`${printData.sections.reduce((n, s) => n + s.rows.length, 0)} records`}
-                onClose={() => setPrintData(null)}
-            >
-                <table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, tableLayout: 'fixed' }}>
-                    <colgroup>
-                        <col style={{ width: '3%' }} />
-                        <col style={{ width: '7%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '8%' }} />
-                        <col style={{ width: '5%' }} />
-                        <col style={{ width: '10%' }} />
-                        <col style={{ width: '5%' }} />
-                        <col style={{ width: '7%' }} />
-                        <col style={{ width: '8%' }} />
-                        <col style={{ width: '8%' }} />
-                        <col style={{ width: '8%' }} />
-                        <col style={{ width: '7%' }} />
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            {['No.', 'Branch', 'Customer Name', 'CAM No.', 'Approved Date', 'Model', 'Brand/Type', 'Car Status', 'Contract Status', 'Outstanding', 'Net Finance', 'Total Outstanding', 'CMO'].map((h) => (
-                                <th key={h} style={PRINT_HEAD}>{h}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {printData.sections.map((section) => (
-                            <React.Fragment key={section.role_code}>
-                                <tr>
-                                    <td colSpan={13} style={{ ...PRINT_CELL, fontWeight: 'bold', backgroundColor: '#f3f4f6' }}>
-                                        Approved by : {section.role_label}
-                                    </td>
-                                </tr>
-                                {section.rows.length === 0 ? (
+            {printData && (
+                <ReportPrintModal
+                    title="List CAM by Approver"
+                    legacyTitle
+                    rightHeaderAlign="right"
+                    companyName={printData.companyName}
+                    printedBy={printData.printedBy}
+                    dateText={todayShort()}
+                    headerLines={[
+                        `Branch : ${printData.branchLabel || 'Consolidate'}`,
+                        printData.periodLabel,
+                    ]}
+                    summaryText={`${printData.sections.reduce((n, s) => n + s.rows.length, 0)} records`}
+                    onClose={() => setPrintData(null)}
+                >
+                    <table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, tableLayout: 'fixed' }}>
+                        <colgroup>
+                            <col style={{ width: '3%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '12%' }} />
+                            <col style={{ width: '8%' }} />
+                            <col style={{ width: '5%' }} />
+                            <col style={{ width: '10%' }} />
+                            <col style={{ width: '5%' }} />
+                            <col style={{ width: '7%' }} />
+                            <col style={{ width: '8%' }} />
+                            <col style={{ width: '8%' }} />
+                            <col style={{ width: '8%' }} />
+                            <col style={{ width: '7%' }} />
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                {['No.', 'Branch', 'Customer Name', 'CAM No.', 'Approved Date', 'Model', 'Brand/Type', 'Car Status', 'Contract Status', 'Outstanding', 'Net Finance', 'Total Outstanding', 'CMO'].map((h) => (
+                                    <th key={h} style={PRINT_HEAD}>{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {printData.sections.map((section) => (
+                                <React.Fragment key={section.role_code}>
                                     <tr>
-                                        <td colSpan={13} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+                                        <td colSpan={13} style={{ ...PRINT_CELL, fontWeight: 'bold', backgroundColor: '#f3f4f6' }}>
+                                            Approved by : {section.role_label}
+                                        </td>
                                     </tr>
-                                ) : (
-                                    section.rows.map((row) => (
-                                        <tr key={row.appl_no}>
-                                            <td style={{ ...PRINT_CELL, textAlign: 'center', whiteSpace: 'nowrap' }}>{row.no}</td>
-                                            <td style={PRINT_CELL}>{row.branch_name}</td>
-                                            <td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.customer_name}</td>
-                                            <td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.cam_no}</td>
-                                            <td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.approved_date}</td>
-                                            <td style={PRINT_CELL}>{row.model}</td>
-                                            <td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.brand_type}</td>
-                                            <td style={PRINT_CELL}>{row.car_status}</td>
-                                            <td style={PRINT_CELL}>{row.contract_status}</td>
-                                            <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.outstanding_old_cam)}</td>
-                                            <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance_new_cam)}</td>
-                                            <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.total_outstanding)}</td>
-                                            <td style={PRINT_CELL}>{row.cmo}</td>
+                                    {section.rows.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={13} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
                                         </tr>
-                                    ))
-                                )}
-                            </React.Fragment>
-                        ))}
-                    </tbody>
-                </table>
+                                    ) : (
+                                        section.rows.map((row) => (
+                                            <tr key={row.appl_no}>
+                                                <td style={{ ...PRINT_CELL, textAlign: 'center', whiteSpace: 'nowrap' }}>{row.no}</td>
+                                                <td style={PRINT_CELL}>{row.branch_name}</td>
+                                                <td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.customer_name}</td>
+                                                <td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.cam_no}</td>
+                                                <td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.approved_date}</td>
+                                                <td style={PRINT_CELL}>{row.model}</td>
+                                                <td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.brand_type}</td>
+                                                <td style={PRINT_CELL}>{row.car_status}</td>
+                                                <td style={PRINT_CELL}>{row.contract_status}</td>
+                                                <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.outstanding_old_cam)}</td>
+                                                <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.net_finance_new_cam)}</td>
+                                                <td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmt(row.total_outstanding)}</td>
+                                                <td style={PRINT_CELL}>{row.cmo}</td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </React.Fragment>
+                            ))}
+                        </tbody>
+                    </table>
 
-                <div className="rpt-keep">
-                    <div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
-                        Grand Total* ({printData.grandTotalPeriod || 'All Dates'}):
+                    <div className="rpt-keep">
+                        <div style={{ fontWeight: 'bold', textDecoration: 'underline', marginBottom: 4 }}>
+                            Grand Total* ({printData.grandTotalPeriod || 'All Dates'}):
+                        </div>
+                        <div>Net Finance : {fmt(printData.grandTotal.net_finance)}</div>
+                        <div>Units : {fmt(printData.grandTotal.units)}</div>
+                        <div style={{ fontSize: 10, fontStyle: 'italic', marginTop: 4 }}>
+                            *Grand Total Amount and Unit Exclude CAM Revision
+                        </div>
                     </div>
-                    <div>Net Finance : {fmt(printData.grandTotal.net_finance)}</div>
-                    <div>Units : {fmt(printData.grandTotal.units)}</div>
-                    <div style={{ fontSize: 10, fontStyle: 'italic', marginTop: 4 }}>
-                        *Grand Total Amount and Unit Exclude CAM Revision
-                    </div>
-                </div>
-            </ReportPrintModal>
-        )}
+                </ReportPrintModal>
+            )}
         </div>
     );
 };

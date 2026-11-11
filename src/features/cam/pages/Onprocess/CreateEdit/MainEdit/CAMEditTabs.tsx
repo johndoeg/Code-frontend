@@ -38,8 +38,6 @@ const CAMNotesPage = lazy(() => import('../Other/CAMNotesPage.tsx'));
 const CAMCustomerNotesPage = lazy(() => import('../Other/CAMCustomerNotesPage.tsx'));
 const CAMRevisionNotesPage = lazy(() => import('../Other/CAMRevisionNotesPage.tsx'));
 
-// The only tabs that mount CKEditor. Hovering one starts the ~1.3 MB
-// download so the click lands on a module that is already loaded.
 const CKEDITOR_PAGES = new Set<string>(['cust_survey_file', 'eq_survey_file', 'other_notes']);
 
 export type CamMode = 'edit' | 'create';

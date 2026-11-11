@@ -7,6 +7,11 @@ interface BranchOption {
     branch_name: string;
 }
 
+interface BranchResponse {
+    branches: BranchOption[];
+    default_branch_cd: string;
+}
+
 const toISO = (d: Date): string => {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -29,8 +34,9 @@ const AllCamDataPage: React.FC = () => {
     useEffect(() => {
         (async () => {
             try {
-                const res = await api.get<BranchOption[]>('/CAM/Approved/all-cam-data/branches');
-                setBranches(res.data);
+                const res = await api.get<BranchResponse>('/CAM/Approved/all-cam-data/branches');
+                setBranches(res.data.branches);
+                setBranchCd(res.data.default_branch_cd || '');
             } catch (err) {
                 console.error('Branch list error:', err);
             }

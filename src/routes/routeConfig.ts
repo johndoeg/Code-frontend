@@ -43,6 +43,9 @@ export const CAM_REPORT_ROUTES: RouteTuple[] = [
     ["/customer-outstanding", () => import("@/features/cam/pages/ReportView/Others/CustomerOustandingPage")],
     ["/summary-rundownosp", () => import("@/features/cam/pages/ReportView/Others/SummaryRunDownOSPPage")],
     ["/history-mrp", () => import("@/features/cam/pages/ReportView/Others/HistoryMRPPage")],
+
+    ["/cam-inprogress-econtract", () => import("@/features/cam/pages/ReportView/Others/CAMInProgressEContractPage")],
+
     ["/cam-ma", () => import("@/features/cam/pages/EditCAM/ByMA/CamEditContainer")],
     ["/edit-insurance", () => import("@/features/cam/pages/EditCAM/Insurance/EditInsurancePage")],
     ["/rpt-in-progress-cam", () => import("@/features/cam/pages/ReportView/ApprovedCAM/ListInprogressCAMPage")],

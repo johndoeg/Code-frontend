@@ -2,17 +2,18 @@ import { useState, useMemo } from "react";
 import api from '@/shared/api/axiosInstance';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 
-interface SummaryCMORow {
-	fullname: string;
-	is_cmh: boolean;
+interface SummaryFigures {
 	unit1: number; unit2: number; tot_unit: number; pd_unit: number;
 	op1: number; op2: number; tot_op: number; pd_op: number;
 }
 
-interface SummaryMonthlyRow {
+interface SummaryCMORow extends SummaryFigures {
+	fullname: string;
+	is_cmh: boolean;
+}
+
+interface SummaryMonthlyRow extends SummaryFigures {
 	bulan: string;
-	unit1: number; unit2: number; tot_unit: number; pd_unit: number;
-	op1: number; op2: number; tot_op: number; pd_op: number;
 }
 
 interface RawRow {
@@ -71,7 +72,7 @@ interface SummaryTableProps<T> {
 	isBold?: (row: T) => boolean;
 }
 
-function SummaryTable<T extends object>({ rows, labelKey, labelHeader, isBold }: SummaryTableProps<T>) {
+function SummaryTable<T extends SummaryFigures>({ rows, labelKey, labelHeader, isBold }: SummaryTableProps<T>) {
 	const thCls = "px-3 py-1.5 text-xs font-medium text-[var(--app-text)] bg-[var(--app-surface)] border-b border-[var(--app-border)] text-center whitespace-nowrap";
 	const tdCls = (bold: boolean, right = false) =>
 		`px-3 py-1.5 border-b border-[var(--app-border)] text-xs ${right ? "text-right tabular-nums" : "text-center"} ${bold ? "font-semibold text-[var(--app-text)]" : "text-[var(--app-text)]"}`;

@@ -25,6 +25,8 @@ interface ContextData {
 
 interface DetailRow {
 	no: number;
+	branch_cd: string;
+	branch_name: string;
 	appl_no: string;
 	id_reject: string;
 	customer_name: string;
@@ -69,6 +71,8 @@ const parseIsoDate = (raw: string | null): Date | null => {
 	return new Date(y, m - 1, d);
 };
 
+const CONSOLIDATE_CMO: CmoOption[] = [{ employee_id: '000', full_name: 'Consolidate' }];
+
 const sameCode = (a: string, b: string) =>
 	String(a).trim().replace(/^0+/, '') === String(b).trim().replace(/^0+/, '');
 
@@ -86,6 +90,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 	const [totals, setTotals] = useState<DetailTotals | null>(null);
 	const [showActions, setShowActions] = useState(false);
 	const [consolidated, setConsolidated] = useState(true);
+	const [branchConsolidated, setBranchConsolidated] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [hasSearched, setHasSearched] = useState(false);
@@ -142,6 +147,10 @@ const CmoDailyProductivityPage: React.FC = () => {
 						const match = lemparCmo ? cmoList.find((c) => sameCode(c.employee_id, lemparCmo)) : undefined;
 						cmoToSearch = match ? match.employee_id : '000';
 						setSelectedCmo(cmoToSearch);
+					} else {
+						setHqCmoOptions(CONSOLIDATE_CMO);
+						cmoToSearch = '000';
+						setSelectedCmo(cmoToSearch);
 					}
 				} else if (ctx.own_branch) {
 					branchToSearch = ctx.own_branch.branch_cd;
@@ -175,6 +184,9 @@ const CmoDailyProductivityPage: React.FC = () => {
 			} catch (err) {
 				console.error('CMO-by-branch error:', err);
 			}
+		} else {
+			setHqCmoOptions(CONSOLIDATE_CMO);
+			setSelectedCmo('000');
 		}
 	};
 
@@ -202,6 +214,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 			setTotals(response.data.totals);
 			setShowActions(response.data.show_actions);
 			setConsolidated(response.data.consolidated);
+			setBranchConsolidated(response.data.branch_consolidated);
 		} catch (err) {
 			console.error('CMO daily productivity detail error:', err);
 			setError('Failed to load report. Please try again.');
@@ -288,6 +301,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 
 	const cmoOptionsToShow = context?.is_hq ? hqCmoOptions : context?.cmos ?? [];
 	const showAddButton = context?.access_level === 'CMO';
+	const columnCount = 5 + (branchConsolidated ? 1 : 0) + (consolidated ? 1 : 0) + (showActions ? 1 : 0);
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
@@ -385,6 +399,7 @@ const CmoDailyProductivityPage: React.FC = () => {
 									<th className="border border-[var(--app-border)] px-2 py-2">No.</th>
 									<th className="border border-[var(--app-border)] px-2 py-2">Date</th>
 									<th className="border border-[var(--app-border)] px-2 py-2">CAM No.</th>
+									{branchConsolidated && <th className="border border-[var(--app-border)] px-2 py-2">Branch</th>}
 									{consolidated && <th className="border border-[var(--app-border)] px-2 py-2">CMO</th>}
 									<th className="border border-[var(--app-border)] px-2 py-2">Customer Name</th>
 									<th className="border border-[var(--app-border)] px-2 py-2">Status</th>
@@ -394,17 +409,17 @@ const CmoDailyProductivityPage: React.FC = () => {
 							<tbody>
 								{loading ? (
 									<tr>
-										<td colSpan={7} className="py-10 text-center">
+										<td colSpan={columnCount} className="py-10 text-center">
 											<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto" />
 										</td>
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
+										<td colSpan={columnCount} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : pageRows.length === 0 ? (
 									<tr>
-										<td colSpan={7} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-text)] opacity-70">
+										<td colSpan={columnCount} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-text)] opacity-70">
 											No records found for this period.
 										</td>
 									</tr>
@@ -414,7 +429,8 @@ const CmoDailyProductivityPage: React.FC = () => {
 											<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.no}</td>
 											<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.date}</td>
 											<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.appl_no}</td>
-											{consolidated && <td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.cmo_name}</td>}
+											{branchConsolidated && <td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.branch_name || row.branch_cd}</td>}
+										{consolidated && <td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.cmo_name}</td>}
 											<td className="border border-[var(--app-border)] px-2 py-1">{row.customer_name}</td>
 											<td className="border border-[var(--app-border)] px-2 py-1">{row.status}</td>
 											{showActions && (

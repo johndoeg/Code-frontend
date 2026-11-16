@@ -26,6 +26,8 @@ interface DataResponse {
 	due: number;
 	page: number;
 	limit: number;
+	company_name?: string;
+	printed_by?: string;
 }
 
 const MONTHS_ID = [
@@ -59,18 +61,9 @@ const CENTER_COLS: Record<PrintBy, number[]> = {
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
 const DATA_URL = "/CAM/Others/HistoryBPKBSubmission/data";
 
-function fmtDateShort(dateStr: string | null): string {
-	if (!dateStr) return "";
-	const d = new Date(dateStr);
-	const day = String(d.getDate()).padStart(2, "0");
-	const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()];
-	const year = String(d.getFullYear()).slice(-2);
-	return `${day}-${month}-${year}`;
-}
-
 function getRowValues(row: BPKBRow, mode: PrintBy): (string | number)[] {
-	const exec = fmtDateShort(row.execution);
-	const recv = fmtDateShort(row.status_dt);
+	const exec = row.execution ?? "";
+	const recv = row.status_dt ?? "";
 	if (mode === "0") return [row.dealer_name, row.lessee_nm, row.lease_no, row.branch_name, exec, recv, row.status, row.remark];
 	if (mode === "1") return [row.dealer_name, row.lessee_nm, row.lease_no, exec, recv, row.status, row.remark];
 	return [row.lessee_nm, row.lease_no, row.branch_name, exec, recv, row.status, row.remark];
@@ -146,7 +139,7 @@ function DealerModal({ isOpen, onClose, onSelect }: DealerModalProps) {
 						<table className="w-full text-sm border-collapse">
 							<thead className="bg-[var(--app-surface)] sticky top-0">
 								<tr>
-									{["Dealer Code", "Dealer Name", "Nickname", "Address", "Phone", "Contact"].map((h) => (
+									{["Dealer Code", "Dealer Name", "Dealer Nickname", "Address", "Phone", "Contact Person"].map((h) => (
 										<th key={h} className="px-3 py-2 text-xs font-medium text-[var(--app-text)] border-b border-[var(--app-border)] text-left whitespace-nowrap">
 											{h}
 										</th>
@@ -260,8 +253,11 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 	const [dealerModalOpen, setDealerModalOpen] = useState<boolean>(false);
 
 	const [printRows, setPrintRows] = useState<BPKBRow[] | null>(null);
+	const [companyName, setCompanyName] = useState<string>("");
+	const [printedBy, setPrintedBy] = useState<string>("");
 
 	const period = `${MONTHS_ID[bulanAwal]} ${tahunAwal} - ${MONTHS_ID[bulanAkhir]} ${tahunAkhir}`;
+	const printDate = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
 	const subjudul =
 		printBy === "0" ? "Consolidate" :
 			printBy === "1" ? `Branch - ${branches.find((b) => b.branch_cd === selectedBranch)?.branch_name ?? ""}` :
@@ -279,6 +275,8 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 		setTotal(0);
 		setNotDue(0);
 		setDue(0);
+		setCompanyName("");
+		setPrintedBy("");
 		setPrintRows(null);
 		setCurrentPage(1);
 		setHasSearched(false);
@@ -316,6 +314,8 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 			setTotal(res.data.total);
 			setNotDue(res.data.not_due);
 			setDue(res.data.due);
+			setCompanyName(res.data.company_name ?? "");
+			setPrintedBy(res.data.printed_by ?? "");
 			setCurrentPage(res.data.page);
 			setHasSearched(true);
 		} catch {
@@ -340,6 +340,8 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 				params: { ...filterParams(), all: 1 },
 			});
 			setPrintRows(res.data.rows);
+			setCompanyName(res.data.company_name ?? "");
+			setPrintedBy(res.data.printed_by ?? "");
 		} catch {
 			setError("Gagal menyiapkan data cetak. Silakan coba lagi.");
 		} finally {
@@ -396,8 +398,10 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 		<>
 			<style>{`
 				@media print {
+					body * { visibility: hidden !important; }
+					.print-only, .print-only * { visibility: visible !important; }
+					.print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 					.screen-only { display: none !important; }
-					.print-only  { display: block !important; }
 					body { font-family: Tahoma, Arial, sans-serif; font-size: 12px; }
 				}
 				@media screen { .print-only { display: none; } }
@@ -593,7 +597,17 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 				<table border={0} cellPadding={2} cellSpacing={0} style={{ width: "100%", borderCollapse: "collapse" }}>
 					<tbody>
 						<tr>
-							<td colSpan={4} align="center" style={{ fontSize: 16, fontWeight: "bold", letterSpacing: "0.1em" }}>
+							<td width="25%" style={{ whiteSpace: "nowrap" }}>{companyName}</td>
+							<td width="50%"></td>
+							<td width="10%"></td>
+							<td width="15%">
+								Date : {printDate}
+								<br />
+								Print By : {printedBy}
+							</td>
+						</tr>
+						<tr>
+							<td colSpan={4} align="center" style={{ fontSize: 16, fontWeight: "bold", letterSpacing: "0.2em" }}>
 								HISTORY OF BPKB SUBMISSION BY DEALER/ SHOWROOM
 							</td>
 						</tr>
@@ -608,7 +622,7 @@ const HistoryBPKBSubmissionPage: React.FC = () => {
 					</tbody>
 				</table>
 				<br />
-				<PrintTable data={printRows ?? []} mode={printBy} />
+				<PrintTable data={printRows ?? rows} mode={printBy} />
 			</div>
 
 			<DealerModal

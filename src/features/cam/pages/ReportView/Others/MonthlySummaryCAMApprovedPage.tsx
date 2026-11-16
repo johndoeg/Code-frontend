@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import type { Range } from "xlsx";
+import { useState, useEffect, Fragment } from "react";
 import api from '@/shared/api/axiosInstance';
 
 interface DateInfo { day_num: number; day_str: string; is_holiday: boolean; }
@@ -20,6 +19,8 @@ interface ReportData {
 	dates: DateInfo[]; branches: Branch[];
 	grand_day_totals: number[];
 	grand_total: number; grand_avg: number; grand_cmo_count: number;
+	company_name?: string;
+	printed_by?: string;
 }
 
 const MONTHS_ID = [
@@ -40,59 +41,6 @@ const GRAY_TOTAL = "#f3f4f6";
 const GRAY_GRAND = "#e5e7eb";
 
 function rowBg(emp: Employee) { return emp.is_cmh ? CMH_BG : WHITE; }
-function dayCellBg(isHoliday: boolean) { return isHoliday ? HOLIDAY_BG : "transparent"; }
-
-async function exportExcel(data: ReportData): Promise<void> {
-	if (!data.dates.length) return;
-	const XLSX = await import("xlsx");
-	const numDays = data.dates.length;
-	const totCols = numDays + 4;
-	const rows: (string | number | null)[][] = [];
-	const merges: Range[] = [];
-
-	const addRow = (r: (string | number | null)[]) => rows.push(r);
-	const merge = (r1: number, c1: number, r2: number, c2: number) =>
-		merges.push({ s: { r: r1, c: c1 }, e: { r: r2, c: c2 } });
-
-	addRow(["CMO PRODUCTIVITY", ...Array(totCols - 1).fill(null)]);
-	merge(0, 0, 0, totCols - 1);
-	addRow([`Approval Date : ${data.asof}`, ...Array(totCols - 1).fill(null)]);
-	merge(1, 0, 1, totCols - 1);
-	addRow([`${data.working_days} Working Days`, ...Array(totCols - 1).fill(null)]);
-	merge(2, 0, 2, totCols - 1);
-
-	for (const branch of data.branches) {
-		const hr = rows.length;
-		addRow(["No.", "Name", branch.branch_name, ...Array(numDays - 1).fill(null), "Total", "Avg/Day"]);
-		merge(hr, 0, hr + 1, 0);
-		merge(hr, 1, hr + 1, 1);
-		merge(hr, 2, hr, numDays + 1);
-		merge(hr, numDays + 2, hr + 1, numDays + 2);
-		merge(hr, numDays + 3, hr + 1, numDays + 3);
-
-		addRow([null, null, ...data.dates.map(d => Number(d.day_str)), null, null]);
-
-		for (const emp of branch.employees) {
-			addRow([emp.no, emp.fullname, ...emp.daily_counts, emp.total, emp.avg_per_day]);
-		}
-
-		addRow([branch.cmo_count, "Total", ...branch.day_totals, branch.branch_total, branch.branch_avg]);
-	}
-
-	addRow([data.grand_cmo_count, "Grand Total",
-	...data.grand_day_totals, data.grand_total, data.grand_avg]);
-
-	const ws = XLSX.utils.aoa_to_sheet(rows);
-	ws["!merges"] = merges;
-	ws["!cols"] = [
-		{ wch: 5 }, { wch: 22 },
-		...Array(numDays).fill({ wch: 4 }),
-		{ wch: 8 }, { wch: 8 },
-	];
-	const wb = XLSX.utils.book_new();
-	XLSX.utils.book_append_sheet(wb, ws, "CMOProductivity");
-	XLSX.writeFile(wb, "SummaryCAMbyCMO.xlsx");
-}
 
 function MonthYearSelect({ month, year, onMonthChange, onYearChange }: {
 	month: number; year: number;
@@ -114,6 +62,86 @@ function MonthYearSelect({ month, year, onMonthChange, onYearChange }: {
 const tdBase: React.CSSProperties = { border: "1px solid #ccc", padding: "2px 4px", fontSize: 11, color: "#111827" };
 const thBase: React.CSSProperties = { ...tdBase, fontWeight: "bold", backgroundColor: "#f9fafb" };
 
+function TableBody({ data, isPrint }: { data: ReportData; isPrint: boolean }) {
+	const dates = data.dates;
+	const numDays = dates.length;
+	if (!numDays) return null;
+	const cellSz = isPrint ? 10 : 11;
+	const tdS = (extra?: React.CSSProperties): React.CSSProperties =>
+		({ ...tdBase, fontSize: cellSz, textAlign: "center", ...extra });
+	const thS = (extra?: React.CSSProperties): React.CSSProperties =>
+		({ ...thBase, fontSize: cellSz, textAlign: "center", ...extra });
+	const noCls   = isPrint ? undefined : "sticky-no";
+	const nameCls = isPrint ? undefined : "sticky-name";
+	const dayW    = isPrint ? 22 : 26;
+
+	return (
+		<>
+			{data.branches.map((branch) => (
+				<Fragment key={branch.branch_cd}>
+					<tr key={`${branch.branch_cd}-h1`}>
+						<th rowSpan={2} className={noCls} style={thS({ width: NO_W, minWidth: NO_W })}>No.</th>
+						<th rowSpan={2} className={nameCls} style={thS({ minWidth: NAME_W, textAlign: "left", paddingLeft: 4 })}>Name</th>
+						<th colSpan={numDays} style={thS(isPrint ? undefined : { backgroundColor: "#dbeafe" })}>{branch.branch_name}</th>
+						<th rowSpan={2} style={thS()}>Total</th>
+						<th rowSpan={2} style={thS()}>Avg/Day</th>
+					</tr>
+					<tr key={`${branch.branch_cd}-h2`}>
+						{dates.map((d) => (
+							<th key={d.day_num} style={thS({ backgroundColor: d.is_holiday ? HOLIDAY_BG : "#f9fafb", color: d.is_holiday ? "#b91c1c" : "#374151", width: dayW, minWidth: dayW })}>
+								{d.day_str}
+							</th>
+						))}
+					</tr>
+
+					{branch.employees.map((emp) => {
+						const bg = rowBg(emp);
+						return (
+							<tr key={emp.employee_id} style={{ backgroundColor: bg }}>
+								<td className={noCls} style={tdS({ backgroundColor: bg })}>{emp.no}</td>
+								<td className={nameCls} style={tdS({ textAlign: "left", paddingLeft: 4, backgroundColor: bg, color: emp.name_color || "#000", fontWeight: emp.is_cmh ? "bold" : "normal", whiteSpace: "nowrap" })}>
+									{emp.fullname}
+								</td>
+								{emp.daily_counts.map((count, di) => (
+									<td key={di} style={tdS({ backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : bg })}>
+										{count > 0 ? count : ""}
+									</td>
+								))}
+								<td style={tdS({ backgroundColor: bg })}>{emp.total}</td>
+								<td style={tdS({ backgroundColor: bg })}>{emp.avg_per_day}</td>
+							</tr>
+						);
+					})}
+
+					<tr key={`${branch.branch_cd}-tot`} style={{ backgroundColor: GRAY_TOTAL }}>
+						<td className={noCls} style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold" })}>{branch.cmo_count}</td>
+						<td className={nameCls} style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold", textAlign: "left", paddingLeft: 4 })}>Total</td>
+						{branch.day_totals.map((t, di) => (
+							<td key={di} style={tdS({ backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : GRAY_TOTAL, fontWeight: "bold" })}>
+								{t > 0 ? t : ""}
+							</td>
+						))}
+						<td style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold" })}>{branch.branch_total}</td>
+						<td style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold" })}>{branch.branch_avg}</td>
+					</tr>
+				</Fragment>
+			))}
+
+			<tr style={{ backgroundColor: GRAY_GRAND }}>
+				<td className={noCls} style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold" })}>{data.grand_cmo_count}</td>
+				<td className={nameCls} style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold", textAlign: "left", paddingLeft: 4 })}>Grand Total</td>
+				{data.grand_day_totals.map((t, di) => (
+					<td key={di} style={tdS({ backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : GRAY_GRAND, fontWeight: "bold" })}>
+						{t > 0 ? t : ""}
+					</td>
+				))}
+				<td style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold" })}>{data.grand_total}</td>
+				<td style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold" })}>{data.grand_avg}</td>
+			</tr>
+		</>
+	);
+}
+
 const MonthlySummaryCAMApprovedPage: React.FC = () => {
 	const [bulan, setBulan] = useState<number>(CUR_MONTH);
 	const [tahun, setTahun] = useState<number>(CUR_YEAR);
@@ -121,6 +149,7 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
 	const [shouldPrint, setShouldPrint] = useState<boolean>(false);
+	const [exporting, setExporting] = useState<boolean>(false);
 
 	useEffect(() => {
 		if (shouldPrint && data) { window.print(); setShouldPrint(false); }
@@ -140,6 +169,8 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 		}
 	};
 
+	const printDate = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
+
 	const handlePreview = () => { setData(null); fetchData(); };
 
 	const handlePrint = async () => {
@@ -148,94 +179,36 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 	};
 
 	const handleExport = async () => {
-		const d = data ?? await fetchData();
-		if (d) await exportExcel(d);
-	};
-
-	const dates = data?.dates ?? [];
-	const numDays = dates.length;
-
-	const TableBody = ({ isPrint }: { isPrint: boolean }) => {
-		if (!data || !numDays) return null;
-		const cellSz = isPrint ? 10 : 11;
-		const tdS = (extra?: React.CSSProperties): React.CSSProperties =>
-			({ ...tdBase, fontSize: cellSz, textAlign: "center", ...extra });
-		const thS = (extra?: React.CSSProperties): React.CSSProperties =>
-			({ ...thBase, fontSize: cellSz, textAlign: "center", ...extra });
-
-		return (
-			<>
-				{data.branches.map((branch) => (
-					<>
-						<tr key={`${branch.branch_cd}-h1`}>
-							<th rowSpan={2} style={thS({ width: NO_W, minWidth: NO_W })}>No.</th>
-							<th rowSpan={2} style={thS({ minWidth: NAME_W, textAlign: "left", paddingLeft: 4 })}>Name</th>
-							<th colSpan={numDays} style={thS()}>{branch.branch_name}</th>
-							<th rowSpan={2} style={thS()}>Total</th>
-							<th rowSpan={2} style={thS()}>Avg/Day</th>
-						</tr>
-						<tr key={`${branch.branch_cd}-h2`}>
-							{dates.map((d) => (
-								<th key={d.day_num} style={thS({ backgroundColor: d.is_holiday ? HOLIDAY_BG : "#f9fafb", width: 22, minWidth: 22 })}>
-									{d.day_str}
-								</th>
-							))}
-						</tr>
-
-						{branch.employees.map((emp) => {
-							const bg = rowBg(emp);
-							return (
-								<tr key={emp.employee_id} style={{ backgroundColor: bg }}>
-									<td style={tdS({ backgroundColor: bg })}>{emp.no}</td>
-									<td style={tdS({ textAlign: "left", paddingLeft: 4, backgroundColor: bg, color: emp.name_color || "#000", fontWeight: emp.is_cmh ? "bold" : "normal", whiteSpace: "nowrap" })}>
-										{emp.fullname}
-									</td>
-									{emp.daily_counts.map((count, di) => (
-										<td key={di} style={tdS({ backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : bg })}>
-											{count > 0 ? count : ""}
-										</td>
-									))}
-									<td style={tdS({ backgroundColor: bg })}>{emp.total}</td>
-									<td style={tdS({ backgroundColor: bg })}>{emp.avg_per_day}</td>
-								</tr>
-							);
-						})}
-
-						<tr key={`${branch.branch_cd}-tot`} style={{ backgroundColor: GRAY_TOTAL }}>
-							<td style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold" })}>{branch.cmo_count}</td>
-							<td style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold", textAlign: "left", paddingLeft: 4 })}>Total</td>
-							{branch.day_totals.map((t, di) => (
-								<td key={di} style={tdS({ backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : GRAY_TOTAL, fontWeight: "bold" })}>
-									{t > 0 ? t : ""}
-								</td>
-							))}
-							<td style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold" })}>{branch.branch_total}</td>
-							<td style={tdS({ backgroundColor: GRAY_TOTAL, fontWeight: "bold" })}>{branch.branch_avg}</td>
-						</tr>
-					</>
-				))}
-
-				<tr style={{ backgroundColor: GRAY_GRAND }}>
-					<td style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold" })}>{data.grand_cmo_count}</td>
-					<td style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold", textAlign: "left", paddingLeft: 4 })}>Grand Total</td>
-					{data.grand_day_totals.map((t, di) => (
-						<td key={di} style={tdS({ backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : GRAY_GRAND, fontWeight: "bold" })}>
-							{t > 0 ? t : ""}
-						</td>
-					))}
-					<td style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold" })}>{data.grand_total}</td>
-					<td style={tdS({ backgroundColor: GRAY_GRAND, fontWeight: "bold" })}>{data.grand_avg}</td>
-				</tr>
-			</>
-		);
+		setExporting(true);
+		setError(null);
+		try {
+			const res = await api.get("/CAM/Others/MonthlySummaryCAMApproved/excel", {
+				params: { bulan, tahun },
+				responseType: "blob",
+			});
+			const url = window.URL.createObjectURL(new Blob([res.data]));
+			const link = document.createElement("a");
+			link.href = url;
+			link.setAttribute("download", "SummaryCAMbyCMO.xlsx");
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			window.URL.revokeObjectURL(url);
+		} catch {
+			setError("Gagal mengunduh Excel. Silakan coba lagi.");
+		} finally {
+			setExporting(false);
+		}
 	};
 
 	return (
 		<>
 			<style>{`
 				@media print {
+					body * { visibility: hidden !important; }
+					.print-only, .print-only * { visibility: visible !important; }
+					.print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 					.screen-only { display: none !important; }
-					.print-only  { display: block !important; }
 					body { font-family: Tahoma, Arial, sans-serif; font-size: 10px; }
 					@page { size: landscape; margin: 8mm; }
 				}
@@ -249,7 +222,6 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 
 					<div className="mb-6">
 						<h1 className="text-2xl font-semibold text-[var(--app-text)]">CMO Productivity</h1>
-						<p className="text-sm text-[var(--app-text)] mt-1">Monthly Summary CAM Approved by CMO</p>
 					</div>
 
 					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] p-4 mb-6 flex flex-wrap gap-3 items-end">
@@ -267,9 +239,9 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 							className="px-4 py-2 text-sm font-medium rounded-lg bg-[var(--app-surface-alt)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed">
 							Print
 						</button>
-						<button onClick={handleExport} disabled={loading}
+						<button onClick={handleExport} disabled={loading || exporting}
 							className="px-4 py-2 text-sm font-medium rounded-lg bg-green-600 text-white border border-green-700 hover:bg-green-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed">
-							Export to Excel
+							{exporting ? "Menyiapkan…" : "Export to Excel"}
 						</button>
 					</div>
 
@@ -296,7 +268,7 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 
 							<div className="flex gap-4 mb-3 text-xs text-[var(--app-text)]">
 								<span className="flex items-center gap-1">
-									<span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: CMH_BG }} /> CMH (Manager)
+									<span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: CMH_BG }} /> CMH
 								</span>
 								<span className="flex items-center gap-1">
 									<span className="inline-block w-3 h-3 rounded" style={{ backgroundColor: HOLIDAY_BG }} /> Holiday / Weekend
@@ -307,84 +279,7 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 							<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-auto">
 								<table style={{ borderCollapse: "collapse", fontSize: 11, whiteSpace: "nowrap" }}>
 									<tbody>
-										{data.branches.map((branch) => (
-											<>
-												<tr key={`${branch.branch_cd}-h1`}>
-													<th rowSpan={2} className="sticky-no"
-														style={{ ...thBase, width: NO_W, minWidth: NO_W, textAlign: "center" }}>No.</th>
-													<th rowSpan={2} className="sticky-name"
-														style={{ ...thBase, minWidth: NAME_W, textAlign: "left", paddingLeft: 4 }}>Name</th>
-													<th colSpan={numDays}
-														style={{ ...thBase, textAlign: "center", backgroundColor: "#dbeafe" }}>
-														{branch.branch_name}
-													</th>
-													<th rowSpan={2} style={{ ...thBase, textAlign: "center" }}>Total</th>
-													<th rowSpan={2} style={{ ...thBase, textAlign: "center" }}>Avg/Day</th>
-												</tr>
-												<tr key={`${branch.branch_cd}-h2`}>
-													{dates.map((d) => (
-														<th key={d.day_num} style={{
-															...thBase, textAlign: "center",
-															width: 26, minWidth: 26,
-															backgroundColor: d.is_holiday ? HOLIDAY_BG : "#f9fafb",
-															color: d.is_holiday ? "#b91c1c" : "#374151",
-														}}>
-															{d.day_str}
-														</th>
-													))}
-												</tr>
-
-												{branch.employees.map((emp) => {
-													const bg = rowBg(emp);
-													return (
-														<tr key={emp.employee_id} style={{ backgroundColor: bg }}>
-															<td className="sticky-no" style={{ ...tdBase, width: NO_W, textAlign: "center", backgroundColor: bg }}>{emp.no}</td>
-															<td className="sticky-name" style={{
-																...tdBase, minWidth: NAME_W, textAlign: "left", paddingLeft: 4,
-																backgroundColor: bg, color: emp.name_color || "#000",
-																fontWeight: emp.is_cmh ? "bold" : "normal",
-															}}>
-																{emp.fullname}
-															</td>
-															{emp.daily_counts.map((count, di) => (
-																<td key={di} style={{
-																	...tdBase, textAlign: "center",
-																	backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : bg,
-																}}>
-																	{count > 0 ? count : ""}
-																</td>
-															))}
-															<td style={{ ...tdBase, textAlign: "center", fontWeight: "bold" }}>{emp.total}</td>
-															<td style={{ ...tdBase, textAlign: "center" }}>{emp.avg_per_day}</td>
-														</tr>
-													);
-												})}
-
-												<tr key={`${branch.branch_cd}-tot`} style={{ backgroundColor: GRAY_TOTAL }}>
-													<td className="sticky-no" style={{ ...tdBase, width: NO_W, textAlign: "center", fontWeight: "bold", backgroundColor: GRAY_TOTAL }}>{branch.cmo_count}</td>
-													<td className="sticky-name" style={{ ...tdBase, fontWeight: "bold", textAlign: "left", paddingLeft: 4, backgroundColor: GRAY_TOTAL }}>Total</td>
-													{branch.day_totals.map((t, di) => (
-														<td key={di} style={{ ...tdBase, textAlign: "center", fontWeight: "bold", backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : GRAY_TOTAL }}>
-															{t > 0 ? t : ""}
-														</td>
-													))}
-													<td style={{ ...tdBase, textAlign: "center", fontWeight: "bold" }}>{branch.branch_total}</td>
-													<td style={{ ...tdBase, textAlign: "center", fontWeight: "bold" }}>{branch.branch_avg}</td>
-												</tr>
-											</>
-										))}
-
-										<tr style={{ backgroundColor: GRAY_GRAND }}>
-											<td className="sticky-no" style={{ ...tdBase, width: NO_W, textAlign: "center", fontWeight: "bold", backgroundColor: GRAY_GRAND }}>{data.grand_cmo_count}</td>
-											<td className="sticky-name" style={{ ...tdBase, fontWeight: "bold", textAlign: "left", paddingLeft: 4, backgroundColor: GRAY_GRAND }}>Grand Total</td>
-											{data.grand_day_totals.map((t, di) => (
-												<td key={di} style={{ ...tdBase, textAlign: "center", fontWeight: "bold", backgroundColor: dates[di].is_holiday ? HOLIDAY_BG : GRAY_GRAND }}>
-													{t > 0 ? t : ""}
-												</td>
-											))}
-											<td style={{ ...tdBase, textAlign: "center", fontWeight: "bold" }}>{data.grand_total}</td>
-											<td style={{ ...tdBase, textAlign: "center", fontWeight: "bold" }}>{data.grand_avg}</td>
-										</tr>
+										<TableBody data={data} isPrint={false} />
 									</tbody>
 								</table>
 							</div>
@@ -398,7 +293,17 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 					<table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 8 }}>
 						<tbody>
 							<tr>
-								<td colSpan={4} align="center" style={{ fontSize: 14, fontWeight: "bold", letterSpacing: "0.15em" }}>
+								<td width="25%" style={{ whiteSpace: "nowrap" }}>{data.company_name ?? ""}</td>
+								<td width="50%"></td>
+								<td width="10%"></td>
+								<td width="15%">
+									Date : {printDate}
+									<br />
+									Print By : {data.printed_by ?? ""}
+								</td>
+							</tr>
+							<tr>
+								<td colSpan={4} align="center" style={{ fontSize: 16, fontWeight: "bold", letterSpacing: "0.2em" }}>
 									CMO PRODUCTIVITY
 								</td>
 							</tr>
@@ -417,7 +322,7 @@ const MonthlySummaryCAMApprovedPage: React.FC = () => {
 
 					<table border={1} cellPadding={2} cellSpacing={0} style={{ width: "100%", borderCollapse: "collapse" }}>
 						<tbody>
-							<TableBody isPrint />
+							<TableBody data={data} isPrint />
 						</tbody>
 					</table>
 				</div>

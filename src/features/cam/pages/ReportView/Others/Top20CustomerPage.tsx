@@ -42,9 +42,6 @@ const Top20CustomerPage: React.FC = () => {
 				<div className="mb-6 flex items-center justify-between flex-wrap gap-3">
 					<div>
 						<h1 className="text-2xl font-semibold text-[var(--app-text)]">Top 20 Customer</h1>
-						<p className="text-sm text-[var(--app-text)] mt-1">
-							Ranked by total outstanding principal
-						</p>
 					</div>
 
 					{data.length > 0 && (

@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import type { Range } from "xlsx";
 import api from '@/shared/api/axiosInstance';
 
 interface Totals {
@@ -39,6 +38,8 @@ interface ReportData {
 	summary: SummaryRow[];
 	detail_new: BranchDetail[];
 	detail_used: BranchDetail[];
+	company_name?: string;
+	printed_by?: string;
 }
 
 const MONTHS_ID = [
@@ -59,88 +60,6 @@ const fmtDate = (s: string | null) => {
 	const [y, m, d] = s.split("-");
 	return `${d}-${m}-${y}`;
 };
-
-async function exportExcel(data: ReportData, bulan: number, tahun: number): Promise<void> {
-	const XLSX = await import("xlsx");
-	const rows: (string | number | null)[][] = [];
-	const merges: Range[] = [];
-	const C = 11;
-
-	const push = (row: (string | number | null)[]) => rows.push(row);
-	const merge = (r1: number, c1: number, r2: number, c2: number) =>
-		merges.push({ s: { r: r1, c: c1 }, e: { r: r2, c: c2 } });
-
-	const totAll = data.totals.tot_new + data.totals.tot_used;
-	const blank = Array(C).fill(null);
-
-	push(["LAPORAN PELUNASAN MOBIL BARU DAN BEKAS", ...Array(C - 1).fill(null)]);
-	merge(0, 0, 0, C - 1);
-	push(blank);
-
-	push(["NEW CAR", null, null, null, null, "USED CAR", null, null, null, null, null]);
-	merge(2, 0, 2, 4);
-	merge(2, 5, 2, 10);
-
-	push(["MONTH", "BRANCH", "NET FINANCE", "UNIT", "Persentase", "MONTH", "BRANCH", "NET FINANCE", "UNIT", "Persentase", "Jumlah"]);
-
-	data.summary.forEach((row, i) => {
-		const period = i === 0 ? data.month_name : "";
-		const pctNew = parseFloat(fmtPct(row.unit_new, totAll));
-		const pctUsed = parseFloat(fmtPct(row.unit_used, totAll));
-		push([period, row.branch_name, row.nf_new, row.unit_new, pctNew, period, row.branch_name, row.nf_used, row.unit_used, pctUsed, row.unit_new + row.unit_used]);
-	});
-
-	push(["", "TOTAL", data.totals.tot_nf_new, data.totals.tot_new, parseFloat(fmtPct(data.totals.tot_new, totAll)),
-		"", "TOTAL", data.totals.tot_nf_used, data.totals.tot_used, parseFloat(fmtPct(data.totals.tot_used, totAll)), totAll]);
-
-	push(blank);
-
-	const totR = rows.length;
-	push(["Total Mobil Baru dan Bekas", null, "Net Finance", "Unit", ...Array(C - 4).fill(null)]);
-	push([null, null, data.totals.tot_nf_new + data.totals.tot_nf_used, totAll, ...Array(C - 4).fill(null)]);
-	merge(totR, 0, totR + 1, 1);
-
-	push(blank);
-
-	const pushDetailSection = (title: string, details: BranchDetail[]) => {
-		const titleR = rows.length;
-		push([title, ...Array(C - 1).fill(null)]);
-		merge(titleR, 0, titleR, 8);
-
-		details.forEach((branch) => {
-			const brR = rows.length;
-			push([branch.branch_name.toUpperCase(), ...Array(C - 1).fill(null)]);
-			merge(brR, 0, brR, 8);
-
-			push([...DETAIL_HEADERS, null, null]);
-
-			let totUnit = 0, totNf = 0;
-			branch.contracts.forEach((c, ci) => {
-				totUnit += c.unit;
-				totNf += c.net_finance;
-				push([ci + 1, c.appl_no, c.lease_no, c.lessee_nm, c.net_finance, c.unit, fmtDate(c.execution), c.employee_fullname, "", null, null]);
-			});
-
-			push(["", "", "", "", totNf, totUnit, "", "", "", null, null]);
-		});
-
-		push(blank);
-	};
-
-	pushDetailSection("Data Customer Pelunasan Mobil Baru", data.detail_new);
-	pushDetailSection("Data Customer Pelunasan Mobil Bekas", data.detail_used);
-
-	const ws = XLSX.utils.aoa_to_sheet(rows);
-	ws["!merges"] = merges;
-	ws["!cols"] = [
-		{ wch: 12 }, { wch: 22 }, { wch: 18 }, { wch: 8 }, { wch: 10 },
-		{ wch: 12 }, { wch: 22 }, { wch: 18 }, { wch: 8 }, { wch: 10 }, { wch: 8 },
-	];
-
-	const wb = XLSX.utils.book_new();
-	XLSX.utils.book_append_sheet(wb, ws, "LaporanPelunasan");
-	XLSX.writeFile(wb, "LaporanPelunasanMobil.xlsx");
-}
 
 const PTD_STYLE: React.CSSProperties = { border: "1px solid #000", padding: "2px 4px", fontSize: 11, fontFamily: "Tahoma, Arial, sans-serif" };
 
@@ -210,6 +129,7 @@ const LaporanPelunasanMobilPage: React.FC = () => {
 	const [loading, setLoading] = useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
 	const [shouldPrint, setShouldPrint] = useState<boolean>(false);
+	const [exporting, setExporting] = useState<boolean>(false);
 
 	useEffect(() => {
 		if (shouldPrint && data) {
@@ -245,10 +165,29 @@ const LaporanPelunasanMobilPage: React.FC = () => {
 	};
 
 	const handleExport = async () => {
-		const d = data ?? await fetchData();
-		if (d) await exportExcel(d, bulan, tahun);
+		setExporting(true);
+		setError(null);
+		try {
+			const res = await api.get("/CAM/Others/LaporanPelunasan/excel", {
+				params: { bulan, tahun },
+				responseType: "blob",
+			});
+			const url = window.URL.createObjectURL(new Blob([res.data]));
+			const link = document.createElement("a");
+			link.href = url;
+			link.setAttribute("download", "LaporanPelunasanMobil.xlsx");
+			document.body.appendChild(link);
+			link.click();
+			link.remove();
+			window.URL.revokeObjectURL(url);
+		} catch {
+			setError("Gagal mengunduh Excel. Silakan coba lagi.");
+		} finally {
+			setExporting(false);
+		}
 	};
 
+	const printDate = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
 	const totAll = data ? data.totals.tot_new + data.totals.tot_used : 0;
 	const totNfAll = data ? data.totals.tot_nf_new + data.totals.tot_nf_used : 0;
 
@@ -256,8 +195,10 @@ const LaporanPelunasanMobilPage: React.FC = () => {
 		<>
 			<style>{`
 				@media print {
+					body * { visibility: hidden !important; }
+					.print-only, .print-only * { visibility: visible !important; }
+					.print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 					.screen-only { display: none !important; }
-					.print-only  { display: block !important; }
 					body { font-family: Tahoma, Arial, sans-serif; font-size: 11px; }
 					@page { size: landscape; margin: 10mm; }
 				}
@@ -287,9 +228,9 @@ const LaporanPelunasanMobilPage: React.FC = () => {
 							className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all bg-[var(--app-surface-alt)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed">
 							Print
 						</button>
-						<button onClick={handleExport} disabled={loading}
+						<button onClick={handleExport} disabled={loading || exporting}
 							className="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all bg-green-600 text-white border border-green-700 hover:bg-green-700 disabled:bg-gray-500 disabled:border-gray-500 disabled:cursor-not-allowed">
-							Export to Excel
+							{exporting ? "Menyiapkan…" : "Export to Excel"}
 						</button>
 					</div>
 
@@ -389,9 +330,22 @@ const LaporanPelunasanMobilPage: React.FC = () => {
 					<table border={0} cellPadding={2} cellSpacing={0} style={{ width: "100%", borderCollapse: "collapse", marginBottom: 8 }}>
 						<tbody>
 							<tr>
-								<td colSpan={4} align="center" style={{ fontSize: 14, fontWeight: "bold", letterSpacing: "0.1em" }}>
+								<td width="25%" style={{ whiteSpace: "nowrap" }}>{data.company_name ?? ""}</td>
+								<td width="50%"></td>
+								<td width="10%"></td>
+								<td width="15%">
+									Date : {printDate}
+									<br />
+									Print By : {data.printed_by ?? ""}
+								</td>
+							</tr>
+							<tr>
+								<td colSpan={4} align="center" style={{ fontSize: 16, fontWeight: "bold", letterSpacing: "0.2em" }}>
 									LAPORAN PELUNASAN MOBIL BARU DAN BEKAS
 								</td>
+							</tr>
+							<tr>
+								<td colSpan={4} align="center">Periode : {data.month_name} {tahun}</td>
 							</tr>
 						</tbody>
 					</table>

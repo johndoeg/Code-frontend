@@ -12,6 +12,8 @@ interface Branch {
 
 interface SummaryRow {
 	no: number;
+	branch_cd: string;
+	branch_name: string;
 	employee_id: string;
 	cmo_name: string;
 	total_created: number;
@@ -67,6 +69,7 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [hasSearched, setHasSearched] = useState(false);
+	const [branchConsolidated, setBranchConsolidated] = useState(false);
 	const [branchNotAllowed, setBranchNotAllowed] = useState<string | null>(null);
 	const [searchedRange, setSearchedRange] = useState<{ start: string; end: string; branch: string } | null>(null);
 
@@ -75,6 +78,7 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 
 	const [page, setPage] = useState(1);
 	const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+	const columnCount = branchConsolidated ? 9 : 8;
 	const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
 	useEffect(() => {
@@ -127,7 +131,7 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 		setHasSearched(true);
 		setPage(1);
 		try {
-			const response = await api.get<{ data: SummaryRow[]; totals: SummaryTotals }>(
+			const response = await api.get<{ data: SummaryRow[]; totals: SummaryTotals; branch_consolidated: boolean }>(
 				'/CAM/CMO/daily-productivity-by-cmo/summary',
 				{
 					params: {
@@ -139,6 +143,7 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 			);
 			setRows(response.data.data);
 			setTotals(response.data.totals);
+			setBranchConsolidated(response.data.branch_consolidated);
 			setSearchedRange({ start: toISO(start), end: toISO(end), branch: branchCd });
 		} catch (err) {
 			console.error('CMO daily productivity summary error:', err);
@@ -153,11 +158,11 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 		runSearch(branch, startDate, endDate);
 	};
 
-	const buildDrillDownPath = (employeeId: string) => {
+	const buildDrillDownPath = (employeeId: string, rowBranchCd?: string) => {
 		const params = new URLSearchParams({
 			lempar_start_dt: searchedRange?.start ?? '',
 			lempar_end_dt: searchedRange?.end ?? '',
-			lempar_branch: searchedRange?.branch ?? '',
+			lempar_branch: rowBranchCd || searchedRange?.branch || '',
 			lempar_cmo: employeeId,
 		});
 		return `${DETAIL_ROUTE}?${params.toString()}`;
@@ -232,6 +237,7 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 							<thead>
 								<tr className="bg-[var(--app-surface-alt)] text-[var(--app-text)]">
 									<th className="border border-[var(--app-border)] px-2 py-2">No.</th>
+									{branchConsolidated && <th className="border border-[var(--app-border)] px-2 py-2">Branch</th>}
 									<th className="border border-[var(--app-border)] px-2 py-2">CMO</th>
 									<th className="border border-[var(--app-border)] px-2 py-2">CAM Created</th>
 									<th className="border border-[var(--app-border)] px-2 py-2">Reject to Watchlist</th>
@@ -244,29 +250,30 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 							<tbody>
 								{loading ? (
 									<tr>
-										<td colSpan={8} className="py-10 text-center">
+										<td colSpan={columnCount} className="py-10 text-center">
 											<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto" />
 										</td>
 									</tr>
 								) : !hasSearched ? (
 									<tr>
-										<td colSpan={8} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
+										<td colSpan={columnCount} className="border border-[var(--app-border)] px-2 py-8 text-center text-[var(--app-text)] opacity-70"></td>
 									</tr>
 								) : (
 									<>
 										{pageRows.length === 0 ? (
 											<tr>
-												<td colSpan={8} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-text)] opacity-70">
+												<td colSpan={columnCount} className="border border-[var(--app-border)] px-2 py-4 text-center text-[var(--app-text)] opacity-70">
 													No CMO activity found for this period.
 												</td>
 											</tr>
 										) : (
 											pageRows.map((row) => (
-												<tr key={row.employee_id} className="odd:bg-[var(--app-surface)]">
+												<tr key={`${row.branch_cd}-${row.employee_id}`} className="odd:bg-[var(--app-surface)]">
 													<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.no}</td>
+											{branchConsolidated && <td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.branch_name || row.branch_cd}</td>}
 													<td className="border border-[var(--app-border)] px-2 py-1 text-center">
 														<Link
-															to={buildDrillDownPath(row.employee_id)}
+															to={buildDrillDownPath(row.employee_id, row.branch_cd)}
 															className="text-blue-600 hover:text-blue-800 underline cursor-pointer"
 														>
 															{row.cmo_name}
@@ -283,7 +290,7 @@ const CmoDailyProductivityByCmoPage: React.FC = () => {
 										)}
 										{totals && (
 											<tr className="bg-[var(--app-surface-alt)] font-semibold">
-												<td colSpan={2} className="border border-[var(--app-border)] px-2 py-1 text-center">Total</td>
+												<td colSpan={branchConsolidated ? 3 : 2} className="border border-[var(--app-border)] px-2 py-1 text-center">Total</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{totals.total_created}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{totals.total_reject}</td>
 												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{totals.total_defect1}</td>

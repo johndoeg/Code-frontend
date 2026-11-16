@@ -189,8 +189,10 @@ const PendingContractWillBeDeletedBySystemPage: React.FC = () => {
 		<>
 			<style>{`
 				@media print {
+					body * { visibility: hidden !important; }
+					.print-only, .print-only * { visibility: visible !important; }
+					.print-only { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
 					.screen-only { display: none !important; }
-					.print-only  { display: block !important; }
 					body         { font-family: Tahoma, Arial, sans-serif; font-size: 12px; }
 				}
 				@media screen {
@@ -429,7 +431,7 @@ const PendingContractWillBeDeletedBySystemPage: React.FC = () => {
 										</tr>
 									</thead>
 									<tbody>
-										{(printRows ?? []).map((row, idx) => (
+										{(printRows ?? rows).map((row, idx) => (
 											<tr
 												key={`${row.appl_no}-print-${idx}`}
 												style={{ fontSize: "12px", fontFamily: "Arial, Helvetica, sans-serif" }}
@@ -451,7 +453,7 @@ const PendingContractWillBeDeletedBySystemPage: React.FC = () => {
 				</table>
 				<br />
 				<span style={{ fontSize: "12px", fontWeight: "bold", fontFamily: "Arial, Helvetica, sans-serif" }}>
-					Total Unit : {(printRows ?? []).length}
+					Total Unit : {(printRows ?? rows).length}
 				</span>
 			</div>
 		</>

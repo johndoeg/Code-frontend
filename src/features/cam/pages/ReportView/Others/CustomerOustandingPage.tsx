@@ -154,9 +154,6 @@ const CustomerOutstandingReport: React.FC = () => {
 
 				<div className="mb-6">
 					<h1 className="text-2xl font-semibold text-[var(--app-text)]">Customer Outstanding Report</h1>
-					<p className="text-sm text-[var(--app-text)] mt-1">
-						Search by customer name or APLESS code
-					</p>
 				</div>
 
 				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-xl border border-[var(--app-border)] p-4 mb-6">

@@ -26,6 +26,8 @@ interface DataResponse {
 	total_net_finance: number;
 	page: number;
 	limit: number;
+	company_name?: string;
+	printed_by?: string;
 }
 
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
@@ -43,13 +45,13 @@ const TABLE_HEADERS = [
 
 function fmtNumber(v: number | null | undefined): string {
 	if (v == null) return "";
-	return new Intl.NumberFormat("id-ID").format(v);
+	return new Intl.NumberFormat("en-US").format(v);
 }
 
 function fmtDate(dateStr: string | null): string {
 	if (!dateStr) return "";
 	const d = new Date(dateStr);
-	return d.toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+	return d.toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 const UndisbursedContractPage: React.FC = () => {
@@ -64,6 +66,8 @@ const UndisbursedContractPage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [searched, setSearched] = useState<boolean>(false);
+	const [companyName, setCompanyName] = useState<string>("");
+	const [printedBy, setPrintedBy] = useState<string>("");
 
 	useEffect(() => {
 		api.get<Branch[]>("/CAM/Others/UndisbursedContract/branches")
@@ -72,18 +76,20 @@ const UndisbursedContractPage: React.FC = () => {
 			.finally(() => setBranchLoading(false));
 	}, []);
 
-	const fetchPage = async (branchCd: string, page: number) => {
+	const fetchAll = async (branchCd: string) => {
 		if (!branchCd) return;
 		setLoading(true);
 		setError(null);
 		try {
 			const res = await api.get<DataResponse>("/CAM/Others/UndisbursedContract/data", {
-				params: { branch_cd: branchCd, page, limit: ROWS_PER_PAGE },
+				params: { branch_cd: branchCd, all: 1 },
 			});
 			setRows(res.data.rows);
 			setTotal(res.data.total);
 			setTotalNetFinance(res.data.total_net_finance);
-			setCurrentPage(res.data.page);
+			setCompanyName(res.data.company_name ?? "");
+			setPrintedBy(res.data.printed_by ?? "");
+			setCurrentPage(1);
 			setSearched(true);
 		} catch {
 			setError("Gagal memuat data. Silakan coba lagi.");
@@ -97,10 +103,12 @@ const UndisbursedContractPage: React.FC = () => {
 		setRows([]);
 		setTotal(0);
 		setTotalNetFinance(0);
+		setCompanyName("");
+		setPrintedBy("");
 		setCurrentPage(1);
 		setSearched(false);
 		setError(null);
-		if (branchCd) void fetchPage(branchCd, 1);
+		if (branchCd) void fetchAll(branchCd);
 	};
 
 	const handleExport = async () => {
@@ -127,20 +135,43 @@ const UndisbursedContractPage: React.FC = () => {
 		}
 	};
 
-	const totalPages = Math.ceil(total / ROWS_PER_PAGE);
+	const totalPages = Math.ceil(rows.length / ROWS_PER_PAGE);
+	const pageStart = (currentPage - 1) * ROWS_PER_PAGE;
+	const pageEnd = pageStart + ROWS_PER_PAGE;
+	const branchLabel = branches.find((b) => b.branch_cd === selectedBranch)?.branch_name ?? "";
+	const printDate = new Date().toLocaleDateString("en-GB").replace(/\//g, "-");
 
 	return (
-		<div className="min-h-screen bg-[var(--app-surface)] p-4 md:p-6">
+		<div className="min-h-screen bg-[var(--app-surface)] p-4 md:p-6 print:p-0 print:bg-white">
+			<style>{`
+				.print-header { display: none; }
+				@page { size: landscape; margin: 10mm; }
+				@media print {
+					body * { visibility: hidden !important; }
+					#undisburse-print, #undisburse-print * { visibility: visible !important; }
+					#undisburse-print {
+						position: absolute;
+						left: 0;
+						top: 0;
+						width: 100%;
+					}
+					.print-header { display: block !important; }
+					#undisburse-table {
+						border: none;
+						border-radius: 0;
+						box-shadow: none;
+					}
+					#undisburse-table .overflow-x-auto { overflow: visible !important; }
+					#undisburse-table table { width: 100% !important; }
+				}
+			`}</style>
 			<div className="max-w-full mx-auto">
 
 				<div className="mb-6">
 					<h1 className="text-2xl font-semibold text-[var(--app-text)]">List of Undisburse Contract</h1>
-					<p className="text-sm text-[var(--app-text)] mt-1">
-						Daftar kontrak yang belum dicairkan
-					</p>
 				</div>
 
-				<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] p-4 mb-6 flex flex-wrap gap-3 items-end">
+				<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] p-4 mb-6 flex flex-wrap gap-3 items-end print:hidden">
 					<div className="flex-1 min-w-[220px] max-w-sm">
 						<label className="block text-xs font-medium text-[var(--app-text)] mb-1">
 							Branch <span className="text-red-500 ml-1">*</span>
@@ -191,7 +222,7 @@ const UndisbursedContractPage: React.FC = () => {
 
 				{!loading && total > 0 && (
 					<>
-						<div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+						<div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 print:hidden">
 							<div className="bg-[var(--app-surface)] rounded-lg p-3">
 								<div className="text-xs text-[var(--app-text)] mb-1">Total Kontrak</div>
 								<div className="text-lg font-semibold tabular-nums text-[var(--app-text)]">
@@ -206,7 +237,33 @@ const UndisbursedContractPage: React.FC = () => {
 							</div>
 						</div>
 
-						<div className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden">
+					<div id="undisburse-print">
+						<div className="print-header" style={{ fontFamily: "Tahoma, Arial, sans-serif", fontSize: 12, padding: "0 0 8px" }}>
+							<table border={0} cellPadding={2} cellSpacing={0} style={{ width: "100%", borderCollapse: "collapse" }}>
+								<tbody>
+									<tr>
+										<td width="25%" style={{ whiteSpace: "nowrap" }}>{companyName}</td>
+										<td width="50%"></td>
+										<td width="10%"></td>
+										<td width="15%">
+											Date : {printDate}
+											<br />
+											Print By : {printedBy}
+										</td>
+									</tr>
+									<tr>
+										<td colSpan={4} align="center" style={{ fontSize: 16, fontWeight: "bold", letterSpacing: "0.2em" }}>
+											List of Undisburse Contract
+										</td>
+									</tr>
+									<tr>
+										<td colSpan={4}>Branch : {branchLabel}</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div id="undisburse-table" className="bg-[var(--app-card)] rounded-xl border border-[var(--app-border)] overflow-hidden">
 							<div className="overflow-x-auto">
 								<table className="w-full border-collapse text-sm">
 									<thead>
@@ -222,15 +279,18 @@ const UndisbursedContractPage: React.FC = () => {
 										</tr>
 									</thead>
 									<tbody>
-										{rows.map((row, idx) => {
-											const globalIdx = (currentPage - 1) * ROWS_PER_PAGE + idx;
+										{rows.map((row, globalIdx) => {
+											const onPage = globalIdx >= pageStart && globalIdx < pageEnd;
 											return (
 												<tr
 													key={`${row.appl_no}-${globalIdx}`}
-													className={globalIdx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}
+													className={[
+														globalIdx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]",
+														onPage ? "" : "hidden print:table-row",
+													].join(" ")}
 												>
 													<td className="px-3 py-2 text-center border-b border-[var(--app-border)] text-[var(--app-text)] tabular-nums">
-														{globalIdx + 1}
+														{globalIdx + 1}.
 													</td>
 													<td className="px-3 py-2 border-b border-[var(--app-border)] whitespace-nowrap text-[var(--app-text)]">
 														{row.appl_no}
@@ -278,13 +338,14 @@ const UndisbursedContractPage: React.FC = () => {
 								<Pagination
 									page={currentPage}
 									totalPages={totalPages}
-									onPageChange={(p) => void fetchPage(selectedBranch, p)}
+									onPageChange={setCurrentPage}
 									totalItems={total}
 									itemsPerPage={ROWS_PER_PAGE}
-									className="border-t border-[var(--app-border)]"
+									className="border-t border-[var(--app-border)] print:hidden"
 								/>
 							)}
 						</div>
+					</div>
 					</>
 				)}
 			</div>

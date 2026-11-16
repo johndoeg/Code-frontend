@@ -104,19 +104,21 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 		setError(null);
 		if (mode !== 'dealer') setSelectedDealer(null);
 		if (mode !== 'cmo') setSelectedCmo('');
+		if (mode === 'dealer') openDealerPicker();
 	};
 
 	const openDealerPicker = () => {
 		setDealerQuery('');
 		setDealerResults([]);
 		setDealerPickerOpen(true);
+		runDealerSearch('');
 	};
 
-	const runDealerSearch = async () => {
+	const runDealerSearch = async (query: string = dealerQuery) => {
 		setDealerLoading(true);
 		try {
 			const response = await api.get<Dealer[]>('/CAM/Incentive/detail-incentive-3rd-party-report/dealers', {
-				params: { branch_cd: branchCd, search: dealerQuery },
+				params: { branch_cd: branchCd, search: query },
 			});
 			setDealerResults(response.data);
 		} catch (err) {
@@ -140,6 +142,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 				{
 					params: {
 						year,
+						mode: 'detail',
 						branch_cd: branchCd,
 						supplier: searchMode === 'dealer' ? selectedDealer?.supp ?? '' : '',
 						cmo: searchMode === 'cmo' ? selectedCmo : '',
@@ -154,14 +157,6 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 		} finally {
 			setLoading(false);
 		}
-	};
-
-	const handlePrint = () => {
-		if (results.length === 0) {
-			alert('Please search first.');
-			return;
-		}
-		window.print();
 	};
 
 	const branchName = branches.find((b) => b.branch_cd === branchCd)?.branch_name ?? '';
@@ -203,7 +198,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
 					<div className="mb-6 text-center">
 						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
-							Incentive to 3rd Party Monthly Report
+							Detail Incentive to 3rd Party Monthly Report
 						</h1>
 					</div>
 
@@ -228,7 +223,6 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 								onChange={handleBranchChange}
 								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
 							>
-								<option value="" className="bg-white text-slate-900">Consolidate</option>
 								{branches.map((b) => (
 									<option key={b.branch_cd} value={b.branch_cd} className="bg-white text-slate-900">{b.branch_name}</option>
 								))}
@@ -247,6 +241,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 									value="dealer"
 									checked={searchMode === 'dealer'}
 									onChange={() => handleSearchModeChange('dealer')}
+									onClick={() => { if (searchMode === 'dealer') openDealerPicker(); }}
 								/>
 								Dealer
 							</label>
@@ -316,14 +311,6 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 								'Search'
 							)}
 						</button>
-						<button
-							onClick={handlePrint}
-							disabled={results.length === 0}
-							className="bg-[var(--app-surface-alt)] border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] disabled:opacity-60 disabled:cursor-not-allowed
-							           px-4 py-2 text-sm rounded-lg font-medium transition-colors"
-						>
-							Print
-						</button>
 					</div>
 				</div>
 
@@ -389,7 +376,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 
 			{dealerPickerOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
-					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-[95vw] max-w-[1100px] max-h-[85vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-4 border-b">
 							<h3 className="font-bold text-[var(--app-text)]">Dealer Information</h3>
 							<button onClick={() => setDealerPickerOpen(false)} className="text-[var(--app-text)] text-2xl leading-none transition-colors">
@@ -409,7 +396,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 								{dealerQuery && (
 									<button
 										type="button"
-										onClick={() => { setDealerQuery(''); setDealerResults([]); }}
+										onClick={() => { setDealerQuery(''); runDealerSearch(''); }}
 										aria-label="Clear search"
 										className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5
 										           text-slate-500 hover:bg-slate-100 hover:text-slate-900"
@@ -436,10 +423,12 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 								<table className="w-full text-sm">
 									<thead className="bg-[var(--app-surface)] sticky top-0">
 										<tr>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Code</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Name</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Dealer Code</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Dealer Name</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Dealer Nickname</th>
 											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Address</th>
-											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Contact</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Phone</th>
+											<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Contact Person</th>
 										</tr>
 									</thead>
 									<tbody className="divide-y divide-[var(--app-border)]">
@@ -447,12 +436,14 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 											<tr key={d.supp} className="hover:bg-[var(--app-surface)] cursor-pointer transition-colors" onClick={() => selectDealer(d)}>
 												<td className="py-2 px-3 text-blue-600 font-medium">{d.supp}</td>
 												<td className="py-2 px-3">{d.name}</td>
+												<td className="py-2 px-3 text-[var(--app-text)]">{d.nickname}</td>
 												<td className="py-2 px-3 text-[var(--app-text)]">{d.address}</td>
+												<td className="py-2 px-3 text-[var(--app-text)]">{d.phone}</td>
 												<td className="py-2 px-3 text-[var(--app-text)]">{d.contact}</td>
 											</tr>
 										))}
 										{dealerResults.length === 0 && (
-											<tr><td colSpan={4} className="py-8 text-center text-[var(--app-text)] text-sm">Search for a dealer above.</td></tr>
+											<tr><td colSpan={6} className="py-8 text-center text-[var(--app-text)] text-sm">Not Found</td></tr>
 										)}
 									</tbody>
 								</table>

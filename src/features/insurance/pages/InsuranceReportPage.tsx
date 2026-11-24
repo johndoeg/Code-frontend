@@ -4,7 +4,19 @@ import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 
-const toISO = (d: Date): string => d.toISOString().split('T')[0];
+const toISO = (d: Date): string => {
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
+
+const toDisplayDate = (d: Date): string => {
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${day}-${month}-${year}`;
+};
 
 interface InsuranceReportRow {
 	lease_no: string;
@@ -101,10 +113,10 @@ const InsuranceReportPage: React.FC = () => {
 		}
 	}, [selectedIns, searchBy, searchText, dateFrom, dateTo, limit]);
 
-	React.useEffect(() => {
-		if (searched) handleSearch(page);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [page]);
+	const handlePageChange = (nextPage: number) => {
+		if (nextPage === page) return;
+		handleSearch(nextPage);
+	};
 
 	const handleExport = async () => {
 		const err = validate();
@@ -123,8 +135,10 @@ const InsuranceReportPage: React.FC = () => {
 			const url = URL.createObjectURL(blob);
 			const anchor = document.createElement('a');
 			anchor.href = url;
-			anchor.download = `InsuranceReport_${toISO(new Date())}.xlsx`;
+			anchor.download = `InsuranceReport_${toDisplayDate(new Date())}.xlsx`;
+			document.body.appendChild(anchor);
 			anchor.click();
+			anchor.remove();
 			URL.revokeObjectURL(url);
 		} catch {
 			setError('Failed to export. Please try again.');
@@ -368,7 +382,7 @@ const InsuranceReportPage: React.FC = () => {
 						<Pagination
 							page={page}
 							totalPages={totalPages}
-							onPageChange={setPage}
+							onPageChange={handlePageChange}
 							totalItems={total}
 							itemsPerPage={limit}
 							className="mt-6"

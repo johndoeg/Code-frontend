@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
-import Formatter from '@/helpers/Formatter';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
@@ -60,6 +60,7 @@ function getFieldConfig(paymentFor: string): FieldConfig {
 		case 'INSTALLMENT':
 			return { showContract: true, showTotInv: true, showDueDate: true, showOdPeriod: false, showEt: false, showMulti: false, dueDateReadOnly: true, totInvReadOnly: true };
 		case 'ET':
+		case 'FC':
 			return { showContract: true, showTotInv: true, showDueDate: false, showOdPeriod: false, showEt: true, showMulti: false, etReadOnly: true, totInvReadOnly: false };
 		case 'PENALTY':
 			return { showContract: true, showTotInv: true, showDueDate: false, showOdPeriod: false, showEt: false, showMulti: false, totInvReadOnly: false };
@@ -87,29 +88,18 @@ const toRawAmount = (val: string | number | null | undefined): string => {
 const formatAmount = (raw: string): string =>
 	raw ? raw.replace(/\B(?=(\d{3})+(?!\d))/g, '.') : '';
 
+const fmtMoney = (val: string | number | null | undefined): string => {
+	const cleaned = String(val ?? '').replace(/[^0-9.-]/g, '');
+	if (!cleaned) return '0';
+	const parts = cleaned.split('.');
+	const n = Number(parts.length > 2 ? parts.join('') : cleaned);
+	if (!Number.isFinite(n)) return '0';
+	return new Intl.NumberFormat('id-ID').format(Math.round(n));
+};
+
 const normaliseAmountInput = (val: string): string => {
 	const trimmed = digitsOnly(val).replace(/^0+(?=\d)/, '');
 	return trimmed === '' ? '0' : trimmed;
-};
-
-const parseDateString = (val: string): Date | null => {
-	const raw = String(val ?? '').trim();
-	if (!raw) return null;
-	const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(raw);
-	const dmy = /^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/.exec(raw);
-	let year: number, month: number, day: number;
-	if (iso) {
-		year = Number(iso[1]); month = Number(iso[2]); day = Number(iso[3]);
-	} else if (dmy) {
-		day = Number(dmy[1]); month = Number(dmy[2]); year = Number(dmy[3]);
-	} else {
-		return null;
-	}
-	const date = new Date(year, month - 1, day);
-	if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-		return null;
-	}
-	return date;
 };
 
 const toIsoDateString = (val: string): string => {
@@ -145,13 +135,9 @@ const addMonths = (date: Date, months: number): Date => {
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
 
-const esc = (v: unknown) =>
-	String(v ?? '')
-		.replace(/&/g, '&amp;')
-		.replace(/</g, '&lt;')
-		.replace(/>/g, '&gt;')
-		.replace(/"/g, '&quot;')
-		.replace(/'/g, '&#39;');
+const PRINT_COLUMNS = ['No.', 'Invoice/ Due/ ET Date', 'Contract No.', 'Customer Name', 'Amount', 'Expired Date', 'Payment Type', 'Period', 'Status', 'Payment Date'];
+
+const PRINT_WIDTHS = ['4%', '10%', '9%', '21%', '11%', '10%', '11%', '8%', '8%', '8%'];
 
 const EspayInvoicePage: React.FC = () => {
 	const [searchByOptions, setSearchByOptions] = useState<ComboOption[]>([]);
@@ -172,6 +158,14 @@ const EspayInvoicePage: React.FC = () => {
 	const [page, setPage] = useState(1);
 	const [exporting, setExporting] = useState(false);
 	const [deletingId, setDeletingId] = useState<number | null>(null);
+	const [companyName, setCompanyName] = useState('');
+	const [printedBy, setPrintedBy] = useState('');
+	const [printData, setPrintData] = useState<{
+		rows: InvoiceRow[];
+		companyName: string;
+		printedBy: string;
+		criteria: string;
+	} | null>(null);
 
 	const [modalOpen, setModalOpen] = useState(false);
 	const [modalError, setModalError] = useState<string | null>(null);
@@ -253,6 +247,8 @@ const EspayInvoicePage: React.FC = () => {
 			const response = await api.get('/Espay/invoice', { params: buildSearchParams() });
 			const data: InvoiceRow[] = response.data?.data ?? [];
 			setRows(data);
+			setCompanyName(response.data?.company_name ?? '');
+			setPrintedBy(response.data?.printed_by ?? '');
 			setHasSearched(true);
 			setPage(1);
 			if (data.length === 0) {
@@ -452,7 +448,7 @@ const EspayInvoicePage: React.FC = () => {
 			setModalError('Please fill in Contract No. and Payment For.');
 			return;
 		}
-		if (paymentFor === 'ET' && (Number(totInv) > Number(etLeft) || Number(totInv) === 0)) {
+		if ((paymentFor === 'ET' || paymentFor === 'FC') && (Number(totInv) > Number(etLeft) || Number(totInv) === 0)) {
 			setModalError('Invalid Total Amount.');
 			return;
 		}
@@ -552,72 +548,26 @@ const EspayInvoicePage: React.FC = () => {
 		}
 	};
 
+	const searchCriteriaLabel = (): string => {
+		const label = searchByOptions.find((opt) => opt.value === searchBy)?.label ?? '';
+		if (searchBy === 'All') return 'Search By : TOP 100';
+		if (searchBy === '1' || searchBy === '2') return `${label} : ${searchText.trim() || '-'}`;
+		if (searchBy === '3') return `${label} : ${toDisplayDate(searchDateFrom) || '-'} s/d ${toDisplayDate(searchDateTo) || '-'}`;
+		if (searchBy === '4') return `${label} : ${paymentForOptions.find((opt) => opt.value === searchPaymentFor)?.label ?? '-'}`;
+		if (searchBy === '5') return `${label} : ${invoiceStatusOptions.find((opt) => opt.value === searchInvoiceStatus)?.label ?? '-'}`;
+		if (searchBy === '6') return `${label} : ${toDisplayDate(searchDateFrom) || '-'}`;
+		return label;
+	};
+
 	const handlePrint = () => {
 		if (rows.length === 0) return;
-
-		const printWindow = window.open('', '_blank');
-		if (!printWindow) {
-			setPageError('Popup blocked. Please allow popups for this site.');
-			return;
-		}
-
-		const body = rows.map((r, i) => `
-			<tr>
-				<td class="c">${i + 1}</td>
-				<td>${esc(r.invoice_date)}</td>
-				<td>${esc(r.contract_no)}</td>
-				<td>${esc(r.customer_name)}</td>
-				<td class="r">${esc(Formatter.formatThousands(r.tot_amt))}</td>
-				<td>${esc(r.expired_date)}</td>
-				<td>${esc(r.payment_type)}</td>
-				<td>${esc(r.period)}</td>
-				<td>${esc(r.invoice_status)}</td>
-				<td>${esc(r.payment_date)}</td>
-			</tr>`).join('');
-
-		printWindow.document.write(`<!DOCTYPE html>
-			<html>
-			<head>
-				<meta charset="utf-8">
-				<title>ESPAY Invoice</title>
-				<style>
-					body { font-family: Arial, sans-serif; font-size: 12px; margin: 16px; }
-					h1 { font-size: 16px; text-align: center; margin: 0 0 4px; }
-					.meta { text-align: center; margin-bottom: 12px; color: #444; }
-					table { width: 100%; border-collapse: collapse; }
-					th, td { border: 1px solid #000; padding: 4px 6px; text-align: left; vertical-align: top; }
-					th { background: #f0f0f0; }
-					thead { display: table-header-group; }
-					tr { page-break-inside: avoid; }
-					.c { text-align: center; }
-					.r { text-align: right; }
-					@page { size: landscape; margin: 10mm; }
-				</style>
-			</head>
-			<body onload="window.print()" onafterprint="window.close()">
-				<h1>ESPAY Invoice</h1>
-				<div class="meta">Total records: ${rows.length}</div>
-				<table>
-					<thead>
-						<tr>
-							<th class="c">No.</th>
-							<th>Invoice / Due / ET Date</th>
-							<th>Contract No.</th>
-							<th>Customer Name</th>
-							<th class="r">Amount</th>
-							<th>Expired Date</th>
-							<th>Payment Type</th>
-							<th>Period</th>
-							<th>Status</th>
-							<th>Payment Date</th>
-						</tr>
-					</thead>
-					<tbody>${body}</tbody>
-				</table>
-			</body>
-			</html>`);
-					printWindow.document.close();
-				};
+		setPrintData({
+			rows,
+			companyName,
+			printedBy,
+			criteria: searchCriteriaLabel(),
+		});
+	};
 
 	const canPrintOrExport = hasSearched && rows.length > 0;
 	const inputCls = "w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 [&>option]:bg-white [&>option]:text-slate-900";
@@ -825,7 +775,7 @@ const EspayInvoicePage: React.FC = () => {
 											<td className="py-3 px-4 text-sm text-[var(--app-text)]">{row.invoice_date}</td>
 											<td className="py-3 px-4 text-sm text-[var(--app-text)] font-medium">{row.contract_no}</td>
 											<td className="py-3 px-4 text-sm text-[var(--app-text)]">{row.customer_name}</td>
-											<td className="py-3 px-4 text-sm text-[var(--app-text)] text-right">{Formatter.formatThousands(row.tot_amt)}</td>
+											<td className="py-3 px-4 text-sm text-[var(--app-text)] text-right">{fmtMoney(row.tot_amt)}</td>
 											<td className="py-3 px-4 text-sm text-[var(--app-text)]">{row.expired_date}</td>
 											<td className="py-3 px-4 text-sm text-[var(--app-text)]">{row.payment_type}</td>
 											<td className="py-3 px-4 text-sm text-[var(--app-text)]">{row.period}</td>
@@ -952,19 +902,16 @@ const EspayInvoicePage: React.FC = () => {
 							{fieldConfig.showEt && (
 								<div className="grid grid-cols-3 gap-3">
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET Date</label>
-										<div className={dateFieldClass}>
-											<AsOfDatePicker
-												label=""
-												format="DD-MM-YYYY"
-												placeholder="dd-mm-yyyy"
-												value={parseDateString(etDate)}
-												onChange={(d) => setEtDate(d ? toApiDate(d) : '')}
-											/>
-										</div>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET/ FC Date</label>
+										<input
+											type="text"
+											readOnly
+											value={etDate}
+											className="w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-slate-100 text-slate-600"
+										/>
 									</div>
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET Pay</label>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET/ FC Pay</label>
 										<input
 											type="text"
 											readOnly={fieldConfig.etReadOnly}
@@ -973,7 +920,7 @@ const EspayInvoicePage: React.FC = () => {
 										/>
 									</div>
 									<div>
-										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET Pay Received</label>
+										<label className="block text-xs font-medium text-[var(--app-text)] mb-1">ET/ FC Pay Received</label>
 										<input
 											type="text"
 											readOnly={fieldConfig.etReadOnly}
@@ -1025,7 +972,7 @@ const EspayInvoicePage: React.FC = () => {
 													<td className="px-2 py-2 text-[var(--app-text)]">{r.lease_no}</td>
 													<td className="px-2 py-2 text-[var(--app-text)]">{r.customer_name}</td>
 													<td className="px-2 py-2 text-[var(--app-text)]">{r.due_dt}</td>
-													<td className="px-2 py-2 text-right text-[var(--app-text)]">{Formatter.formatThousands(String(r.amount))}</td>
+													<td className="px-2 py-2 text-right text-[var(--app-text)]">{fmtMoney(r.amount)}</td>
 													<td className="px-2 py-2 text-center">
 														<button onClick={() => removeMultiRow(r.lease_no)} className="text-red-600 hover:underline text-xs">
 															Remove
@@ -1037,7 +984,7 @@ const EspayInvoicePage: React.FC = () => {
 										<tfoot className="bg-[var(--app-surface)]">
 											<tr>
 												<td colSpan={3} className="px-2 py-2 text-right font-semibold text-[var(--app-text)]">Total</td>
-												<td className="px-2 py-2 text-right font-semibold text-[var(--app-text)]">{Formatter.formatThousands(String(multiTotal))}</td>
+												<td className="px-2 py-2 text-right font-semibold text-[var(--app-text)]">{fmtMoney(multiTotal)}</td>
 												<td></td>
 											</tr>
 										</tfoot>
@@ -1077,6 +1024,59 @@ const EspayInvoicePage: React.FC = () => {
 						</div>
 					</div>
 				</div>
+			)}
+
+			{printData && (
+				<ReportPrintModal
+					title="ESPAY Invoice"
+					legacyTitle
+					rightHeaderAlign="right"
+					companyName={printData.companyName}
+					printedBy={printData.printedBy}
+					dateText={new Date().toLocaleDateString('en-GB', {
+						day: '2-digit', month: '2-digit', year: 'numeric',
+					}).replace(/\//g, '-')}
+					headerLines={[printData.criteria]}
+					summaryText={`${printData.rows.length} record${printData.rows.length !== 1 ? 's' : ''}`}
+					onClose={() => setPrintData(null)}
+				>
+					<table className="rpt-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12, tableLayout: 'fixed' }}>
+						<colgroup>
+							{PRINT_WIDTHS.map((w, i) => (
+								<col key={i} style={{ width: w }} />
+							))}
+						</colgroup>
+						<thead>
+							<tr>
+								{PRINT_COLUMNS.map((h) => (
+									<th key={h} style={PRINT_HEAD}>{h}</th>
+								))}
+							</tr>
+						</thead>
+						<tbody>
+							{printData.rows.length === 0 ? (
+								<tr>
+									<td colSpan={PRINT_COLUMNS.length} style={{ ...PRINT_CELL, textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>Data Not Found</td>
+								</tr>
+							) : (
+								printData.rows.map((row, i) => (
+									<tr key={row.id_data}>
+										<td style={{ ...PRINT_CELL, textAlign: 'center' }}>{i + 1}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.invoice_date}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.contract_no}</td>
+										<td style={{ ...PRINT_CELL, wordBreak: 'break-word' }}>{row.customer_name}</td>
+										<td style={{ ...PRINT_CELL, textAlign: 'right' }}>{fmtMoney(row.tot_amt)}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.expired_date}</td>
+										<td style={PRINT_CELL}>{row.payment_type}</td>
+										<td style={PRINT_CELL}>{row.period}</td>
+										<td style={PRINT_CELL}>{row.invoice_status}</td>
+										<td style={{ ...PRINT_CELL, whiteSpace: 'nowrap' }}>{row.payment_date}</td>
+									</tr>
+								))
+							)}
+						</tbody>
+					</table>
+				</ReportPrintModal>
 			)}
 		</div>
 	);

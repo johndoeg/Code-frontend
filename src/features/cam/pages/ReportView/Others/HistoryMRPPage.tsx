@@ -5,15 +5,32 @@ import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 interface Brand { brand: string; brand_nm: string; }
 interface Model { model: string; model_nm: string; }
 interface VType { type: string; type_nm: string; }
+interface CamParams { [key: string]: string; }
+
 interface MRPRow {
 	brand_nm: string; model_nm: string; type_nm: string;
 	karoseri: string; tahun: string;
-	l_amount: number; execution: string;
+	l_amount: number; net_finance: number; execution: string;
+	branch_name: string;
+	appl_no?: string;
+	cam_params?: CamParams;
+}
+
+interface DataResponse {
+	rows: MRPRow[];
+	show_appl_no: boolean;
 }
 
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
+const CAM_VIEW_PATH = "/module_cam/view_main.php";
 
-const fmtNum = (v: number) => new Intl.NumberFormat("id-ID").format(Math.round(v));
+const fmtNum = (v: number | null | undefined) =>
+	v === null || v === undefined || Number.isNaN(Number(v))
+		? ""
+		: new Intl.NumberFormat("en-US").format(Math.round(Number(v)));
+
+const camHref = (params?: CamParams) =>
+	params ? `${CAM_VIEW_PATH}?${new URLSearchParams(params).toString()}` : "#";
 
 function getPageNumbers(cur: number, total: number): (number | "…")[] {
 	const add = (p: number, set: Set<number>) => { if (p >= 1 && p <= total) set.add(p); };
@@ -43,6 +60,7 @@ const HistoryMRP: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 	const [hasSearched, setHasSearched] = useState<boolean>(false);
 	const [currentPage, setCurrentPage] = useState<number>(1);
+	const [showApplNo, setShowApplNo] = useState<boolean>(false);
 
 	useEffect(() => {
 		api.get<Brand[]>("/CAM/Others/HistoryMRP/brands")
@@ -77,10 +95,13 @@ const HistoryMRP: React.FC = () => {
 		setHasSearched(true);
 
 		try {
-			const res = await api.get<MRPRow[]>("/CAM/Others/HistoryMRP/data", {
+			const res = await api.get<DataResponse | MRPRow[]>("/CAM/Others/HistoryMRP/data", {
 				params: { brand, model, type },
 			});
-			setRows(res.data);
+			const payload = res.data;
+			const list = Array.isArray(payload) ? payload : payload?.rows;
+			setRows(Array.isArray(list) ? list : []);
+			setShowApplNo(Array.isArray(payload) ? false : Boolean(payload?.show_appl_no));
 		} catch {
 			setError("Gagal memuat data. Silakan coba lagi.");
 		} finally {
@@ -212,8 +233,11 @@ const HistoryMRP: React.FC = () => {
 											<th className={TH}>Type</th>
 											<th className={TH}>Karoseri</th>
 											<th className={TH}>Year</th>
-											<th className={TH}>Asset Value</th>
+											<th className={TH}>Asset Value *</th>
+											<th className={TH}>Net Finance</th>
 											<th className={TH}>Disbursement Date</th>
+											<th className={TH}>Branch</th>
+											{showApplNo && <th className={TH}>CAM No.</th>}
 										</tr>
 									</thead>
 									<tbody>
@@ -228,7 +252,17 @@ const HistoryMRP: React.FC = () => {
 													<td className="px-3 py-1.5 text-sm border-b border-[var(--app-border)] text-[var(--app-text)]">{row.karoseri}</td>
 													<td className={TD()}>{row.tahun}</td>
 													<td className={TD(true)}>{fmtNum(row.l_amount)}</td>
+													<td className={TD(true)}>{fmtNum(row.net_finance)}</td>
 													<td className={TD()}>{row.execution}</td>
+													<td className={TD()}>{row.branch_name}</td>
+													{showApplNo && (
+														<td className={TD()}>
+															<a href={camHref(row.cam_params)} target="_blank" rel="noreferrer"
+																className="text-blue-600 hover:underline">
+																{row.appl_no}
+															</a>
+														</td>
+													)}
 												</tr>
 											);
 										})}

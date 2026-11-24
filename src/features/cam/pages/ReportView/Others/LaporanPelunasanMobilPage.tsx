@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from '@/shared/api/axiosInstance';
+import { fmtNum } from '@/shared/utils/helpers';
 
 interface Totals {
 	tot_new: number;
@@ -53,7 +54,6 @@ const YEARS = Array.from({ length: 21 }, (_, i) => CUR_YEAR + 10 - i);
 
 const DETAIL_HEADERS = ["No.", "No. CAM", "No. Kontrak", "Nama Customer", "Net Finance", "Total Unit", "Tanggal Pelunasan", "CMO", "Keterangan"];
 
-const fmtNum = (v: number) => new Intl.NumberFormat("id-ID").format(v);
 const fmtPct = (unit: number, total: number) => total === 0 ? "0.00" : (unit / total * 100).toFixed(2);
 const fmtDate = (s: string | null) => {
 	if (!s) return "";

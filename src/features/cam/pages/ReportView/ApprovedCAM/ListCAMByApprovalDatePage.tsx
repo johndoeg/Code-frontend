@@ -5,6 +5,7 @@ import ReportPrintModal, { PRINT_CELL, PRINT_HEAD, fetchAllResponses } from '@/f
 import Pagination from '@/helpers/Pagination';
 import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
 import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
+import { ctxFromEditParams, ddmmyyyy, fmt, toISO } from '@/shared/utils/helpers';
 
 interface BranchOption {
 	branch_cd: string;
@@ -84,22 +85,8 @@ interface CommentsResponse {
 	related: CamInfo[];
 }
 
-const toISO = (d: Date): string => {
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-};
-
-const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
-
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
 	'July', 'August', 'September', 'October', 'November', 'December'];
-
-const ddmmyyyy = (d: Date | null): string => {
-	if (!d) return '';
-	return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-};
 
 const longDate = (d: Date | null): string =>
 	d ? `${String(d.getDate()).padStart(2, '0')} ${MONTHS[d.getMonth()]} ${d.getFullYear()}` : '';
@@ -109,21 +96,6 @@ const todayShort = (): string => ddmmyyyy(new Date());
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
 const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
-
-const ctxFromEditParams = (p: Record<string, string | number | null>, custName?: string): CamCtx => ({
-	finType: String(p.id1 ?? ''),
-	indCor: String(p.id2 ?? ''),
-	repeat: String(p.id3 ?? ''),
-	guarantor: String(p.id4 ?? ''),
-	newCar: String(p.id5 ?? ''),
-	status: String(p.id6 ?? ''),
-	purpoffinc: String(p.id7 ?? ''),
-	c2c: String(p.id8 ?? ''),
-	contType: String(p.id9 ?? ''),
-	apless: String(p.apless ?? ''),
-	applno: String(p.applno ?? ''),
-	custName,
-});
 
 const SEGMENT_ROWS: { key: keyof Omit<GroupTotals, 'total'>; type: string; condition: string }[] = [
 	{ key: 'passenger_new', type: 'Passenger', condition: 'New' },

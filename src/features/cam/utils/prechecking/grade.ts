@@ -1,3 +1,5 @@
+import { gradeFromRanges } from '@/shared/utils/helpers';
+
 export interface GradeResult {
 	grade: string;
 	scoreError?: string;
@@ -18,13 +20,6 @@ const PT_RANGES: [number, number, string][] = [
 	[701, 715, 'Low Risk'],
 	[716, 1000, 'Very Low Risk'],
 ];
-
-function gradeFromRanges(score: number, ranges: [number, number, string][]): string {
-	for (const [min, max, label] of ranges) {
-		if (score >= min && score <= max) return label;
-	}
-	return '';
-}
 
 export function computeGrade(
 	creditBureau: string,

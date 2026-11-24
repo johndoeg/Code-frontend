@@ -4,6 +4,7 @@ import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
 import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
 import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
+import { fmt } from '@/shared/utils/helpers';
 
 interface BranchOption {
     branch_cd: string;
@@ -68,8 +69,6 @@ const toISO = (d: Date): string => {
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
-
-const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];

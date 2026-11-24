@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import { getTopWindow, todayLong } from '@/shared/utils/helpers';
 
 interface ContractInfo {
 	LESSEE_NO: string; trans_code: string; LESSEE_NM: string;
@@ -28,16 +29,7 @@ interface LeaseReport {
 }
 
 const fmt = (n: number) => (n ? n.toLocaleString('id-ID') : '0');
-const todayLong = () => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 const todayShort = () => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
-
-function getTopWindow(): Window {
-	try {
-		return window.top ?? window;
-	} catch {
-		return window;
-	}
-}
 
 const STYLE_BRIDGE_ID = 'cam-app-style-bridge';
 function ensureStylesBridged(topWindow: Window) {

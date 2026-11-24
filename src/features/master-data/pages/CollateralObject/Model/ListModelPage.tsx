@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import api from '@/shared/api/axiosInstance';
+import { esc } from '@/shared/utils/helpers';
 
 interface ModelRow {
 	MODEL_NM: string;
@@ -38,7 +39,7 @@ const ListModelPage: React.FC = () => {
 			const rowsHtml = data.map((r, i) => `
                 <tr>
                     <td>${i + 1}</td>
-                    <td>${r.MODEL_NM}</td>
+                    <td>${esc(r.MODEL_NM)}</td>
                 </tr>
             `).join("");
 

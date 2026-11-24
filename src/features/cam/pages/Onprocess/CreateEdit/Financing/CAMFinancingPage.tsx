@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import type { KeyboardEvent, ReactNode } from "react";
 import api from '@/shared/api/axiosInstance';
 import CAMFinancingSubsidyPanel from "./CAMFinancingSubsidyPanel";
+import { isBlank, num } from "@/shared/utils/helpers";
 
 export interface CamTabHandle {
 	save: () => void;
@@ -126,14 +127,6 @@ const PAID_BY_MLCI: [string, string][] = [
 	["Loan", "Loan"],
 ];
 const PAID_BY_DEALER: [string, string][] = [["paid to Dealer", "Paid to Dealer"]];
-
-const num = (value: any): number => {
-	if (value === null || value === undefined) return 0;
-	const parsed = parseFloat(String(value).replace(/,/g, ""));
-	return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const isBlank = (value: any) => value === null || value === undefined || String(value).trim() === "";
 
 const phpEmpty = (value: any) => isBlank(value) || String(value).trim() === "0" || num(value) === 0;
 

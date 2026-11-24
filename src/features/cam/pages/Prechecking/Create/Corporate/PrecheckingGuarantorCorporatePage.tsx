@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import api from '@/shared/api/axiosInstance';
 import OCRUploadSection from '@/features/cam/contexts/OCRUploadSection';
 import { MAX_FILE_LIMIT } from '@/shared/constants/DefaultValue';
+import { uid } from '@/shared/utils/helpers';
 
 interface DirectorData {
 	idCardNo: string; name: string; placeOfBirth: string; dateOfBirth: string;
@@ -58,8 +59,6 @@ const directorHasError = (entry: DirectorEntry, errors: Record<string, string>) 
 
 
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "heic", "heif", "tiff", "tif", "webp"]);
-
-const uid = () => Math.random().toString(36).slice(2, 10);
 
 const CSS = `
   :root {

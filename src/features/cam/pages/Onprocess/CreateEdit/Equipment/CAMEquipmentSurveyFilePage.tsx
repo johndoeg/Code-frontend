@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 import { MAX_FILE_LIMIT } from '@/shared/constants/DefaultValue';
 import CKEditorNotes from '@/features/cam/components/CKEditorNotes';
+import { absoluteUrl } from '@/shared/utils/helpers';
 
 export interface CAMEquipmentSurveyFilePageProps {
 	apless: string;
@@ -116,11 +117,6 @@ interface PreviewFile {
 }
 
 const SURVEY_API_BASE = "/CAM/EditIndex/eq-survey-file";
-
-function absoluteUrl(path: string): string {
-	const base = (api.defaults?.baseURL ?? "").replace(/\/$/, "");
-	return `${base}${path}`;
-}
 
 export function surveyFileViewUrl(id: number): string {
 	return absoluteUrl(`${SURVEY_API_BASE}/view/${id}`);

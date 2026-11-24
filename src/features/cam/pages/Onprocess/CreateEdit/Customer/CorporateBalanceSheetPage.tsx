@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import { selectCls, toNumber } from '@/shared/utils/helpers';
 
 interface FsItem {
 	code: string;
@@ -52,16 +53,8 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 
 const inputCls =
 	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full text-right focus:outline-none focus:ring-2 focus:ring-blue-400";
-const selectCls = (editable: boolean) =>
-	`border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 ${editable ? "bg-[var(--app-card)]" : "bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
-	}`;
-
 const fieldLabelCls = "text-[11px] font-medium uppercase tracking-wide text-[var(--app-muted)] mb-1 block";
 
-const toNumber = (v: string) => {
-	const n = parseFloat((v || "0").replace(/,/g, ""));
-	return Number.isFinite(n) ? n : 0;
-};
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 
 const numericKeyDown = (allowNegative: boolean) => (e: React.KeyboardEvent<HTMLInputElement>) => {

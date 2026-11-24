@@ -8,14 +8,13 @@ import {
 	NumericField,
 	FieldCountControl,
 	ClearButton,
-	isValidMonth,
-	currentYYYYMM,
 	parseDDMMYYYY,
 	formatDDMMYYYY,
 	ManagementDetailModal,
 	type ManagementDetailValue,
 	emptyManagementDetail,
 } from '@/features/cam/components/FormControls';
+import { validateNewPeriodFormat } from '@/shared/utils/helpers';
 
 interface PembinaRow {
 	name: string;
@@ -92,15 +91,6 @@ function SectionHeader({ children, className = "" }: { children: React.ReactNode
 			<h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--app-muted)]">{children}</h2>
 		</div>
 	);
-}
-
-function validateNewPeriodFormat(period: string): string | null {
-	if (period.length !== 6 || !/^\d{6}$/.test(period)) return "Period not valid";
-	const month = period.slice(4, 6);
-	if (!isValidMonth(month)) return "Period not valid";
-	if (Number(period.slice(0, 4)) > new Date().getFullYear()) return "Period not valid";
-	if (Number(period) > currentYYYYMM()) return "Period not valid";
-	return null;
 }
 
 const BusinessProfileYayasanPage = forwardRef<CamTabHandle, BusinessProfileYayasanPageProps>(function BusinessProfileYayasanPage(

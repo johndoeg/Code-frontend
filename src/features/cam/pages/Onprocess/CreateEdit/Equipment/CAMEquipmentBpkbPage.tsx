@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState, forwardRef, useImpera
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
+import { parseISODate, selectCls, toISODate } from '@/shared/utils/helpers';
 
 export interface CAMEquipmentBpkbPageProps {
 	apless: string;
@@ -130,28 +131,11 @@ function computeIdFams(finType: string, bpkbAnTp: string, namesMatch: boolean, i
 	return NOT_FAMILY_CODES.has(idFam) ? "Not Family" : "Family";
 }
 
-const parseISODate = (value: string): Date | null => {
-	if (!value) return null;
-	const [y, m, d] = value.slice(0, 10).split("-").map(Number);
-	if (!y || !m || !d) return null;
-	return new Date(y, m - 1, d);
-};
-
-const toISODate = (value: Date | null): string => {
-	if (!value) return "";
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
-};
-
 const inputCls =
 	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400";
 const readonlyCls =
 	"border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full bg-[var(--app-surface-alt)] text-[var(--app-muted)]";
 const labelCls = "text-sm text-[var(--app-muted)] pt-1.5";
-const selectCls = (editable: boolean) =>
-	`border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 ${editable ? "bg-[var(--app-card)]" : "bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
-	}`;
-
 function Row({ label, children }: { label?: string; children: React.ReactNode }) {
 	return (
 		<div className="grid grid-cols-4 items-start gap-2 py-1">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { formatMoney, toISO } from '@/shared/utils/helpers';
 
 interface Party {
 	reg_no: string;
@@ -31,15 +32,6 @@ interface HistoryTotals {
 	gross_amount: number;
 	net_payment: number;
 }
-
-const toISO = (d: Date): string => {
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-};
-
-const formatMoney = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
 
 const asOfFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';

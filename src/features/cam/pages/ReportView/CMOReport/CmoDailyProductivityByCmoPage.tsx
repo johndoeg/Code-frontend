@@ -4,6 +4,7 @@ import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
+import { parseIsoDate, toISO } from '@/shared/utils/helpers';
 
 interface Branch {
 	branch_cd: string;
@@ -35,25 +36,11 @@ interface SummaryTotals {
 
 const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
 
-const toISO = (d: Date): string => {
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-};
-
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
 const dateFieldClass = '[&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
 
 const DETAIL_ROUTE = '/report-cmo-daily-productivity';
-
-const parseIsoDate = (raw: string | null): Date | null => {
-	if (!raw) return null;
-	const [y, m, d] = raw.split('-').map(Number);
-	if (!y || !m || !d) return null;
-	return new Date(y, m - 1, d);
-};
 
 const sameBranch = (a: string, b: string) =>
 	String(a).trim().replace(/^0+/, '') === String(b).trim().replace(/^0+/, '');

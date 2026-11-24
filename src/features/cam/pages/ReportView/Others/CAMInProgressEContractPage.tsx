@@ -248,6 +248,7 @@ const InProgressEContractPage: React.FC = () => {
 							<select value={branch} onChange={(e) => { setBranch(e.target.value); resetResults(); }}
 								disabled={!isHo || branchLoading}
 								className={inputCls + " disabled:bg-gray-100 disabled:cursor-not-allowed"} style={{ width: 240 }}>
+								<option value="" className="bg-white text-slate-900">Select</option>
 								{branches.map((b) => (
 									<option key={b.branch_cd} value={b.branch_cd} className="bg-white text-slate-900">
 										{b.branch_name}

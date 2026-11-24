@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { openPdf, saveBlob } from '@/shared/utils/helpers';
 
 const toISO = (d: Date): string => d.toISOString().split('T')[0];
 
@@ -27,23 +28,6 @@ const fileMessage = async (err: any, fallback: string): Promise<string> => {
 		}
 	}
 	return d?.error || d?.message || fallback;
-};
-
-const saveBlob = (blob: Blob, filename: string) => {
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = filename;
-	document.body.appendChild(a);
-	a.click();
-	a.remove();
-	setTimeout(() => URL.revokeObjectURL(url), 60_000);
-};
-
-const openPdf = (blob: Blob, filename: string) => {
-	const url = URL.createObjectURL(blob);
-	if (!window.open(url, '_blank')) saveBlob(blob, filename);
-	setTimeout(() => URL.revokeObjectURL(url), 60_000);
 };
 
 const SummaryAgingReportPage: React.FC = () => {

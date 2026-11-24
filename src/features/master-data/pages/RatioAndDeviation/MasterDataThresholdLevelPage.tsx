@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
+import { toISO } from '@/shared/utils/helpers';
 
 interface ComboOption {
 	value: string;
@@ -59,13 +60,6 @@ const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#
 
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
-
-const toISO = (d: Date): string => {
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-};
 
 const parseISO = (s: string): Date | null => {
 	if (!s) return null;

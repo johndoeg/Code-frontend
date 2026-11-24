@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import api from '@/shared/api/axiosInstance';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
+import { fmtNum, getPageNumbers } from '@/shared/utils/helpers';
 
 interface SummaryFigures {
 	unit1: number; unit2: number; tot_unit: number; pd_unit: number;
@@ -38,15 +39,7 @@ const CUR_MONTH = new Date().getMonth() + 1;
 const YEARS = Array.from({ length: 21 }, (_, i) => CUR_YEAR + 10 - i);
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
 
-const fmtNum = (v: number) => new Intl.NumberFormat("id-ID").format(v);
 const fmtPct = (v: number) => `${v.toFixed(2)}%`;
-
-function getPageNumbers(cur: number, total: number): (number | "…")[] {
-	if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-	if (cur <= 4) return [1, 2, 3, 4, 5, "…", total];
-	if (cur >= total - 3) return [1, "…", total - 4, total - 3, total - 2, total - 1, total];
-	return [1, "…", cur - 1, cur, cur + 1, "…", total];
-}
 
 function MonthYearSelect({ month, year, onMonthChange, onYearChange }: {
 	month: number; year: number;

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
+import { fromApiDate, stripNpwp } from '@/shared/utils/helpers';
 
 type CustomerType = "PR" | "PT";
 type Mode = "create" | "edit" | "view";
@@ -43,9 +44,6 @@ const toApiDate = (d: Date | null): string => {
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 };
-const fromApiDate = (s: string): Date | null => (s ? new Date(`${s}T00:00:00`) : null);
-
-const stripNpwp = (v: string) => (v || '').replace(/\D/g, '').slice(0, 16);
 const formatNpwp = (v: string) => {
     const d = stripNpwp(v);
     if (!d) return "";

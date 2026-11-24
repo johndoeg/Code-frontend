@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import DOMPurify from 'dompurify';
 import api from '@/shared/api/axiosInstance';
 import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
 import LoadingCard from '@/features/cam/components/LoadingCard';
@@ -28,7 +29,7 @@ function RichText({ html }: { html: string }) {
     return (
         <div
             className="prose prose-sm max-w-none text-[var(--app-text)]"
-            dangerouslySetInnerHTML={{ __html: html }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(html ?? '')) }}
         />
     );
 }

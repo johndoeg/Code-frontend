@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
+import { fromApiDate, toApiDate } from '@/shared/utils/helpers';
 
 type Mode = 'Add' | 'Edit' | 'View';
 
@@ -14,14 +15,6 @@ const USERS_LIST_PATH = '/users';
 
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
-
-const toApiDate = (d: Date | null): string => {
-	if (!d || isNaN(d.getTime())) return "";
-	const pad = (n: number) => String(n).padStart(2, '0');
-	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-
-const fromApiDate = (s: string): Date | null => (s ? new Date(`${s}T00:00:00`) : null);
 
 const UserEntryPage: React.FC = () => {
 	const [searchParams] = useSearchParams();

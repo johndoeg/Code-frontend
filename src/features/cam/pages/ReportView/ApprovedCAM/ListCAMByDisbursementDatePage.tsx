@@ -5,6 +5,7 @@ import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
 import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
+import { toISO } from '@/shared/utils/helpers';
 
 interface BranchOption {
 	branch_cd: string;
@@ -83,13 +84,6 @@ const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
 
 const fmt = (n: number | undefined) => (n ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 0 });
 const fmt2 = (n: number | undefined) => (n ?? 0).toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-const toISO = (d: Date): string => {
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-};
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 

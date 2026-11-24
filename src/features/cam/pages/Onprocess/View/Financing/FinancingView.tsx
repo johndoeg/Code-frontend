@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
@@ -826,7 +827,7 @@ export default function FinancingView({ ctx }: { ctx: CamCtx }) {
 								{data.commission.map((r) => (
 									<tr key={r.no}>
 										<td className={`${tdCell} text-center`}>{r.no}</td>
-										<td className={tdCell} dangerouslySetInnerHTML={{ __html: r.code }} />
+										<td className={tdCell} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(r.code ?? '')) }} />
 										<td className={tdCell}>{r.name}</td>
 										<td className={tdCell}>{r.address}</td>
 										<td className={`${tdCell} text-right`}>{fmt(r.fee)}</td>

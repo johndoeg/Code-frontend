@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
+import { ddmmyyyy, fmt, toISO } from '@/shared/utils/helpers';
 
 interface BranchOption {
 	branch_cd: string;
@@ -29,20 +30,6 @@ interface ListResponse {
 	branch_name: string;
 	period_label: string;
 }
-
-const toISO = (d: Date): string => {
-	const year = d.getFullYear();
-	const month = String(d.getMonth() + 1).padStart(2, '0');
-	const day = String(d.getDate()).padStart(2, '0');
-	return `${year}-${month}-${day}`;
-};
-
-const fmt = (n: number) => (n ?? 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
-
-const ddmmyyyy = (d: Date | null): string => {
-	if (!d) return '';
-	return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-};
 
 const todayShort = (): string => ddmmyyyy(new Date());
 

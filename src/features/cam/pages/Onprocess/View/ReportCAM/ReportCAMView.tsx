@@ -1,4 +1,5 @@
 import React from 'react';
+import DOMPurify from 'dompurify';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
@@ -562,7 +563,7 @@ function CdRow({ label, value, html }: { label: string; value: string; html?: bo
 			<td width="25%" style={{ border: 0, verticalAlign: 'top' }}>{label}</td>
 			<td width="1%" style={{ border: 0, verticalAlign: 'top' }}>:</td>
 			<td width="74%" style={{ border: 0, verticalAlign: 'top' }}>
-				{html ? <span dangerouslySetInnerHTML={{ __html: value || '' }} /> : value}
+				{html ? <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String((value || '') ?? '')) }} /> : value}
 			</td>
 		</tr>
 	);
@@ -777,7 +778,7 @@ export default function ReportCamView({ ctx }: { ctx: CamCtx }) {
 										<SectionHead title="CUSTOMER" />
 										<LabelRow label={`Name in ${customer.name_in_label}`} value={customer.name_in_id} />
 										<LabelRow label={customer.customer_name_label} value={customer.customer_name} />
-										<LabelRow label="Address" value={<span dangerouslySetInnerHTML={{ __html: customer.address }} />} />
+										<LabelRow label="Address" value={<span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(customer.address ?? '')) }} />} />
 										<LabelRow label="Telephone" value={`(H) ${customer.phone2} (O) ${customer.phone1} (HP) ${customer.phone3}`} />
 										<LabelRow label="Mail Address" value={customer.mail_address} />
 										<LabelRow label="NPWP" value={customer.npwp} />
@@ -941,7 +942,7 @@ export default function ReportCamView({ ctx }: { ctx: CamCtx }) {
 										</tr>
 										{disbursement.commission_sales.map((s, i) => (
 											<tr key={i}>
-												<td className="bf1"><span dangerouslySetInnerHTML={{ __html: s.label }} /></td>
+												<td className="bf1"><span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(s.label ?? '')) }} /></td>
 												<td className="bf right" colSpan={2}>{fmt(s.amount)}</td>
 											</tr>
 										))}
@@ -982,7 +983,7 @@ export default function ReportCamView({ ctx }: { ctx: CamCtx }) {
 								<td width="16%" className="bf">&nbsp;</td>
 								<td width="15%" className="bf">&nbsp;</td>
 								<td width="35%" className="bf" style={{ verticalAlign: 'top' }}>
-									<div dangerouslySetInnerHTML={{ __html: cam_notes }} />
+									<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(cam_notes ?? '')) }} />
 									{revised_note && (
 										<div><i><strong>Revised Note</strong></i> : {revised_note}</div>
 									)}
@@ -1168,7 +1169,7 @@ export default function ReportCamView({ ctx }: { ctx: CamCtx }) {
 								</tr>
 								<tr>
 									<td className="bf1" height="50">
-										<div dangerouslySetInnerHTML={{ __html: pending_notes }} />
+										<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(pending_notes ?? '')) }} />
 									</td>
 								</tr>
 							</tbody>
@@ -2038,7 +2039,7 @@ export default function ReportCamView({ ctx }: { ctx: CamCtx }) {
 							</tr>
 							<tr>
 								<td className="bf1" height="50">
-									<div dangerouslySetInnerHTML={{ __html: notes }} />
+									<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(notes ?? '')) }} />
 								</td>
 							</tr>
 						</tbody>

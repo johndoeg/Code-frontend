@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/shared/api/axiosInstance';
+import { formatMoney, formatPct } from '@/shared/utils/helpers';
 
 type SearchMode = '' | 'dealer' | 'cmo';
 
@@ -35,9 +36,6 @@ interface MonthlyRow {
 
 const currentYear = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 21 }, (_, i) => currentYear + 10 - i);
-
-const formatMoney = (n: number) => n.toLocaleString('id-ID', { maximumFractionDigits: 0 });
-const formatPct = (n: number | null) => (n === null ? '-' : `${n.toFixed(2)}%`);
 
 const DetailIncentive3rdPartyReportPage: React.FC = () => {
 	const [year, setYear] = useState(currentYear);
@@ -123,6 +121,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 			setDealerResults(response.data);
 		} catch (err) {
 			console.error('Dealer search error:', err);
+			setDealerResults([]);
 		} finally {
 			setDealerLoading(false);
 		}
@@ -376,7 +375,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 
 			{dealerPickerOpen && (
 				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
-					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-[95vw] max-w-[1100px] max-h-[85vh] overflow-hidden flex flex-col">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-[95vw] max-w-[1100px] h-[85vh] overflow-hidden flex flex-col">
 						<div className="flex justify-between items-center p-4 border-b">
 							<h3 className="font-bold text-[var(--app-text)]">Dealer Information</h3>
 							<button onClick={() => setDealerPickerOpen(false)} className="text-[var(--app-text)] text-2xl leading-none transition-colors">
@@ -408,7 +407,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 								)}
 							</div>
 							<button
-								onClick={runDealerSearch}
+								onClick={() => runDealerSearch()}
 								className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
 							>
 								Search
@@ -416,7 +415,7 @@ const DetailIncentive3rdPartyReportPage: React.FC = () => {
 						</div>
 						<div className="overflow-y-auto flex-grow">
 							{dealerLoading ? (
-								<div className="flex justify-center py-10">
+								<div className="flex h-full items-center justify-center">
 									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
 								</div>
 							) : (

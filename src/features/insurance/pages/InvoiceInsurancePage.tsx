@@ -4,6 +4,7 @@ import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import Formatter from '@/helpers/Formatter';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { toLocalISO } from '@/shared/utils/helpers';
 
 interface InvoiceSummary {
 	asof: string;
@@ -36,9 +37,6 @@ interface InvoiceDetail {
 }
 
 interface FilterOption { value: string; label: string; }
-
-const toLocalISO = (d: Date) =>
-	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DEFAULT_FILTER = '1';

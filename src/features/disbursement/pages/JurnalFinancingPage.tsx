@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 
-const toISO = (d: Date): string => d.toISOString().split('T')[0];
+const toISO = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+};
 
 const dateFieldClass =
     'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
@@ -40,7 +45,9 @@ const JurnalFinancingPage: React.FC = () => {
             const anchor = document.createElement('a');
             anchor.href = url;
             anchor.download = `Jurnal_Financing_${toISO(dateFrom)}_${toISO(dateTo)}.xlsx`;
+            document.body.appendChild(anchor);
             anchor.click();
+            anchor.remove();
             URL.revokeObjectURL(url);
         } catch (err) {
             console.error('Export error:', err);

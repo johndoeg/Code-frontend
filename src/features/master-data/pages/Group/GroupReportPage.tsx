@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
+import { esc } from '@/shared/utils/helpers';
+
 interface GroupReportRow {
 	APLESS: string;
 	LESSEE_NM: string;
@@ -85,8 +87,8 @@ const GroupReportPage: React.FC = () => {
 			const rowsHtml = data.map((r, i) => `
                 <tr>
                     <td>${i + 1}</td>
-                    <td>${r.LESSEE_NM}</td>
-                    <td>${r.ADDRESS1} ${r.CITY1}</td>
+                    <td>${esc(r.LESSEE_NM)}</td>
+                    <td>${esc(r.ADDRESS1)} ${esc(r.CITY1)}</td>
                     <td style="text-align:right">${fmt(r.OUTS_TOTAL)}</td>
                 </tr>
             `).join("");
@@ -96,7 +98,7 @@ const GroupReportPage: React.FC = () => {
 			win.document.write(`
                 <html>
                 <head>
-                    <title>Group Report — ${appliedGrpname}</title>
+                    <title>Group Report — ${esc(appliedGrpname)}</title>
                     <style>
                         body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
                         h2 { text-align: center; margin-bottom: 4px; }
@@ -110,7 +112,7 @@ const GroupReportPage: React.FC = () => {
                 </head>
                 <body>
                     <h2>Group Report</h2>
-                    <p>Group Name: <strong>${appliedGrpname}</strong></p>
+                    <p>Group Name: <strong>${esc(appliedGrpname)}</strong></p>
                     <table>
                         <thead>
                             <tr>

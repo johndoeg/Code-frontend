@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
+import { esc, filenameFromDisposition } from '@/shared/utils/helpers';
 
 interface Branch {
 	branchCd: string;
@@ -23,14 +24,6 @@ interface SalesRecord {
 
 const todayShort = () =>
 	new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" });
-
-const esc = (v: unknown) =>
-	String(v ?? "")
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#39;");
 
 const buildPrintHtml = (records: SalesRecord[], printBy: string, branchName: string) => {
 	const rows = records.length
@@ -87,14 +80,6 @@ const buildPrintHtml = (records: SalesRecord[], printBy: string, branchName: str
 	</table>
 </body>
 </html>`;
-};
-
-const filenameFromDisposition = (header: string | undefined, fallback: string) => {
-	if (!header) return fallback;
-	const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(header);
-	if (utf8) return decodeURIComponent(utf8[1]);
-	const plain = /filename="?([^";]+)"?/i.exec(header);
-	return plain ? plain[1] : fallback;
 };
 
 const Spinner: React.FC = () => (

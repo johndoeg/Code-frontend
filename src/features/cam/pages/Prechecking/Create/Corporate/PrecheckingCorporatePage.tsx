@@ -8,6 +8,7 @@ import OCRUploadSection, {
 	type DukcapilVerification as OcrDukcapil,
 } from '@/features/cam/contexts/OCRUploadSection';
 import { MAX_FILE_LIMIT } from '@/shared/constants/DefaultValue';
+import { uid } from '@/shared/utils/helpers';
 
 interface DirectorData {
 	idCardNo: string; name: string; placeOfBirth: string; dateOfBirth: string;
@@ -136,8 +137,6 @@ const directorHasError = (entry: DirectorEntry, errors: Record<string, string>) 
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "bmp", "heic", "heif", "tiff", "tif", "webp"]);
 
 const NOTES_MAX_LENGTH = 1000;
-
-const uid = () => Math.random().toString(36).slice(2, 10);
 
 const sanitizeToken = (value?: string) => (value || "").replace(/[^A-Za-z0-9]/g, "");
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import { toNumber } from '@/shared/utils/helpers';
 
 interface IncomeItem {
 	code: string;
@@ -47,10 +48,6 @@ export interface CamTabHandle {
 	save: () => void;
 }
 
-const toNumber = (v: string) => {
-	const n = parseFloat((v || "0").replace(/,/g, ""));
-	return Number.isFinite(n) ? n : 0;
-};
 const fmt = (n: number) => n.toLocaleString("en-US", { maximumFractionDigits: 0 });
 const formatMoney = (v: string) => (v === "" || v == null ? "" : fmt(toNumber(v)));
 const cleanMoneyInput = (v: string) => v.replace(/[^\d.,-]/g, "");

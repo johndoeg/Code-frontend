@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandl
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
+import { formatDMY, parseDMY, splitIndustryValue } from '@/shared/utils/helpers';
 
 interface Option {
 	value: string;
@@ -50,12 +51,6 @@ function InfoTooltip({ text }: { text: string }) {
 			<i>(i)</i>
 		</label>
 	);
-}
-
-function splitIndustryValue(value: string): { code: string; header: string } {
-	const idx = value.indexOf("|");
-	if (idx === -1) return { code: "", header: value };
-	return { code: value.slice(0, idx), header: value.slice(idx + 1) };
 }
 
 
@@ -131,19 +126,6 @@ function PhoneInput({
 		</div>
 	);
 }
-
-const parseDMY = (value: string): Date | null => {
-	if (!value) return null;
-	const [d, m, y] = value.slice(0, 10).split("-").map(Number);
-	if (!y || !m || !d) return null;
-	return new Date(y, m - 1, d);
-};
-
-const formatDMY = (value: Date | null): string => {
-	if (!value) return "";
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${pad(value.getDate())}-${pad(value.getMonth() + 1)}-${value.getFullYear()}`;
-};
 
 type IndCodeSel = { l0: string; l1: string; l2: string; l3: string; l4: string; l5: string };
 

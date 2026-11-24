@@ -7,6 +7,7 @@ import {
 	ver_UNCHECKED, WNA_ID_TYPES, IMAGE_EXTS, PREVIEW_CLOSED,
 	useInjectStyles, Spinner, FileInput, DocList, LookupResultPanel, DocPreviewModal, StatBlock,
 } from '@/features/cam/components/PrecheckingShared';
+import { asPhotoSrc, docsSignature, formatDobInput, newUid, token } from '@/shared/utils/helpers';
 
 const CANCEL_PATH = '/cam-request-onhand';
 const DIR_PREFIX = 'corp-ocr-ktp_';
@@ -14,9 +15,6 @@ const WNA_PREFIX = 'wna-corp-board_';
 const SH_PREFIX = 'shareholder-npwp_';
 const SH_NAME_MAX = 100;
 const SH_NPWP_MAX = 16;
-
-const docsSignature = (list: UploadedDoc[]): string =>
-	list.map((d) => `${d.id}:${d.type}`).sort().join('|');
 
 type FieldKey =
 	| 'id_card_no' | 'name' | 'pob' | 'dob' | 'gender' | 'blood_type' | 'address' | 'rt' | 'rw'
@@ -150,9 +148,6 @@ const NIK_RE = /^\d{16}$/;
 const RTRW_RE = /^\d{3}$/;
 const DOB_RE = /^(\d{2})-(\d{2})-(\d{4})$/;
 
-const newUid = () => `e${Math.random().toString(36).slice(2, 10)}`;
-const token = (v: string) => (v || '').replace(/[^A-Za-z0-9]/g, '');
-
 const emptyValues = (): DirectorValues => ({
 	id_card_no: '', name: '', pob: '', dob: '', gender: '', blood_type: '', address: '', rt: '', rw: '',
 	subdistrict: '', district: '', city: '', province: '', religion: '', job: '', marital_status: '',
@@ -170,38 +165,6 @@ const normalizeVer = (ver?: Record<string, unknown>): VerMap => {
 		const v = ver?.[k];
 		out[k] = v === 'True' || v === true || v === 1 ? 'True' : 'False';
 	});
-	return out;
-};
-
-const formatDobInput = (raw: string, prev: string): string => {
-	const deleting = raw.length < prev.length;
-	const digits = raw.replace(/\D/g, '').slice(0, 8);
-	let dd = digits.slice(0, 2);
-	let mm = digits.slice(2, 4);
-	let yyyy = digits.slice(4, 8);
-
-	if (dd.length === 1 && dd > '3') dd = `0${dd}`;
-	if (dd.length === 2) {
-		const n = Number(dd);
-		dd = n < 1 ? '01' : n > 31 ? '31' : dd;
-	}
-	if (mm.length === 1 && mm > '1') mm = `0${mm}`;
-	if (mm.length === 2) {
-		const n = Number(mm);
-		mm = n < 1 ? '01' : n > 12 ? '12' : mm;
-	}
-	if (yyyy.length >= 1 && !['1', '2'].includes(yyyy[0])) yyyy = '';
-	if (yyyy.length === 4) {
-		const n = Number(yyyy);
-		const max = new Date().getFullYear();
-		yyyy = String(n < 1900 ? 1900 : n > max ? max : n);
-	}
-
-	let out = dd;
-	if (mm || (dd.length === 2 && !deleting)) out += '-';
-	out += mm;
-	if (yyyy || (mm.length === 2 && !deleting)) out += '-';
-	out += yyyy;
 	return out;
 };
 
@@ -243,8 +206,6 @@ const comparableDirector = (d: DirectorEntry) => ({
 const comparableWna = (w: WnaEntry) => ({ id: w.ocrId, name: w.name.trim(), idNo: w.idCardNo.trim(), type: w.idType });
 const comparableShareholder = (x: ShareholderEntry) => ({ id: x.ocrId, name: x.name.trim(), npwp: x.npwpNo.trim() });
 const isBlankNewShareholder = (x: ShareholderEntry) => !x.ocrId && !x.name.trim() && !x.npwpNo.trim();
-
-const asPhotoSrc = (raw: string) => (raw.startsWith('data:') ? raw : `data:image/jpeg;base64,${raw}`);
 
 const LOCAL_STYLE_ID = 'edit-prechecking-corporate-styles';
 const LOCAL_CSS = `

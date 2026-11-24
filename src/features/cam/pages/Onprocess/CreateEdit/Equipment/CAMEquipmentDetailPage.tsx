@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState, forwardRef, useImperativeHandl
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
+import { parseISODate, selectCls, toISODate } from '@/shared/utils/helpers';
 
 export interface CAMEquipmentDetailPageProps {
 	apless: string;
@@ -43,10 +44,6 @@ const readonlyCls =
 const labelCls = "text-sm text-[var(--app-muted)] pt-1.5";
 const linkLabelCls = "text-sm text-blue-700 underline hover:text-blue-400 text-left pt-1.5";
 const sectionCls = "rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-5 shadow-sm";
-const selectCls = (editable: boolean) =>
-	`border border-[var(--app-border)] rounded-lg px-2 py-1.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-blue-400 ${editable ? "bg-[var(--app-card)]" : "bg-[var(--app-surface-alt)] text-[var(--app-muted)] cursor-not-allowed"
-	}`;
-
 const EMPTY_FORM = {
 	supp: "", suppName: "", suppAddress: "", suppType: "", typeCd: "07",
 	brand: "", type: "", model: "", tahun: "",
@@ -83,19 +80,6 @@ const SUPPLIER_MODAL_TITLE: Record<SupplierCategory, string> = {
 	karoseri: "List Dealer of Karoseri",
 	accessories: "List Dealer of Accessories",
 	other: "List Dealer of Others",
-};
-
-const parseISODate = (value: string): Date | null => {
-	if (!value) return null;
-	const [y, m, d] = value.slice(0, 10).split("-").map(Number);
-	if (!y || !m || !d) return null;
-	return new Date(y, m - 1, d);
-};
-
-const toISODate = (value: Date | null): string => {
-	if (!value) return "";
-	const pad = (n: number) => String(n).padStart(2, "0");
-	return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
 };
 
 function Row({ label, labelNode, children }: {

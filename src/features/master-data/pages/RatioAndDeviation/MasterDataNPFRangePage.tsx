@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePickerComponent from '@/shared/components/AsOfDatePickerComponent';
+import { allowAmountAndDot, blockNonNumericKey, parseISO } from '@/shared/utils/helpers';
 
 interface ComboOption { value: string; desc_value: string; }
 
@@ -39,21 +40,6 @@ const toISO = (d: Date): string => {
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-};
-
-const parseISO = (s: string): Date | null => {
-    if (!s) return null;
-    const [y, m, d] = s.split('-').map(Number);
-    if (!y || !m || !d) return null;
-    return new Date(y, m - 1, d);
-};
-
-const allowAmountAndDot = (value: string) => /^\d*\.?\d{0,2}$/.test(value);
-
-const blockNonNumericKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!/[0-9.]/.test(e.key) && e.key !== "Backspace" && e.key !== "Delete" && e.key !== "Tab" && !e.key.startsWith("Arrow")) {
-        e.preventDefault();
-    }
 };
 
 const MasterNpfRangePage: React.FC = () => {

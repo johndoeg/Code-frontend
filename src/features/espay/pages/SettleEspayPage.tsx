@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import Formatter from '@/helpers/Formatter';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { toLocalISO } from '@/shared/utils/helpers';
 
 interface HistoryRow {
 	cd_history_bgiro: string;
@@ -20,9 +21,6 @@ interface HistoryRow {
 }
 
 type Notice = { type: 'success' | 'error'; text: string } | null;
-
-const toLocalISO = (d: Date) =>
-	`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 const thCls = "py-2 px-3 text-xs font-medium text-[var(--app-text)] uppercase tracking-wider border border-[var(--app-border)]";
 const dateFieldClass =

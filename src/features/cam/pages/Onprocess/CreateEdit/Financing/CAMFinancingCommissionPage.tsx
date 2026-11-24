@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import api from '@/shared/api/axiosInstance';
+import { isBlank, num } from '@/shared/utils/helpers';
 
 export interface CamTabHandle {
 	save: () => void;
@@ -76,14 +77,6 @@ interface EditTarget {
 	sdType: string;
 	accNo: string;
 }
-
-const num = (value: any): number => {
-	if (value === null || value === undefined) return 0;
-	const parsed = parseFloat(String(value).replace(/,/g, ""));
-	return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const isBlank = (value: any) => value === null || value === undefined || String(value).trim() === "";
 
 const fmt = (value: any) => Math.round(num(value)).toLocaleString("en-US");
 

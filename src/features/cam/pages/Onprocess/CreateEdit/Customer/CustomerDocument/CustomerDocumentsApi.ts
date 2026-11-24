@@ -1,5 +1,6 @@
 import type { CustomerDocumentListResponse } from "./Types";
 import api from '@/shared/api/axiosInstance';
+import { absoluteUrl } from '@/shared/utils/helpers';
 
 const API_BASE = "/CAM/EditIndex/customer-document";
 
@@ -73,11 +74,6 @@ export async function deleteCustomerDocument(id: number): Promise<boolean> {
 	} catch {
 		return false;
 	}
-}
-
-function absoluteUrl(path: string): string {
-	const base = (api.defaults?.baseURL ?? "").replace(/\/$/, "");
-	return `${base}${path}`;
 }
 
 export function downloadUrl(id: number): string {

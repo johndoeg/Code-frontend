@@ -1,13 +1,6 @@
 import React, { useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-
-function getTopWindow(): Window {
-	try {
-		return window.top ?? window;
-	} catch {
-		return window;
-	}
-}
+import { getTopWindow } from '@/shared/utils/helpers';
 
 const STYLE_BRIDGE_ID = 'cam-app-style-bridge';
 function ensureStylesBridged(topWindow: Window) {

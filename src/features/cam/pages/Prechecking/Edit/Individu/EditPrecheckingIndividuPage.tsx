@@ -13,6 +13,7 @@ import {
 	mapOcrToCustomer, useInjectStyles,
 	Spinner, FileInput, DocList, LookupResultPanel, DocPreviewModal, StatBlock, FieldPair,
 } from '@/features/cam/components/PrecheckingShared';
+import { docsSignature } from '@/shared/utils/helpers';
 
 const CANCEL_PATH = '/cam-request-onhand';
 
@@ -141,9 +142,6 @@ interface FormSnapshot {
 	wnaSpIdType: IdType;
 	spouseCarryIds: number[];
 }
-
-const docsSignature = (list: UploadedDoc[]): string =>
-	list.map((d) => `${d.id}:${d.type}`).sort().join('|');
 
 const pickFields = (p: CustomerData) => COMPARE_FIELDS.map((k) => (p[k] || '').trim());
 

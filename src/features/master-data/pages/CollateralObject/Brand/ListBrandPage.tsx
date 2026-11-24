@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
+import { esc } from '@/shared/utils/helpers';
 
 interface VehicleRow {
 	TYPE: string;
@@ -136,10 +137,10 @@ const ListBrandPage: React.FC = () => {
 			const rows = data.map((r, i) => `
                 <tr>
                     <td>${i + 1}</td>
-                    <td>${r.BRAND_NM}</td>
-                    <td>${r.MODEL_NM}</td>
-                    <td>${r.TYPE}</td>
-                    <td>${r.TYPE_NM}</td>
+                    <td>${esc(r.BRAND_NM)}</td>
+                    <td>${esc(r.MODEL_NM)}</td>
+                    <td>${esc(r.TYPE)}</td>
+                    <td>${esc(r.TYPE_NM)}</td>
                 </tr>
             `).join("");
 

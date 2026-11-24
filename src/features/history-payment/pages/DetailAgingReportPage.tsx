@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { downloadBlob, fileMessage, openPdf, saveBlob } from '@/shared/utils/helpers';
 
 interface Branch {
 	BRANCH_CD: string;
@@ -11,36 +12,6 @@ interface EquipmentType {
 	VALUE: string;
 	DESC_VALUE: string;
 }
-
-const fileMessage = async (err: any, fallback: string): Promise<string> => {
-	const d = err?.response?.data;
-	if (d instanceof Blob) {
-		try { return JSON.parse(await d.text()).message || fallback; } catch { return fallback; }
-	}
-	return d?.message || fallback;
-};
-
-const downloadBlob = async (path: string, params: Record<string, string>, mime: string): Promise<Blob> => {
-	const res = await api.get(path, { params, responseType: 'blob', timeout: 0 });
-	return new Blob([res.data], { type: mime });
-};
-
-const saveBlob = (blob: Blob, filename: string) => {
-	const url = URL.createObjectURL(blob);
-	const a = document.createElement('a');
-	a.href = url;
-	a.download = filename;
-	document.body.appendChild(a);
-	a.click();
-	a.remove();
-	setTimeout(() => URL.revokeObjectURL(url), 60_000);
-};
-
-const openPdf = (blob: Blob, filename: string) => {
-	const url = URL.createObjectURL(blob);
-	if (!window.open(url, '_blank')) saveBlob(blob, filename);
-	setTimeout(() => URL.revokeObjectURL(url), 60_000);
-};
 
 const XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 

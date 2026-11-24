@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import DOMPurify from 'dompurify';
 import api from '@/shared/api/axiosInstance';
 import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
 import LoadingCard from '@/features/cam/components/LoadingCard';
@@ -36,7 +37,7 @@ function NotesCard({ title, endpoint, ctx }: { title: string; endpoint: string; 
             <div className="border-b border-[var(--app-border)] bg-[var(--app-surface)] px-5 py-3">
                 <h2 className="text-sm font-semibold text-[var(--app-text)]">{title}</h2>
             </div>
-            <div className="prose prose-sm max-w-none p-5 text-[var(--app-text)]" dangerouslySetInnerHTML={{ __html: data.notes }} />
+            <div className="prose prose-sm max-w-none p-5 text-[var(--app-text)]" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(String(data.notes ?? '')) }} />
         </div>
     );
 }

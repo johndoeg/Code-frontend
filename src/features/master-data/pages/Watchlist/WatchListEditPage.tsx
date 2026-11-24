@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { fromApiDate, stripNpwp, toApiDate } from '@/shared/utils/helpers';
 
 type CustomerType = "PR" | "PT";
 
@@ -37,14 +38,6 @@ const inputCls =
 	"w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent focus:outline-none transition-shadow disabled:bg-[var(--app-surface)] disabled:text-[var(--app-muted)] disabled:cursor-not-allowed";
 const selectCls = `${inputCls} bg-white text-[var(--app-text)]`;
 
-const toApiDate = (d: Date | null): string => {
-	if (!d || isNaN(d.getTime())) return "";
-	const pad = (n: number) => String(n).padStart(2, '0');
-	return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-const fromApiDate = (s: string): Date | null => (s ? new Date(`${s}T00:00:00`) : null);
-
-const stripNpwp = (v: string) => (v || '').replace(/\D/g, '').slice(0, 16);
 const formatNpwp = (v: string) => {
 	const d = stripNpwp(v);
 	if (!d) return "";

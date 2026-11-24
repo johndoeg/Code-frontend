@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
+import { getPageNumbers } from '@/shared/utils/helpers';
 
 interface Branch { branch_cd: string; branch_name: string; }
 
@@ -25,13 +26,6 @@ const toISO = (d: Date) => d.toISOString().split("T")[0];
 
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
-
-function getPageNumbers(cur: number, total: number): (number | "…")[] {
-	if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-	if (cur <= 4) return [1, 2, 3, 4, 5, "…", total];
-	if (cur >= total - 3) return [1, "…", total - 4, total - 3, total - 2, total - 1, total];
-	return [1, "…", cur - 1, cur, cur + 1, "…", total];
-}
 
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
 

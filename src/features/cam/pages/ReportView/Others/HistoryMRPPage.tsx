@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '@/shared/api/axiosInstance';
+import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
+import type { CamCtx } from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
+import { ctxFromEditParams } from '@/shared/utils/helpers';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 
 interface Brand { brand: string; brand_nm: string; }
@@ -13,6 +16,7 @@ interface MRPRow {
 	l_amount: number; net_finance: number; execution: string;
 	branch_name: string;
 	appl_no?: string;
+	cust_name?: string;
 	cam_params?: CamParams;
 }
 
@@ -22,15 +26,11 @@ interface DataResponse {
 }
 
 const ROWS_PER_PAGE = DEFAULT_PAGE_LIMIT;
-const CAM_VIEW_PATH = "/module_cam/view_main.php";
 
 const fmtNum = (v: number | null | undefined) =>
 	v === null || v === undefined || Number.isNaN(Number(v))
 		? ""
 		: new Intl.NumberFormat("en-US").format(Math.round(Number(v)));
-
-const camHref = (params?: CamParams) =>
-	params ? `${CAM_VIEW_PATH}?${new URLSearchParams(params).toString()}` : "#";
 
 function getPageNumbers(cur: number, total: number): (number | "…")[] {
 	const add = (p: number, set: Set<number>) => { if (p >= 1 && p <= total) set.add(p); };
@@ -61,6 +61,7 @@ const HistoryMRP: React.FC = () => {
 	const [hasSearched, setHasSearched] = useState<boolean>(false);
 	const [currentPage, setCurrentPage] = useState<number>(1);
 	const [showApplNo, setShowApplNo] = useState<boolean>(false);
+	const [activeCam, setActiveCam] = useState<{ ctx: CamCtx } | null>(null);
 
 	useEffect(() => {
 		api.get<Brand[]>("/CAM/Others/HistoryMRP/brands")
@@ -257,10 +258,17 @@ const HistoryMRP: React.FC = () => {
 													<td className={TD()}>{row.branch_name}</td>
 													{showApplNo && (
 														<td className={TD()}>
-															<a href={camHref(row.cam_params)} target="_blank" rel="noreferrer"
-																className="text-blue-600 hover:underline">
-																{row.appl_no}
-															</a>
+															{row.cam_params ? (
+																<button
+																	type="button"
+																	onClick={() => setActiveCam({ ctx: ctxFromEditParams(row.cam_params!, row.cust_name ?? "") })}
+																	className="text-blue-600 hover:underline"
+																>
+																	{row.appl_no}
+																</button>
+															) : (
+																row.appl_no
+															)}
 														</td>
 													)}
 												</tr>
@@ -302,6 +310,26 @@ const HistoryMRP: React.FC = () => {
 					</>
 				)}
 			</div>
+
+			{activeCam && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+					<div
+						role="dialog"
+						aria-modal="true"
+						aria-label={`CAM ${activeCam.ctx.applno} detail`}
+						className="flex max-h-[90vh] w-[95vw] flex-col overflow-hidden rounded-2xl bg-[var(--app-card)] shadow-2xl"
+					>
+						<div className="min-h-0 flex-1 overflow-y-auto">
+							<CamViewTabs
+								ctx={activeCam.ctx}
+								initialMenu={1}
+								initialSubmenu={1}
+								onHome={() => setActiveCam(null)}
+							/>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

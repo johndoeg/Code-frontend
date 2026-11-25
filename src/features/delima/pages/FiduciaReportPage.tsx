@@ -45,7 +45,13 @@ const PRINT_ONLY_TYPES = new Set([
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 
-const toISO = (d: Date | null): string => (d ? d.toISOString().split('T')[0] : '');
+const toISO = (d: Date | null): string => {
+	if (!d) return '';
+	const year = d.getFullYear();
+	const month = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	return `${year}-${month}-${day}`;
+};
 
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
@@ -67,7 +73,10 @@ const FiduciaReportPage: React.FC = () => {
 	const [error, setError] = useState<string | null>(null);
 
 	const [page, setPage] = useState(1);
+	const [access, setAccess] = useState('');
 	const limit = DEFAULT_PAGE_LIMIT;
+
+	const isRestricted = access === 'CL_FULL';
 
 	const isPrintOnly = PRINT_ONLY_TYPES.has(certType);
 	const isTableMode = certType === 'fidusia' || certType === 'roya_fidusia';
@@ -81,6 +90,20 @@ const FiduciaReportPage: React.FC = () => {
 	const pagedRecords = records.slice((page - 1) * limit, page * limit);
 	const totalPages = Math.ceil(records.length / limit);
 
+	React.useEffect(() => {
+		api.get('/FiduciaReport/context')
+			.then(res => {
+				const level = (res.data?.access ?? '').toString().trim().toUpperCase();
+				setAccess(level);
+				if (level === 'CL_FULL') {
+					setCertType('fidusia');
+					setSearchBy('cont_number');
+					setContractRows(['']);
+				}
+			})
+			.catch(() => {});
+	}, []);
+
 	const handleCertTypeChange = (value: CertType) => {
 		setCertType(value);
 		setSearchBy('');
@@ -90,6 +113,9 @@ const FiduciaReportPage: React.FC = () => {
 		setError(null);
 		setContractRows(['']);
 		setPage(1);
+		setDateBefore(null);
+		setDateAfter(null);
+		setCustomerName('');
 
 		setAsOf(PRINT_ONLY_TYPES.has(value) ? new Date() : null);
 	};
@@ -101,11 +127,14 @@ const FiduciaReportPage: React.FC = () => {
 		setCheckAll(false);
 		setContractRows(['']);
 		setPage(1);
+		setDateBefore(null);
+		setDateAfter(null);
+		setCustomerName('');
 	};
 
 	const handleCancel = () => {
-		setCertType('');
-		setSearchBy('');
+		setCertType(isRestricted ? 'fidusia' : '');
+		setSearchBy(isRestricted ? 'cont_number' : '');
 		setDateBefore(null);
 		setDateAfter(null);
 		setCustomerName('');
@@ -128,10 +157,27 @@ const FiduciaReportPage: React.FC = () => {
 		if (date && dateBefore && date < dateBefore) setDateBefore(date);
 	};
 
+	const handlePrint = useCallback(async () => {
+		if (!certType || !asOf) { alert('Please Fill The Field'); return; }
+		try {
+			const response = await api.get('/FiduciaReport/fiducia-print', {
+				params: { cert_type: certType, asof: toISO(asOf) },
+				responseType: 'blob',
+			});
+			const blob = new Blob([response.data], { type: 'application/pdf' });
+			const url = URL.createObjectURL(blob);
+			window.open(url, '_blank');
+			setTimeout(() => URL.revokeObjectURL(url), 10_000);
+		} catch (err) {
+			console.error('Print error:', err);
+			alert('Failed to open the report. Please try again.');
+		}
+	}, [certType, asOf]);
+
 	const fetchData = useCallback(async (leaseNo = '') => {
 		if (!certType) { alert('Please select a Certificate Type'); return; }
 		if (isPrintOnly) { handlePrint(); return; }
-		if (!searchBy) { alert('Please select a Search By option'); return; }
+		if (!searchBy) { alert('Please select an option.'); return; }
 
 		setLoading(true);
 		setError(null);
@@ -170,7 +216,7 @@ const FiduciaReportPage: React.FC = () => {
 		} finally {
 			setLoading(false);
 		}
-	}, [certType, searchBy, customerName, dateBefore, dateAfter, isPrintOnly]);
+	}, [certType, searchBy, customerName, dateBefore, dateAfter, isPrintOnly, handlePrint]);
 
 	const handleSearch = () => fetchData();
 
@@ -264,28 +310,13 @@ const FiduciaReportPage: React.FC = () => {
 			const anchor = document.createElement('a');
 			anchor.href = url;
 			anchor.download = fileName;
+			document.body.appendChild(anchor);
 			anchor.click();
+			anchor.remove();
 			URL.revokeObjectURL(url);
 		} catch (err) {
 			console.error('Download error:', err);
 			alert('Failed to download the file. Please try again.');
-		}
-	};
-
-	const handlePrint = async () => {
-		if (!certType || !asOf) { alert('Please fill in all fields'); return; }
-		try {
-			const response = await api.get('/FiduciaReport/fiducia-print', {
-				params: { cert_type: certType, asof: toISO(asOf) },
-				responseType: 'blob',
-			});
-			const blob = new Blob([response.data], { type: 'application/pdf' });
-			const url = URL.createObjectURL(blob);
-			window.open(url, '_blank');
-			setTimeout(() => URL.revokeObjectURL(url), 10_000);
-		} catch (err) {
-			console.error('Print error:', err);
-			alert('Failed to open the report. Please try again.');
 		}
 	};
 
@@ -325,6 +356,7 @@ const FiduciaReportPage: React.FC = () => {
 							<select
 								value={certType}
 								onChange={e => handleCertTypeChange(e.target.value as CertType)}
+								disabled={isRestricted}
 								className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg shadow-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 							>
 								<option value="" style={optionStyle}>Select an option</option>
@@ -344,6 +376,7 @@ const FiduciaReportPage: React.FC = () => {
 								<select
 									value={searchBy}
 									onChange={e => handleSearchByChange(e.target.value as SearchBy)}
+									disabled={isRestricted}
 									className="w-full px-4 py-3 border border-[var(--app-border)] rounded-lg shadow-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								>
 									<option value="" style={optionStyle}>Select an option</option>
@@ -549,7 +582,7 @@ const FiduciaReportPage: React.FC = () => {
 										{!showContNum && pagedRecords.map((record, idx) => (
 											<tr
 												key={record.lease_no}
-												className={`hover:bg-[var(--app-surface)] transition-colors ${(page - 1) * limit + idx % 2 === 0 ? 'bg-[var(--app-card)]' : 'bg-[var(--app-surface)]'}`}
+												className={`hover:bg-[var(--app-surface)] transition-colors ${((page - 1) * limit + idx) % 2 === 0 ? 'bg-[var(--app-card)]' : 'bg-[var(--app-surface)]'}`}
 											>
 												<td className="py-3 px-4 text-sm text-center text-[var(--app-text)]">
 													{(page - 1) * limit + idx + 1}

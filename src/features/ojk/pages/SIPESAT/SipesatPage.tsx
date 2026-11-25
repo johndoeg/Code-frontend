@@ -56,11 +56,7 @@ const SipesatPage: React.FC = () => {
 	};
 
 	const handleClose = () => {
-		if (window.opener) {
-			window.close();
-		} else {
-			window.history.back();
-		}
+		window.location.href = '/';
 	};
 
 	return (
@@ -69,12 +65,6 @@ const SipesatPage: React.FC = () => {
 				<div className="mb-6">
 					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-lg shadow p-4 flex justify-between items-center">
 						<h1 className="text-xl font-bold text-[var(--app-text)]">PELAPORAN SIPESAT</h1>
-						<button
-							onClick={handleClose}
-							className="px-4 py-2 text-sm text-[var(--app-text)] hover:opacity-70 border border-[var(--app-border)] rounded-lg hover:bg-[var(--app-surface)] transition-colors"
-						>
-							Close
-						</button>
 					</div>
 				</div>
 

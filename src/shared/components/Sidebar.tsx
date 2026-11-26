@@ -432,8 +432,10 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 	const [mobileOpen, setMobileOpen] = useState(false);
 	const [resetKey, setResetKey] = useState(0);
 	const [isLoggingOut, setIsLoggingOut] = useState(false);
+	const [logoutOpen, setLogoutOpen] = useState(false);
 	const sidebarRef = useRef<HTMLDivElement>(null);
 	const activeItemRef = useRef<HTMLElement | null>(null);
+	const confirmLogoutRef = useRef<HTMLButtonElement>(null);
 
 	const { data: menuData } = useQuery({
 		queryKey: ["menus"],
@@ -645,9 +647,18 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 		}
 	}, [sidebarExpanded]);
 
-	const handleLogout = useCallback(async () => {
+	const requestLogout = useCallback(() => {
 		if (isLoggingOut) return;
-		if (!confirm("Are you sure you want to log out?")) return;
+		setLogoutOpen(true);
+	}, [isLoggingOut]);
+
+	const cancelLogout = useCallback(() => {
+		if (isLoggingOut) return;
+		setLogoutOpen(false);
+	}, [isLoggingOut]);
+
+	const confirmLogout = useCallback(async () => {
+		if (isLoggingOut) return;
 
 		setIsLoggingOut(true);
 		try {
@@ -656,9 +667,23 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 			console.error("Logout failed:", e);
 		} finally {
 			setIsLoggingOut(false);
+			setLogoutOpen(false);
 			navigate("/login", { replace: true });
 		}
 	}, [isLoggingOut, logout, navigate]);
+
+	useEffect(() => {
+		if (!logoutOpen) return;
+		const onKey = (e: KeyboardEvent) => {
+			if (e.key === "Escape" && !isLoggingOut) setLogoutOpen(false);
+		};
+		window.addEventListener("keydown", onKey);
+		const raf = requestAnimationFrame(() => confirmLogoutRef.current?.focus());
+		return () => {
+			window.removeEventListener("keydown", onKey);
+			cancelAnimationFrame(raf);
+		};
+	}, [logoutOpen, isLoggingOut]);
 
 	if (window.self !== window.top) return null;
 
@@ -770,7 +795,7 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 						type="button"
 						className="sb-item sb-logout"
 						data-tip={(collapsed && !isMobile) ? "Logout" : undefined}
-						onClick={handleLogout}
+						onClick={requestLogout}
 						disabled={isLoggingOut}
 					>
 						<span className="sb-icon">
@@ -815,6 +840,60 @@ export default function Sidebar({ open: _open, mini: _mini, onClose: _onClose }:
 
 			{!isMobile && (
 				<div style={{ width: currentW, flexShrink: 0, transition: spacerTransition }} />
+			)}
+
+			{logoutOpen && (
+				<div
+					className="sb-logout-backdrop"
+					style={{ zIndex: 9999 }}
+					onMouseDown={e => { if (e.target === e.currentTarget) cancelLogout(); }}
+				>
+					<div
+						className="sb-logout-modal"
+						role="alertdialog"
+						aria-modal="true"
+						aria-labelledby="sb-logout-title"
+						aria-describedby="sb-logout-desc"
+					>
+						<div className="sb-logout-body">
+							<span className="sb-logout-badge" aria-hidden="true">
+								<IconLogout size={20} />
+							</span>
+							<div className="sb-logout-copy">
+								<h2 id="sb-logout-title">Log out</h2>
+								<p id="sb-logout-desc">
+									You will be signed out of Genie CAM and returned to the login page.
+									Any unsaved work on this page will be lost.
+								</p>
+							</div>
+						</div>
+						<div className="sb-logout-actions">
+							<button
+								type="button"
+								className="sb-logout-btn sb-logout-btn-ghost"
+								onClick={cancelLogout}
+								disabled={isLoggingOut}
+							>
+								Cancel
+							</button>
+							<button
+								type="button"
+								ref={confirmLogoutRef}
+								className="sb-logout-btn sb-logout-btn-danger"
+								onClick={confirmLogout}
+								disabled={isLoggingOut}
+							>
+								{isLoggingOut && (
+									<svg className="sb-spin" width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+										<circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity=".25" />
+										<path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+									</svg>
+								)}
+								{isLoggingOut ? "Logging out..." : "Log out"}
+							</button>
+						</div>
+					</div>
+				</div>
 			)}
 		</>
 	);

@@ -769,10 +769,16 @@ body.sb-resizing * {
 	scrollbar-color: var(--sb-scrollbar) transparent;
 }
 
-.sb-flyout::-webkit-scrollbar { width: 3px; }
-.sb-flyout::-webkit-scrollbar-thumb { background: var(--sb-scrollbar); border-radius: 3px; }
+.sb-flyout::-webkit-scrollbar {
+	width: 3px;
+}
 
-.sb-shell.collapsed li:hover > .sb-flyout {
+.sb-flyout::-webkit-scrollbar-thumb {
+	background: var(--sb-scrollbar);
+	border-radius: 3px;
+}
+
+.sb-shell.collapsed li:hover>.sb-flyout {
 	opacity: 1;
 	visibility: visible;
 	pointer-events: auto;
@@ -794,7 +800,10 @@ body.sb-resizing * {
 	margin: 0;
 }
 
-.sb-flyout .sb-child-item { margin: 1px 2px; }
+.sb-flyout .sb-child-item {
+	margin: 1px 2px;
+}
+
 .sb-brand-logo {
 	transition: filter .12s;
 }
@@ -821,7 +830,7 @@ body.sb-resizing * {
 	transition: opacity var(--sb-dur) var(--sb-ease), transform var(--sb-dur) var(--sb-ease);
 }
 
-.sb-collapse.open > .sb-collapse-inner {
+.sb-collapse.open>.sb-collapse-inner {
 	opacity: 1;
 	transform: none;
 }
@@ -841,4 +850,142 @@ body.sb-resizing * {
 .sb-shell.collapsed .sb-scroll>ul>li>.sb-collapse>.sb-collapse-inner {
 	opacity: 0;
 	transform: translateY(-4px);
+}
+
+.sb-logout-backdrop {
+	position: fixed;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 16px;
+	background: rgba(15, 23, 42, .55);
+	backdrop-filter: blur(2px);
+	animation: sb-logout-fade .14s ease-out;
+}
+
+.sb-logout-modal {
+	width: 100%;
+	max-width: 380px;
+	border-radius: 14px;
+	overflow: hidden;
+	background: var(--app-card, #ffffff);
+	color: var(--app-text, #0f172a);
+	border: 1px solid var(--app-border, #e2e8f0);
+	box-shadow: 0 20px 50px rgba(0, 0, 0, .28);
+	animation: sb-logout-pop .16s cubic-bezier(.4, 0, .2, 1);
+}
+
+.sb-logout-body {
+	display: flex;
+	gap: 14px;
+	padding: 22px 22px 6px;
+}
+
+.sb-logout-badge {
+	flex: 0 0 auto;
+	width: 40px;
+	height: 40px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(220, 38, 38, .12);
+	color: #dc2626;
+}
+
+.sb-logout-copy h2 {
+	margin: 2px 0 6px;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.2;
+}
+
+.sb-logout-copy p {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.5;
+	opacity: .72;
+}
+
+.sb-logout-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 18px 22px 20px;
+}
+
+.sb-logout-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 7px;
+	min-width: 94px;
+	padding: 8px 16px;
+	font-size: 13px;
+	font-weight: 500;
+	border-radius: 8px;
+	cursor: pointer;
+	transition: background-color .15s, border-color .15s, opacity .15s;
+}
+
+.sb-logout-btn:disabled {
+	opacity: .6;
+	cursor: not-allowed;
+}
+
+.sb-logout-btn:focus-visible {
+	outline: 2px solid #2563eb;
+	outline-offset: 2px;
+}
+
+.sb-logout-btn-ghost {
+	background: transparent;
+	color: var(--app-text, #0f172a);
+	border: 1px solid var(--app-border, #e2e8f0);
+}
+
+.sb-logout-btn-ghost:not(:disabled):hover {
+	background: var(--app-surface, #f1f5f9);
+}
+
+.sb-logout-btn-danger {
+	background: #dc2626;
+	color: #ffffff;
+	border: 1px solid #dc2626;
+}
+
+.sb-logout-btn-danger:not(:disabled):hover {
+	background: #b91c1c;
+	border-color: #b91c1c;
+}
+
+@keyframes sb-logout-fade {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes sb-logout-pop {
+	from {
+		opacity: 0;
+		transform: translateY(6px) scale(.98);
+	}
+
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+	.sb-logout-backdrop,
+	.sb-logout-modal {
+		animation: none;
+	}
 }

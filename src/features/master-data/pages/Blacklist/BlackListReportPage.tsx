@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
@@ -48,6 +49,20 @@ interface PreviewResponse {
 }
 
 const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
+const PRINT_PAGE_SIZE = 200;
+
+type ReportParams = ReturnType<typeof makeParams>;
+
+const makeParams = (asOf: Date, searchBy: SearchBy, searchByText: string, reasonCat: string, existing: boolean, deleted: boolean) => ({
+	as_of: toISO(asOf),
+	searchby: searchBy,
+	searchbytext: searchBy === '3' ? '' : searchByText,
+	reason_cat: searchBy === '3' ? reasonCat : '',
+	existing: existing ? 'existing' : '',
+	deleted: deleted ? 'deleted' : '',
+});
+
+const fmtAsOf = (d: Date) => d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
 const BlacklistReportPage: React.FC = () => {
 	const [asOf, setAsOf] = useState<Date>(new Date());
@@ -70,6 +85,21 @@ const BlacklistReportPage: React.FC = () => {
 	const [exportingExcel, setExportingExcel] = useState(false);
 	const [exportingWord, setExportingWord] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [printing, setPrinting] = useState(false);
+	const [printRows, setPrintRows] = useState<BlacklistRow[] | null>(null);
+	const [appliedAsOf, setAppliedAsOf] = useState<Date>(new Date());
+	const appliedParamsRef = useRef<ReportParams | null>(null);
+
+	useEffect(() => {
+		if (!printRows) return;
+		const done = () => setPrintRows(null);
+		window.addEventListener('afterprint', done, { once: true });
+		const timer = window.setTimeout(() => window.print(), 50);
+		return () => {
+			window.clearTimeout(timer);
+			window.removeEventListener('afterprint', done);
+		};
+	}, [printRows]);
 
 	useEffect(() => {
 		const loadReasons = async () => {
@@ -84,12 +114,7 @@ const BlacklistReportPage: React.FC = () => {
 	}, []);
 
 	const buildParams = (targetPage: number) => ({
-		as_of: toISO(asOf),
-		searchby: searchBy,
-		searchbytext: searchBy === '3' ? '' : searchByText,
-		reason_cat: searchBy === '3' ? reasonCat : '',
-		existing: existing ? 'existing' : '',
-		deleted: deleted ? 'deleted' : '',
+		...makeParams(asOf, searchBy, searchByText, reasonCat, existing, deleted),
 		page: targetPage,
 		page_size: PAGE_SIZE,
 	});
@@ -100,13 +125,21 @@ const BlacklistReportPage: React.FC = () => {
 			return;
 		}
 
+		const base = targetPage === 1 || !appliedParamsRef.current
+			? makeParams(asOf, searchBy, searchByText, reasonCat, existing, deleted)
+			: appliedParamsRef.current;
+
 		setLoading(true);
 		setError(null);
 
 		try {
 			const response = await api.get<PreviewResponse>('/MasterData/blacklist-report/preview', {
-				params: buildParams(targetPage),
+				params: { ...base, page: targetPage, page_size: PAGE_SIZE },
 			});
+			if (targetPage === 1 || !appliedParamsRef.current) {
+				appliedParamsRef.current = base;
+				setAppliedAsOf(asOf);
+			}
 
 			setResults(response.data.data);
 			setSearchDesc(response.data.search_desc);
@@ -123,13 +156,117 @@ const BlacklistReportPage: React.FC = () => {
 		}
 	};
 
-	const handlePrint = () => {
-		if (results.length === 0) {
+	const handlePrint = async () => {
+		const base = appliedParamsRef.current;
+		if (!base || total === 0) {
 			alert('Please preview the data first.');
 			return;
 		}
-		window.print();
+
+		setPrinting(true);
+		setError(null);
+		try {
+			const all: BlacklistRow[] = [];
+			let current = 1;
+			let pages = 1;
+			do {
+				const { data } = await api.get<PreviewResponse>('/MasterData/blacklist-report/preview', {
+					params: { ...base, page: current, page_size: PRINT_PAGE_SIZE },
+				});
+				all.push(...data.data);
+				pages = data.total_pages;
+				current += 1;
+			} while (current <= pages);
+			setPrintRows(all);
+		} catch (err) {
+			console.error('Print error:', err);
+			setError('Failed to load data for printing. Please try again.');
+		} finally {
+			setPrinting(false);
+		}
 	};
+
+	const renderTable = (rows: BlacklistRow[]) => (
+		<table className="w-full text-sm border-collapse">
+			<colgroup>
+				<col style={{ width: '4%' }} />
+				<col style={{ width: '12%' }} />
+				<col style={{ width: '9%' }} />
+				<col style={{ width: '16%' }} />
+				<col style={{ width: '8%' }} />
+				<col style={{ width: '9%' }} />
+				<col style={{ width: '8%' }} />
+				<col style={{ width: '7%' }} />
+				<col style={{ width: '7%' }} />
+				<col style={{ width: '6%' }} />
+				<col style={{ width: '7%' }} />
+				<col style={{ width: '7%' }} />
+			</colgroup>
+			<thead>
+				<tr className="bg-[var(--app-surface-alt)] text-[var(--app-text)]">
+					{['No', 'Customer Name', 'Customer Number', 'Address', 'No Identitas', 'Phone', 'Reason',
+						'Create By', 'Create Date', 'Status', 'Delete By', 'Attachment'].map((h) => (
+						<th key={h} className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">{h}</th>
+					))}
+				</tr>
+			</thead>
+			<tbody>
+				{rows.length === 0 ? (
+					<tr>
+						<td colSpan={12} className="border border-[var(--app-border)] px-2 py-4 text-center text-red-600 font-medium">
+							Data Not Found
+						</td>
+					</tr>
+				) : (
+					rows.map((row, idx) => (
+						<tr
+							key={`${row.customer_no}-${row.no}`}
+							className={idx % 2 === 0 ? 'bg-[var(--app-surface)]' : 'bg-[var(--app-card)]'}
+						>
+							<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.no}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.name}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.customer_no}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.address}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.identitas}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.phone}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.reason}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.create_user}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1 whitespace-nowrap">{row.create_date}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1 text-center">
+								<span
+									className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+										row.status === 'Deleted'
+											? 'bg-red-100 text-red-700'
+											: 'bg-green-100 text-green-700'
+									}`}
+								>
+									{row.status}
+								</span>
+							</td>
+							<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.delete_by}</td>
+							<td className="border border-[var(--app-border)] px-2 py-1">{row.attachment ?? '-'}</td>
+						</tr>
+					))
+				)}
+			</tbody>
+		</table>
+	);
+
+	const renderHeader = () => (
+		<>
+			<h2 className="text-xl font-bold text-[var(--app-text)] text-center">
+				BLACKLIST REPORT
+			</h2>
+			<p className="text-center text-sm text-[var(--app-text)] mb-4">
+				As of {fmtAsOf(appliedAsOf)}
+			</p>
+			<div className="text-sm text-[var(--app-text)] mb-4 space-y-1">
+				<p><span className="font-medium text-[var(--app-text)]">Branch:</span> Consolidate</p>
+				<p><span className="font-medium text-[var(--app-text)]">Search by:</span> {searchDesc}</p>
+				<p><span className="font-medium text-[var(--app-text)]">View:</span> {viewDesc}</p>
+			</div>
+		</>
+	);
 
 	const handleExport = async (kind: 'excel' | 'word') => {
 		if (!asOf) {
@@ -181,30 +318,33 @@ const BlacklistReportPage: React.FC = () => {
 					size: landscape;
 					margin: 10mm;
 				}
+				@media screen {
+					#blacklist-print-root { display: none; }
+				}
 				@media print {
-					body * { visibility: hidden; }
-					#blacklist-print-area, #blacklist-print-area * { visibility: visible; }
-					#blacklist-print-area {
-						position: absolute;
-						inset: 0;
-						width: 100%;
-						margin: 0;
-						padding: 0;
-						box-shadow: none;
-						border-radius: 0;
-					}
-					#blacklist-print-area .overflow-x-auto {
+					html, body {
+						height: auto !important;
 						overflow: visible !important;
+						background: #ffffff !important;
 					}
-					#blacklist-print-area table {
+					body > *:not(#blacklist-print-root) { display: none !important; }
+					#blacklist-print-root {
+						display: block !important;
+						color: #000000;
+						background: #ffffff;
+					}
+					#blacklist-print-root table {
 						width: 100% !important;
 						table-layout: fixed;
 						border-collapse: collapse;
 						font-size: 8px;
 					}
-					#blacklist-print-area th,
-					#blacklist-print-area td {
+					#blacklist-print-root thead { display: table-header-group; }
+					#blacklist-print-root tr { page-break-inside: avoid; break-inside: avoid; }
+					#blacklist-print-root th,
+					#blacklist-print-root td {
 						padding: 2px 3px !important;
+						border: 1px solid #000000 !important;
 						white-space: normal !important;
 						word-break: break-word;
 						overflow-wrap: break-word;
@@ -367,12 +507,12 @@ const BlacklistReportPage: React.FC = () => {
 
 						<button
 							onClick={handlePrint}
-							disabled={results.length === 0}
+							disabled={!hasSearched || total === 0 || printing}
 							className="bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)]
 							           hover:bg-[var(--app-surface)] px-4 py-2 text-sm rounded-lg font-medium
 							           shadow-sm transition-all disabled:opacity-60"
 						>
-							Print
+							{printing ? 'Preparing…' : 'Print'}
 						</button>
 
 						<button
@@ -389,92 +529,11 @@ const BlacklistReportPage: React.FC = () => {
 				</div>
 
 				{hasSearched && (
-					<div id="blacklist-print-area" className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
-						<h2 className="text-xl font-bold text-[var(--app-text)] text-center">
-							BLACKLIST REPORT
-						</h2>
-						<p className="text-center text-sm text-[var(--app-text)] mb-4">
-							As of {asOf.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-						</p>
-
-						<div className="text-sm text-[var(--app-text)] mb-4 space-y-1">
-							<p><span className="font-medium text-[var(--app-text)]">Branch:</span> Consolidate</p>
-							<p><span className="font-medium text-[var(--app-text)]">Search by:</span> {searchDesc}</p>
-							<p><span className="font-medium text-[var(--app-text)]">View:</span> {viewDesc}</p>
-						</div>
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+						{renderHeader()}
 
 						<div className="overflow-x-auto">
-							<table className="w-full text-sm border-collapse">
-								<colgroup>
-									<col style={{ width: '4%' }} />
-									<col style={{ width: '12%' }} />
-									<col style={{ width: '9%' }} />
-									<col style={{ width: '16%' }} />
-									<col style={{ width: '8%' }} />
-									<col style={{ width: '9%' }} />
-									<col style={{ width: '8%' }} />
-									<col style={{ width: '7%' }} />
-									<col style={{ width: '7%' }} />
-									<col style={{ width: '6%' }} />
-									<col style={{ width: '7%' }} />
-									<col style={{ width: '7%' }} />
-								</colgroup>
-								<thead>
-									<tr className="bg-[var(--app-surface-alt)] text-[var(--app-text)]">
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">No</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Customer Name</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Customer Number</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Address</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">No Identitas</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Phone</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Reason</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Create By</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Create Date</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Status</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Delete By</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Attachment</th>
-									</tr>
-								</thead>
-								<tbody>
-									{results.length === 0 ? (
-										<tr>
-											<td colSpan={12} className="border border-[var(--app-border)] px-2 py-4 text-center text-red-600 font-medium">
-												Data Not Found
-											</td>
-										</tr>
-									) : (
-										results.map((row, idx) => (
-											<tr
-												key={`${row.customer_no}-${row.no}`}
-												className={idx % 2 === 0 ? 'bg-[var(--app-surface)]' : 'bg-[var(--app-card)]'}
-											>
-												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.no}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.name}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.customer_no}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.address}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.identitas}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.phone}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.reason}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.create_user}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1 whitespace-nowrap">{row.create_date}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1 text-center">
-													<span
-														className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
-															row.status === 'Deleted'
-																? 'bg-red-100 text-red-700'
-																: 'bg-green-100 text-green-700'
-														}`}
-													>
-														{row.status}
-													</span>
-												</td>
-												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.delete_by}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.attachment ?? '-'}</td>
-											</tr>
-										))
-									)}
-								</tbody>
-							</table>
+							{renderTable(results)}
 						</div>
 
 						{!loading && total > 0 && (
@@ -484,12 +543,20 @@ const BlacklistReportPage: React.FC = () => {
 								onPageChange={(newPage) => handlePreview(newPage)}
 								totalItems={total}
 								itemsPerPage={PAGE_SIZE}
-								className="mt-6 print:hidden"
+								className="mt-6"
 							/>
 						)}
 					</div>
 				)}
 			</div>
+
+			{printRows && createPortal(
+				<div id="blacklist-print-root">
+					{renderHeader()}
+					{renderTable(printRows)}
+				</div>,
+				document.body
+			)}
 		</div>
 	);
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
@@ -14,6 +14,8 @@ interface BlacklistRow {
 	apless: string;
 	customer_type: CustomerType;
 }
+
+const DEFAULT_SEARCH_BY = "1";
 
 const optionStyle: React.CSSProperties = { backgroundColor: '#ffffff', color: '#0f172a' };
 const selectStyle: React.CSSProperties = { colorScheme: 'light' };
@@ -76,27 +78,6 @@ const ErrorBanner = ({
 	</div>
 );
 
-const inputCls =
-	"w-full border border-[var(--app-border)] rounded-lg px-3 py-2 text-sm bg-white text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-red-500 focus:border-transparent focus:outline-none transition-shadow";
-
-const Field = ({
-	label,
-	required,
-	children,
-}: {
-	label: string;
-	required?: boolean;
-	children: React.ReactNode;
-}) => (
-	<div>
-		<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
-			{label}
-			{required && <span className="text-red-500 ml-0.5">*</span>}
-		</label>
-		{children}
-	</div>
-);
-
 const BlackListEntryPage: React.FC = () => {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
@@ -108,20 +89,12 @@ const BlackListEntryPage: React.FC = () => {
 	const [loading, setLoading] = useState(true);
 	const [listErrors, setListErrors] = useState<string[]>([]);
 
-	const [searchBy, setSearchBy] = useState("2");
+	const [searchBy, setSearchBy] = useState(DEFAULT_SEARCH_BY);
 	const [searchVal, setSearchVal] = useState("");
-	const [appliedSearch, setAppliedSearch] = useState({ by: "2", val: "" });
+	const [appliedSearch, setAppliedSearch] = useState({ by: DEFAULT_SEARCH_BY, val: "" });
 
 	const limit = DEFAULT_PAGE_LIMIT;
 	const totalPages = Math.ceil(total / limit);
-
-	const [deleteOpen, setDeleteOpen] = useState(false);
-	const [deleteTarget, setDeleteTarget] = useState<BlacklistRow | null>(null);
-	const [deleteReason, setDeleteReason] = useState("");
-	const [deleteFile, setDeleteFile] = useState<File | null>(null);
-	const [deleteErrors, setDeleteErrors] = useState<string[]>([]);
-	const [deleteLoading, setDeleteLoading] = useState(false);
-	const fileInputRef = useRef<HTMLInputElement>(null);
 
 	const fetchList = useCallback(async () => {
 		setLoading(true);
@@ -165,58 +138,15 @@ const BlackListEntryPage: React.FC = () => {
 		if (e.key === "Enter") handleSearch();
 	};
 
-	const menuQuery = menuId ? `&menu_id=${encodeURIComponent(menuId)}` : "";
+	const menuQuery = menuId ? `menu_id=${encodeURIComponent(menuId)}` : "";
 
 	const goToAddNew = () => {
-		navigate(`/blacklist/new${menuQuery ? `?${menuQuery.slice(1)}` : ""}`);
+		navigate(`/blacklist/new${menuQuery ? `?${menuQuery}` : ""}`);
 	};
 
 	const goToDetail = (row: BlacklistRow) => {
 		const mode = row.apless ? "view" : "edit";
-		navigate(`/blacklist/${row.no}?mode=${mode}${menuQuery}`);
-	};
-
-	const openDelete = (row: BlacklistRow) => {
-		setDeleteTarget(row);
-		setDeleteReason("");
-		setDeleteFile(null);
-		setDeleteErrors([]);
-		setDeleteOpen(true);
-	};
-
-	const handleDelete = async () => {
-		if (!deleteTarget) return;
-
-		if (!deleteReason.trim()) {
-			setDeleteErrors(["fill the reason first"]);
-			return;
-		}
-		if (!deleteFile) {
-			setDeleteErrors(["Upload the file first"]);
-			return;
-		}
-
-		setDeleteLoading(true);
-		setDeleteErrors([]);
-		try {
-			const fd = new FormData();
-			fd.append("reason", deleteReason.trim());
-			fd.append("attachment", deleteFile);
-
-			await api.post(`/MasterData/blacklist/${deleteTarget.no}/delete`, fd);
-
-			setDeleteOpen(false);
-			if (rows.length === 1 && page > 1) {
-				setPage((p) => p - 1);
-			} else {
-				fetchList();
-			}
-		} catch (err: any) {
-			const msg = err?.response?.data?.error;
-			setDeleteErrors([msg || "Delete failed. Please try again."]);
-		} finally {
-			setDeleteLoading(false);
-		}
+		navigate(`/blacklist/${row.no}?mode=${mode}${menuQuery ? `&${menuQuery}` : ""}`);
 	};
 
 	return (
@@ -298,9 +228,16 @@ const BlackListEntryPage: React.FC = () => {
 
 					<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
 						<table className="w-full">
+							<colgroup>
+								<col style={{ width: "18%" }} />
+								<col style={{ width: "20%" }} />
+								<col style={{ width: "40%" }} />
+								<col style={{ width: "10%" }} />
+								<col style={{ width: "12%" }} />
+							</colgroup>
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									{["No.", "ID Card / NPWP", "Name", "Address", "Type", "Action"].map((h) => (
+									{["ID Card / NPWP", "Name", "Address", "Type", "Action"].map((h) => (
 										<th
 											key={h}
 											className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider"
@@ -313,7 +250,7 @@ const BlackListEntryPage: React.FC = () => {
 							<tbody className="divide-y divide-[var(--app-border)]">
 								{loading ? (
 									<tr>
-										<td colSpan={6} className="py-16 text-center">
+										<td colSpan={5} className="py-16 text-center">
 											<div className="flex justify-center">
 												<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500" />
 											</div>
@@ -321,7 +258,7 @@ const BlackListEntryPage: React.FC = () => {
 									</tr>
 								) : rows.length === 0 ? (
 									<tr>
-										<td colSpan={6} className="py-16 text-center text-[var(--app-text)] text-sm">
+										<td colSpan={5} className="py-16 text-center text-[var(--app-text)] text-sm">
 											No records found
 										</td>
 									</tr>
@@ -331,36 +268,25 @@ const BlackListEntryPage: React.FC = () => {
 											key={row.no}
 											className={`hover:bg-red-50/30 transition-colors ${i % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]/50"}`}
 										>
-											<td className="py-3 px-4 text-sm text-[var(--app-text)] text-center">
-												{(page - 1) * limit + i + 1}
-											</td>
 											<td className="py-3 px-4 text-sm font-mono text-[var(--app-text)]">
 												{row.id_card_npwp}
 											</td>
 											<td className="py-3 px-4 text-sm font-medium text-[var(--app-text)]">
 												{row.name}
 											</td>
-											<td className="py-3 px-4 text-sm text-[var(--app-text)] max-w-xs truncate">
+											<td className="py-3 px-4 text-sm text-[var(--app-text)]">
 												{row.address}
 											</td>
 											<td className="py-3 px-4">
 												<Badge type={row.customer_type} />
 											</td>
 											<td className="py-3 px-4">
-												<div className="flex gap-2 flex-wrap">
-													<button
-														onClick={() => goToDetail(row)}
-														className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
-													>
-														{row.apless ? "View Detail" : "Edit"}
-													</button>
-													<button
-														onClick={() => openDelete(row)}
-														className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
-													>
-														Delete
-													</button>
-												</div>
+												<button
+													onClick={() => goToDetail(row)}
+													className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-md text-xs font-medium transition-colors"
+												>
+													{row.apless ? "View Detail" : "Edit"}
+												</button>
 											</td>
 										</tr>
 									))
@@ -381,113 +307,6 @@ const BlackListEntryPage: React.FC = () => {
 					)}
 				</div>
 			</div>
-
-			{deleteOpen && deleteTarget && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-2xl w-full max-w-md">
-
-						<div className="flex justify-between items-center px-6 py-5 border-b border-[var(--app-border)]">
-							<div>
-								<h2 className="text-lg font-bold text-[var(--app-text)]">Delete Blacklist Entry</h2>
-								<p className="text-sm text-[var(--app-text)] mt-0.5 font-mono">{deleteTarget.name}</p>
-							</div>
-							<button
-								onClick={() => setDeleteOpen(false)}
-								className="text-[var(--app-text)] hover:opacity-70 text-2xl leading-none"
-							>
-								×
-							</button>
-						</div>
-
-						<div className="p-6 space-y-4">
-							{deleteErrors.length > 0 && (
-								<ErrorBanner errors={deleteErrors} onClose={() => setDeleteErrors([])} />
-							)}
-
-							<div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
-								<svg className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-								</svg>
-								<p className="text-sm text-amber-700">
-									A reason and supporting memo are required. The entry will be soft-deleted and retained for audit purposes.
-								</p>
-							</div>
-
-							<Field label="Reason for Deletion" required>
-								<textarea
-									value={deleteReason}
-									onChange={(e) => setDeleteReason(e.target.value)}
-									className={`${inputCls} resize-none`}
-									rows={3}
-									placeholder="State the reason for removing this entry…"
-								/>
-							</Field>
-
-							<Field label="Upload Supporting Memo" required>
-								<div
-									onClick={() => fileInputRef.current?.click()}
-									className="border-2 border-dashed border-[var(--app-border)] hover:border-red-400 rounded-lg p-4 cursor-pointer transition-colors text-center"
-								>
-									<input
-										ref={fileInputRef}
-										type="file"
-										className="hidden"
-										accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-										onChange={(e) => setDeleteFile(e.target.files?.[0] || null)}
-									/>
-									{deleteFile ? (
-										<div className="flex items-center justify-center gap-2">
-											<svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-											</svg>
-											<span className="text-sm text-[var(--app-text)]">{deleteFile.name}</span>
-											<button
-												onClick={(e) => {
-													e.stopPropagation();
-													setDeleteFile(null);
-													if (fileInputRef.current) fileInputRef.current.value = "";
-												}}
-												className="text-red-500 hover:text-red-700 text-xs ml-2"
-											>
-												Remove
-											</button>
-										</div>
-									) : (
-										<div className="text-[var(--app-text)] text-sm">
-											<svg className="w-8 h-8 mx-auto mb-2 text-[var(--app-text)] opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-												<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-											</svg>
-											Click to select file (PDF, image, Word — max 2 MB)
-										</div>
-									)}
-								</div>
-							</Field>
-						</div>
-
-						<div className="flex justify-end gap-3 px-6 py-4 border-t border-[var(--app-border)] bg-[var(--app-surface)] rounded-b-2xl">
-							<button
-								onClick={() => setDeleteOpen(false)}
-								className="px-5 py-2 border border-[var(--app-border)] rounded-lg text-sm text-[var(--app-text)] hover:bg-[var(--app-surface-alt)] transition-colors"
-							>
-								Cancel
-							</button>
-							<button
-								onClick={handleDelete}
-								disabled={deleteLoading}
-								className={`px-5 py-2 rounded-lg text-sm text-white font-medium transition-colors flex items-center gap-2 ${deleteLoading ? "bg-red-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"}`}
-							>
-								{deleteLoading && (
-									<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-										<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-										<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-									</svg>
-								)}
-								{deleteLoading ? "Deleting…" : "Confirm Delete"}
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 };

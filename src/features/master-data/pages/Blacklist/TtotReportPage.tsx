@@ -1,8 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '@/shared/api/axiosInstance';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 
-const toISO = (d: Date): string => d.toISOString().split('T')[0];
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const toISO = (d: Date): string => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+const fromISO = (s: string | null): Date | null => {
+	const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s ?? '');
+	if (!m) return null;
+	const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+	return isNaN(d.getTime()) ? null : d;
+};
 
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
@@ -23,21 +33,30 @@ interface TtotListResponse {
 }
 
 const TtotReportPage: React.FC = () => {
-	const [dateFrom, setDateFrom] = useState<Date>(new Date());
-	const [dateTo, setDateTo] = useState<Date>(new Date());
+	const navigate = useNavigate();
+	const location = useLocation();
+	const [searchParams] = useSearchParams();
+	const menuId = searchParams.get('menu_id') ?? '';
+
+	const backFrom = searchParams.get('ket') === 'back' ? fromISO(searchParams.get('tgl1')) : null;
+	const backTo = searchParams.get('ket') === 'back' ? fromISO(searchParams.get('tgl2')) : null;
+
+	const [dateFrom, setDateFrom] = useState<Date>(backFrom ?? new Date());
+	const [dateTo, setDateTo] = useState<Date>(backTo ?? new Date());
 
 	const [results, setResults] = useState<TtotRow[]>([]);
 	const [hasSearched, setHasSearched] = useState(false);
 
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const restoredRef = useRef(false);
 
-	const handleSearch = async () => {
-		if (!dateFrom || !dateTo) {
+	const runSearch = async (from: Date, to: Date) => {
+		if (!from || !to) {
 			alert('Please fill both dates.');
 			return;
 		}
-		if (dateFrom > dateTo) {
+		if (from > to) {
 			alert('Date From cannot be later than Date To.');
 			return;
 		}
@@ -47,7 +66,7 @@ const TtotReportPage: React.FC = () => {
 
 		try {
 			const response = await api.get<TtotListResponse>('/MasterData/ttot-report/list', {
-				params: { date_from: toISO(dateFrom), date_to: toISO(dateTo) },
+				params: { date_from: toISO(from), date_to: toISO(to) },
 			});
 			setResults(response.data.data);
 			setHasSearched(true);
@@ -59,6 +78,14 @@ const TtotReportPage: React.FC = () => {
 		}
 	};
 
+	useEffect(() => {
+		if (restoredRef.current) return;
+		restoredRef.current = true;
+		if (backFrom && backTo) runSearch(backFrom, backTo);
+	}, []);
+
+	const handleSearch = () => runSearch(dateFrom, dateTo);
+
 	const handlePrint = () => {
 		if (results.length === 0) {
 			alert('Please search first.');
@@ -68,7 +95,9 @@ const TtotReportPage: React.FC = () => {
 	};
 
 	const handleViewDetail = (row: TtotRow) => {
-		console.log('View detail for blacklist_id', row.blacklist_id);
+		const menuQuery = menuId ? `&menu_id=${encodeURIComponent(menuId)}` : '';
+		const returnTo = `${location.pathname}?tgl1=${toISO(dateFrom)}&tgl2=${toISO(dateTo)}&ket=back${menuQuery}`;
+		navigate(`/blacklist/${row.blacklist_id}?mode=view&return_to=${encodeURIComponent(returnTo)}${menuQuery}`);
 	};
 
 	const handleDateFromChange = (d: Date | null) => {

@@ -2,9 +2,12 @@ import React, { useEffect, useState, useCallback } from "react";
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
-import { esc } from '@/shared/utils/helpers';
+import { filenameFromDisposition } from '@/shared/utils/helpers';
+import { alertFillField, showAlert } from '@/helpers/AlertDialog';
+import PrintPreview, { PRINT_TD, PRINT_TH } from '@/helpers/PrintPreview';
 
 interface VehicleRow {
+	no: number;
 	TYPE: string;
 	TYPE_NM: string;
 	BRAND_NM: string;
@@ -15,6 +18,20 @@ interface SelectOption {
 	value: string;
 	label: string;
 }
+
+interface PrintReport {
+	rows: VehicleRow[];
+	printBy: string;
+	printDate: string;
+}
+
+const COLUMNS: { label: string; key: keyof VehicleRow; width: string }[] = [
+	{ label: 'No.', key: 'no', width: '10%' },
+	{ label: 'Brand', key: 'BRAND_NM', width: '20%' },
+	{ label: 'Model', key: 'MODEL_NM', width: '20%' },
+	{ label: 'Type', key: 'TYPE', width: '20%' },
+	{ label: 'Type Name', key: 'TYPE_NM', width: '30%' },
+];
 
 const ClearButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick, label }) => (
 	<button
@@ -29,6 +46,49 @@ const ClearButton: React.FC<{ onClick: () => void; label: string }> = ({ onClick
 		</svg>
 	</button>
 );
+
+function BrandPrintPreview({ report, onClose }: { report: PrintReport; onClose: () => void }) {
+	return (
+		<PrintPreview label="List of Brand" onClose={onClose} landscape={false} pageWidth={900}>
+			<div style={{ textAlign: 'center', fontSize: 16, letterSpacing: '0.2em', fontWeight: 'bold' }}>
+				List of Brand
+			</div>
+			<div style={{ textAlign: 'center', marginBottom: 8 }}>
+				Print By - Date : {report.printBy} - {report.printDate}
+			</div>
+
+			<table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+				<colgroup>
+					{COLUMNS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+				</colgroup>
+				<thead>
+					<tr>
+						{COLUMNS.map((c) => <th key={c.key} style={PRINT_TH}>{c.label}</th>)}
+					</tr>
+				</thead>
+				<tbody>
+					{report.rows.length === 0 ? (
+						<tr>
+							<td colSpan={COLUMNS.length} style={{ ...PRINT_TD, textAlign: 'center', color: '#EE0000', fontSize: 16 }}>
+								Data Not Found..
+							</td>
+						</tr>
+					) : (
+						report.rows.map((r, idx) => (
+							<tr key={`${r.TYPE}-${idx}`}>
+								{COLUMNS.map((c) => (
+									<td key={c.key} style={{ ...PRINT_TD, textAlign: c.key === 'no' ? 'center' : 'left' }}>
+										{r[c.key]}
+									</td>
+								))}
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+		</PrintPreview>
+	);
+}
 
 const ListBrandPage: React.FC = () => {
 	const [rows, setRows] = useState<VehicleRow[]>([]);
@@ -48,6 +108,8 @@ const ListBrandPage: React.FC = () => {
 	const [modelOptions, setModelOptions] = useState<SelectOption[]>([]);
 
 	const [exporting, setExporting] = useState(false);
+	const [printing, setPrinting] = useState(false);
+	const [printReport, setPrintReport] = useState<PrintReport | null>(null);
 
 	useEffect(() => {
 		const fetchOptions = async () => {
@@ -71,117 +133,79 @@ const ListBrandPage: React.FC = () => {
 			const response = await api.get('/MasterData/list-brand', {
 				params: { brand: appliedBrand, model: appliedModel, page, limit },
 			});
-			setRows(response.data.data);
-			setTotal(response.data.total);
+			setRows(response.data.data || []);
+			setTotal(response.data.total || 0);
 		} catch {
 			setError("Failed to load data. Please try again.");
 		} finally {
 			setLoading(false);
 		}
-	}, [appliedBrand, appliedModel, page]);
+	}, [appliedBrand, appliedModel, page, limit]);
 
 	useEffect(() => {
 		if (previewed) fetchList();
 	}, [fetchList, previewed]);
 
-	const handlePreview = () => {
+	const hasFilter = () => {
 		if (!brand && !model) {
-			alert("Please select at least Brand or Model.");
-			return;
+			alertFillField("Please select at least Brand or Model.");
+			return false;
 		}
+		return true;
+	};
+
+	const handlePreview = () => {
+		if (!hasFilter()) return;
 		setAppliedBrand(brand);
 		setAppliedModel(model);
 		setPage(1);
 		setPreviewed(true);
 	};
 
-	const handleExportExcel = async () => {
-		if (!appliedBrand && !appliedModel) {
-			alert("Please run Preview first.");
-			return;
+	const handlePrint = async () => {
+		if (!hasFilter()) return;
+		setPrinting(true);
+		try {
+			const { data } = await api.get('/MasterData/list-brand/print', { params: { brand, model } });
+			setPrintReport({
+				rows: data.data || [],
+				printBy: data.print_by || '',
+				printDate: data.print_date || '',
+			});
+		} catch {
+			showAlert('Failed to load print data. Please try again.', { variant: 'error' });
+		} finally {
+			setPrinting(false);
 		}
+	};
+
+	const handleExportExcel = async () => {
+		if (!hasFilter()) return;
 		setExporting(true);
 		try {
-			const res = await api.get('/MasterData/list-brand/export', {
-				params: { brand: appliedBrand, model: appliedModel },
+			const res = await api.get('/MasterData/list-brand/excel', {
+				params: { brand, model },
+				responseType: 'blob',
 			});
-			const data: VehicleRow[] = res.data.data;
-
-			const XLSX = await import("xlsx");
-			const wsData = [
-				["No.", "Brand", "Model", "Type", "Type Name"],
-				...data.map((r, i) => [i + 1, r.BRAND_NM, r.MODEL_NM, r.TYPE, r.TYPE_NM]),
-			];
-			const ws = XLSX.utils.aoa_to_sheet(wsData);
-			const wb = XLSX.utils.book_new();
-			XLSX.utils.book_append_sheet(wb, ws, "List of Brand");
-			XLSX.writeFile(wb, "list_of_brand.xlsx");
+			const blob = new Blob([res.data], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			});
+			const url = window.URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filenameFromDisposition(res.headers['content-disposition'], 'ListofBrand.xlsx');
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			window.URL.revokeObjectURL(url);
 		} catch {
-			alert("Export failed. Please try again.");
+			showAlert('Failed to export. Please try again.', { variant: 'error' });
 		} finally {
 			setExporting(false);
 		}
 	};
 
-	const handlePrint = async () => {
-		if (!appliedBrand && !appliedModel) {
-			alert("Please run Preview first.");
-			return;
-		}
-		try {
-			const res = await api.get('/MasterData/list-brand/export', {
-				params: { brand: appliedBrand, model: appliedModel },
-			});
-			const data: VehicleRow[] = res.data.data;
-
-			const rows = data.map((r, i) => `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${esc(r.BRAND_NM)}</td>
-                    <td>${esc(r.MODEL_NM)}</td>
-                    <td>${esc(r.TYPE)}</td>
-                    <td>${esc(r.TYPE_NM)}</td>
-                </tr>
-            `).join("");
-
-			const win = window.open("", "_blank");
-			if (!win) return;
-			win.document.write(`
-                <html>
-                <head>
-                    <title>List of Brand</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
-                        h2 { text-align: center; margin-bottom: 16px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-                        th { background-color: #f0f0f0; font-weight: bold; }
-                        tr:nth-child(even) { background-color: #f9f9f9; }
-                    </style>
-                </head>
-                <body>
-                    <h2>List of Brand</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>No.</th>
-                                <th>Brand</th>
-                                <th>Model</th>
-                                <th>Type</th>
-                                <th>Type Name</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                    <script>window.onload = () => { window.print(); window.close(); }<\/script>
-                </body>
-                </html>
-            `);
-			win.document.close();
-		} catch {
-			alert("Print failed. Please try again.");
-		}
-	};
+	const closePrint = useCallback(() => setPrintReport(null), []);
 
 	const totalPages = Math.ceil(total / limit);
 
@@ -189,7 +213,7 @@ const ListBrandPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">List of Brand</h1>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -255,19 +279,19 @@ const ListBrandPage: React.FC = () => {
 
 						<button
 							onClick={handlePrint}
-							disabled={!previewed}
-							className={`border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${!previewed ? "opacity-40 cursor-not-allowed" : ""}`}
+							disabled={printing}
+							className={`border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${printing ? "opacity-60 cursor-not-allowed" : ""}`}
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 							</svg>
-							Print
+							{printing ? "Preparing..." : "Print"}
 						</button>
 
 						<button
 							onClick={handleExportExcel}
-							disabled={!previewed || exporting}
-							className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${(!previewed || exporting) ? "opacity-40 cursor-not-allowed" : ""}`}
+							disabled={exporting}
+							className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${exporting ? "opacity-60 cursor-not-allowed" : ""}`}
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -295,51 +319,49 @@ const ListBrandPage: React.FC = () => {
 
 						<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
 							<table className="w-full">
+								<colgroup>
+									{COLUMNS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+								</colgroup>
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-16">No.</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Brand</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Model</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Type</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Type Name</th>
+										{COLUMNS.map((c) => (
+											<th key={c.key} className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">
+												{c.label}
+											</th>
+										))}
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[var(--app-border)]">
-									{rows.length === 0 && !loading ? (
+									{loading ? (
 										<tr>
-											<td colSpan={5} className="py-10 px-6 text-center text-red-500 font-medium text-lg">
+											<td colSpan={COLUMNS.length} className="py-4 px-6 text-center">
+												<div className="flex justify-center">
+													<svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+														<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+														<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+													</svg>
+												</div>
+											</td>
+										</tr>
+									) : rows.length === 0 ? (
+										<tr>
+											<td colSpan={COLUMNS.length} className="py-10 px-6 text-center text-red-500 font-medium text-lg">
 												Data Not Found..
 											</td>
 										</tr>
 									) : (
-										<>
-											{rows.map((row, idx) => (
-												<tr
-													key={`${row.TYPE}-${idx}`}
-													className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
-												>
-													<td className="py-4 px-6 text-sm text-[var(--app-text)]">
-														{(page - 1) * limit + idx + 1}
-													</td>
-													<td className="py-4 px-6 text-sm font-medium text-[var(--app-text)]">{row.BRAND_NM}</td>
-													<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.MODEL_NM}</td>
-													<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.TYPE}</td>
-													<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.TYPE_NM}</td>
-												</tr>
-											))}
-											{loading && (
-												<tr>
-													<td colSpan={5} className="py-4 px-6 text-center">
-														<div className="flex justify-center">
-															<svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
-																<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-																<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-															</svg>
-														</div>
-													</td>
-												</tr>
-											)}
-										</>
+										rows.map((row, idx) => (
+											<tr
+												key={`${row.TYPE}-${idx}`}
+												className={`align-top hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
+											>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.no}</td>
+												<td className="py-4 px-6 text-sm font-medium text-[var(--app-text)]">{row.BRAND_NM}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.MODEL_NM}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.TYPE}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.TYPE_NM}</td>
+											</tr>
+										))
 									)}
 								</tbody>
 							</table>
@@ -358,6 +380,8 @@ const ListBrandPage: React.FC = () => {
 					</div>
 				)}
 			</div>
+
+			{printReport && <BrandPrintPreview report={printReport} onClose={closePrint} />}
 		</div>
 	);
 };

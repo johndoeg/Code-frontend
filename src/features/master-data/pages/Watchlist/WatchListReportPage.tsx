@@ -1,8 +1,72 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
+import { filenameFromDisposition } from '@/shared/utils/helpers';
+import { alertFillField, showAlert } from '@/helpers/AlertDialog';
+import PrintPreview, { PRINT_TD, PRINT_TH } from '@/helpers/PrintPreview';
+
+type SearchBy = '' | '1' | '2';
+
+interface WatchlistRow {
+	no: number;
+	name: string;
+	customer_no: string;
+	address: string;
+	id_card: string;
+	phone: string;
+	reason: string;
+	create_user: string;
+	create_date: string;
+	status: 'Active' | 'Deleted';
+	delete_by: string;
+}
+
+interface HeaderInfo {
+	search_desc: string;
+	view_desc: string;
+	as_of: string;
+	as_of_label: string;
+}
+
+interface ListResponse extends HeaderInfo {
+	data: WatchlistRow[];
+	page: number;
+	page_size: number;
+	total: number;
+	total_pages: number;
+}
+
+interface PrintResponse extends HeaderInfo {
+	data: WatchlistRow[];
+	total: number;
+}
+
+interface FilterParams {
+	as_of: string;
+	searchby: SearchBy;
+	searchbytext: string;
+	existing: '1' | '0';
+	deleted: '1' | '0';
+}
+
+const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
+const AS_OF_REQUIRED_MESSAGE = 'Please fill the as of date first.';
+
+const COLUMNS: { label: string; width: string }[] = [
+	{ label: 'No', width: '4%' },
+	{ label: 'Customer Name', width: '13%' },
+	{ label: 'Customer Number', width: '9%' },
+	{ label: 'Address', width: '20%' },
+	{ label: 'ID Card', width: '10%' },
+	{ label: 'Phone', width: '8%' },
+	{ label: 'Reason', width: '10%' },
+	{ label: 'Create By', width: '7%' },
+	{ label: 'Create Date', width: '7%' },
+	{ label: 'Status', width: '5%' },
+	{ label: 'Delete By', width: '7%' },
+];
 
 const toISO = (d: Date): string => {
 	const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -10,276 +74,193 @@ const toISO = (d: Date): string => {
 	return `${d.getFullYear()}-${mm}-${dd}`;
 };
 
-type SearchBy = '' | '1' | '2';
-
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
 
-interface WatchlistRow {
-	no: number;
-	name: string;
-	customer_no: string;
-	address: string;
-	identitas: string;
-	phone: string;
-	reason: string;
-	create_user: string;
-	create_date: string;
-	status: 'Active' | 'Deleted';
-	delete_by: string;
-	attachment: string | null;
-	lessee_type: string;
-}
-
-interface ListResponse {
-	data: WatchlistRow[];
-	page: number;
-	page_size: number;
-	total: number;
-	total_pages: number;
-	search_desc: string;
-	view_desc: string;
-	as_of: string;
-}
-
-interface AddressBlock {
-	address: string;
-	city: string;
-	zipcode: string;
-	phone: string;
-	fax: string | null;
-}
-
-interface ReferenceRow {
-	no: number;
-	name: string;
-	phone: string;
-	remark: string;
-}
-
-interface DocumentRow {
-	label: string;
-	filename: string | null;
-}
-
-interface PRDetail {
-	lessee_type: 'PR';
-	name: string;
-	customer_type: string;
-	group_name: string;
-	id_address: AddressBlock | null;
-	correspondence: AddressBlock | null;
-	additional_1: AddressBlock | null;
-	additional_2: AddressBlock | null;
-	mobile: string;
-	email: string;
-	npwp: string;
-	spouse: string;
-	mothers_maiden_name: string;
-	place_of_birth: string;
-	date_of_birth: string;
-	gender: string;
-	marital_status: string;
-	religion: string;
-	citizenship: string;
-	nationality: string;
-	id_card_no: string;
-	family_card_no: string;
-	industrial_code: string;
-	bi_customer_type: string;
-	other_phone_1: string;
-	other_phone_1_notes: string;
-	other_phone_2: string;
-	other_phone_2_notes: string;
-	review_date: string;
-	references: ReferenceRow[];
-	documents: {
-		citizen_type: string | null;
-		citizen_docs: DocumentRow[];
-		additional_docs: DocumentRow[];
-		bpkb_docs: DocumentRow[];
-		other_doc: DocumentRow;
-	};
-}
-
-interface PTDetail {
-	lessee_type: 'PT';
-	name: string;
-	customer_type: string;
-	group_name: string;
-	id_address: AddressBlock | null;
-	correspondence: AddressBlock | null;
-	additional_1: AddressBlock | null;
-	additional_2: AddressBlock | null;
-	mobile: string;
-	email: string;
-	npwp: string;
-	contact: string;
-	position: string;
-	line_of_business: string;
-	establishment_date: string;
-	industrial_code: string;
-	bi_customer_type: string;
-	office_status: string;
-	other_phone_1: string;
-	other_phone_1_notes: string;
-	other_phone_2: string;
-	other_phone_2_notes: string;
-	review_date: string;
-	references: ReferenceRow[];
-	documents: {
-		org_type: string | null;
-		org_docs: DocumentRow[];
-		bpkb_docs: DocumentRow[];
-		other_doc: DocumentRow;
-	};
-}
-
-type CustomerDetail = PRDetail | PTDetail;
-
-const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
-
-const SHOW_CUSTOMER_LINK = false;
-
-const Field: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-	<div className="border border-[var(--app-border)] rounded-lg px-3 py-2">
-		<div className="text-xs font-medium text-[var(--app-text)]">{label}</div>
-		<div className="text-sm text-[var(--app-text)] mt-0.5">{children || '-'}</div>
-	</div>
+const ColGroup: React.FC = () => (
+	<colgroup>
+		{COLUMNS.map((c) => (
+			<col key={c.label} style={{ width: c.width }} />
+		))}
+	</colgroup>
 );
 
-const AddressValue: React.FC<{ block: AddressBlock | null }> = ({ block }) => {
-	if (!block) return <>-</>;
+function WatchlistPrintPreview({ report, onClose }: { report: PrintResponse; onClose: () => void }) {
+	const infoLabel: React.CSSProperties = { width: 90, padding: '1px 0', verticalAlign: 'top' };
+	const infoColon: React.CSSProperties = { width: 12, padding: '1px 0', verticalAlign: 'top' };
+	const center: React.CSSProperties = { ...PRINT_TD, textAlign: 'center' };
+
 	return (
-		<>
-			{block.address}
-			<br />
-			{block.city}{block.city && block.zipcode ? ', ' : ''}{block.zipcode}
-			<br />
-			(P) {block.phone}{block.fax ? ` - (F) ${block.fax}` : ''}
-		</>
-	);
-};
+		<PrintPreview label="Watchlist Report" onClose={onClose}>
+			<div style={{ textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>WATCHLIST REPORT</div>
+			<div style={{ textAlign: 'center', fontWeight: 'bold', marginBottom: 10 }}>As of {report.as_of_label}</div>
 
-const DocumentList: React.FC<{ title: string; rows: DocumentRow[] }> = ({ title, rows }) => (
-	<div className="mb-4">
-		<div className="text-sm font-semibold text-[var(--app-text)] mb-2">{title}</div>
-		<div className="space-y-1">
-			{rows.map((row) => (
-				<div key={row.label} className="flex justify-between text-sm border-b border-[var(--app-border)] py-1">
-					<span className="text-[var(--app-text)]">{row.label}</span>
-					<span className="text-[var(--app-text)]">{row.filename ?? '-'}</span>
-				</div>
-			))}
-		</div>
-	</div>
-);
+			<table style={{ borderCollapse: 'collapse', marginBottom: 8 }}>
+				<tbody>
+					<tr>
+						<td style={infoLabel}>Branch</td>
+						<td style={infoColon}>:</td>
+						<td>Consolidate</td>
+					</tr>
+					<tr>
+						<td style={infoLabel}>Search by</td>
+						<td style={infoColon}>:</td>
+						<td>{report.search_desc}</td>
+					</tr>
+					<tr>
+						<td style={infoLabel}>View</td>
+						<td style={infoColon}>:</td>
+						<td>{report.view_desc}</td>
+					</tr>
+				</tbody>
+			</table>
+
+			<table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+				<ColGroup />
+				<thead>
+					<tr>
+						{COLUMNS.map((c) => (
+							<th key={c.label} style={PRINT_TH}>{c.label}</th>
+						))}
+					</tr>
+				</thead>
+				<tbody>
+					{report.data.length === 0 ? (
+						<tr>
+							<td colSpan={COLUMNS.length} style={{ ...center, color: '#EE0000', fontWeight: 'bold' }}>
+								Data Not Found
+							</td>
+						</tr>
+					) : (
+						report.data.map((r) => (
+							<tr key={r.no}>
+								<td style={center}>{r.no}</td>
+								<td style={PRINT_TD}>{r.name}</td>
+								<td style={PRINT_TD}>{r.customer_no}</td>
+								<td style={PRINT_TD}>{r.address}</td>
+								<td style={PRINT_TD}>{r.id_card}</td>
+								<td style={PRINT_TD}>{r.phone}</td>
+								<td style={PRINT_TD}>{r.reason}</td>
+								<td style={PRINT_TD}>{r.create_user}</td>
+								<td style={center}>{r.create_date}</td>
+								<td style={center}>{r.status}</td>
+								<td style={center}>{r.delete_by}</td>
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+		</PrintPreview>
+	);
+}
 
 const WatchlistReportPage: React.FC = () => {
-	const [asOf, setAsOf] = useState<Date>(new Date());
+	const [asOf, setAsOf] = useState<Date | null>(null);
 	const [searchBy, setSearchBy] = useState<SearchBy>('');
 	const [searchByText, setSearchByText] = useState('');
 	const [existing, setExisting] = useState(false);
 	const [deleted, setDeleted] = useState(false);
 
+	const [applied, setApplied] = useState<FilterParams | null>(null);
 	const [results, setResults] = useState<WatchlistRow[]>([]);
-	const [searchDesc, setSearchDesc] = useState('');
-	const [viewDesc, setViewDesc] = useState('');
+	const [header, setHeader] = useState<HeaderInfo | null>(null);
 	const [page, setPage] = useState(1);
 	const [totalPages, setTotalPages] = useState(1);
 	const [total, setTotal] = useState(0);
-	const [hasSearched, setHasSearched] = useState(false);
 
 	const [loading, setLoading] = useState(false);
-	const [exportingExcel, setExportingExcel] = useState(false);
-	const [exportingWord, setExportingWord] = useState(false);
+	const [printing, setPrinting] = useState(false);
+	const [exporting, setExporting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [printReport, setPrintReport] = useState<PrintResponse | null>(null);
 
-	const [detailOpen, setDetailOpen] = useState(false);
-	const [detailLoading, setDetailLoading] = useState(false);
-	const [detailError, setDetailError] = useState<string | null>(null);
-	const [detail, setDetail] = useState<CustomerDetail | null>(null);
-
-	const buildParams = (targetPage: number) => ({
-		as_of: toISO(asOf),
-		searchby: searchBy,
-		searchbytext: searchByText,
-		existing: existing ? 'existing' : '',
-		deleted: deleted ? 'deleted' : '',
-		page: targetPage,
-		page_size: PAGE_SIZE,
-	});
-
-	const handleSearch = async (targetPage: number = 1) => {
+	const buildParams = (): FilterParams | null => {
 		if (!asOf) {
-			alert('Please fill the As Of date first.');
-			return;
+			alertFillField(AS_OF_REQUIRED_MESSAGE);
+			return null;
 		}
+		return {
+			as_of: toISO(asOf),
+			searchby: searchBy,
+			searchbytext: searchBy ? searchByText.trim() : '',
+			existing: existing ? '1' : '0',
+			deleted: deleted ? '1' : '0',
+		};
+	};
 
+	const fetchPage = async (params: FilterParams, targetPage: number) => {
 		setLoading(true);
 		setError(null);
-
 		try {
-			const response = await api.get<ListResponse>('/MasterData/watchlist-report/list', {
-				params: buildParams(targetPage),
+			const { data } = await api.get<ListResponse>('/MasterData/watchlist-report/list', {
+				params: { ...params, page: targetPage, page_size: PAGE_SIZE },
 			});
-
-			setResults(response.data.data);
-			setSearchDesc(response.data.search_desc);
-			setViewDesc(response.data.view_desc);
-			setPage(response.data.page);
-			setTotalPages(response.data.total_pages);
-			setTotal(response.data.total);
-			setHasSearched(true);
-		} catch (err) {
-			console.error('Watchlist search error:', err);
-			setError('Failed to load preview. Please try again.');
+			setResults(data.data || []);
+			setHeader({
+				search_desc: data.search_desc,
+				view_desc: data.view_desc,
+				as_of: data.as_of,
+				as_of_label: data.as_of_label,
+			});
+			setPage(data.page);
+			setTotalPages(data.total_pages);
+			setTotal(data.total);
+		} catch {
+			setError('Failed to load data. Please try again.');
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	const handlePrint = () => {
-		if (results.length === 0) {
-			alert('Please preview the data first.');
-			return;
-		}
-		window.print();
+	const handlePreview = () => {
+		const params = buildParams();
+		if (!params) return;
+		setApplied(params);
+		fetchPage(params, 1);
 	};
 
-	const handleExport = async (kind: 'excel' | 'word') => {
-		if (!asOf) {
-			alert('Please fill the As Of date first.');
-			return;
-		}
+	const handlePageChange = (newPage: number) => {
+		if (applied) fetchPage(applied, newPage);
+	};
 
-		const setBusy = kind === 'excel' ? setExportingExcel : setExportingWord;
-		setBusy(true);
-		setError(null);
-
+	const handlePrint = async () => {
+		const params = buildParams();
+		if (!params) return;
+		setPrinting(true);
 		try {
-			const response = await api.get(`/MasterData/watchlist-report/${kind}`, {
-				params: buildParams(1),
+			const { data } = await api.get<PrintResponse>('/MasterData/watchlist-report/print', { params });
+			setPrintReport({ ...data, data: data.data || [] });
+		} catch {
+			showAlert('Failed to load print data. Please try again.', { variant: 'error' });
+		} finally {
+			setPrinting(false);
+		}
+	};
+
+	const handleExport = async () => {
+		const params = buildParams();
+		if (!params) return;
+		setExporting(true);
+		try {
+			const res = await api.get('/MasterData/watchlist-report/excel', {
+				params,
 				responseType: 'blob',
 			});
-
-			const mime = kind === 'excel'
-				? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-				: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-			const ext = kind === 'excel' ? 'xlsx' : 'docx';
-
-			const blob = new Blob([response.data], { type: mime });
+			const blob = new Blob([res.data], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			});
 			const url = URL.createObjectURL(blob);
-			const anchor = document.createElement('a');
-			anchor.href = url;
-			anchor.download = `WatchlistReport_${toISO(asOf)}.${ext}`;
-			anchor.click();
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filenameFromDisposition(res.headers['content-disposition'], 'Watchlist.xlsx');
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
 			URL.revokeObjectURL(url);
-		} catch (err) {
-			console.error('Export error:', err);
-			setError('Failed to export. Please try again.');
+		} catch {
+			showAlert('Failed to export. Please try again.', { variant: 'error' });
 		} finally {
-			setBusy(false);
+			setExporting(false);
 		}
 	};
 
@@ -288,76 +269,19 @@ const WatchlistReportPage: React.FC = () => {
 		setSearchByText('');
 	};
 
-	const openDetail = async (row: WatchlistRow) => {
-		setDetailOpen(true);
-		setDetail(null);
-		setDetailError(null);
-		setDetailLoading(true);
+	const closePrint = useCallback(() => setPrintReport(null), []);
 
-		try {
-			const response = await api.get<CustomerDetail>(
-				`/MasterData/watchlist-report/detail/${encodeURIComponent(row.customer_no)}`
-			);
-			setDetail(response.data);
-		} catch (err) {
-			console.error('Customer detail error:', err);
-			setDetailError('Failed to load customer detail. Please try again.');
-		} finally {
-			setDetailLoading(false);
-		}
-	};
+	const cell = 'border border-[var(--app-border)] px-2 py-1 align-top';
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
-			<style>{`
-				@page {
-					size: landscape;
-					margin: 10mm;
-				}
-				@media print {
-					body * { visibility: hidden; }
-					#watchlist-print-area, #watchlist-print-area * { visibility: visible; }
-					#watchlist-print-area {
-						position: absolute;
-						inset: 0;
-						width: 100%;
-						margin: 0;
-						padding: 0;
-						box-shadow: none;
-						border-radius: 0;
-					}
-					#watchlist-print-area .overflow-x-auto {
-						overflow: visible !important;
-					}
-					#watchlist-print-area table {
-						width: 100% !important;
-						table-layout: fixed;
-						border-collapse: collapse;
-						font-size: 8px;
-					}
-					#watchlist-print-area th,
-					#watchlist-print-area td {
-						padding: 2px 3px !important;
-						white-space: normal !important;
-						word-break: break-word;
-						overflow-wrap: break-word;
-					}
-				}
-			`}</style>
-
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6 print:hidden">
-					<div className="mb-6">
-						<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
-							Watchlist Report
-						</h1>
-					</div>
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
+					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">Watchlist Report</h1>
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 						<div>
-							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
-								Branch
-							</label>
+							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Branch</label>
 							<div className="px-3 py-2 rounded-lg border border-[var(--app-border)] bg-[var(--app-surface)] text-[var(--app-text)] text-sm">
 								Consolidate
 							</div>
@@ -365,11 +289,11 @@ const WatchlistReportPage: React.FC = () => {
 
 						<div className={dateFieldClass}>
 							<AsOfDatePicker
-								label="As Of"
+								label="As of"
 								format="DD-MM-YYYY"
 								placeholder="dd-mm-yyyy"
 								value={asOf}
-								onChange={(date) => { if (date) setAsOf(date); }}
+								onChange={setAsOf}
 								required
 							/>
 						</div>
@@ -377,14 +301,12 @@ const WatchlistReportPage: React.FC = () => {
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 						<div>
-							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
-								Search by
-							</label>
+							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Search by</label>
 							<select
 								value={searchBy}
 								onChange={handleSearchByChange}
 								className="w-full px-3 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 text-sm
-								           focus:outline-none focus:ring-2 focus:ring-emerald-500"
+								           focus:outline-none focus:ring-2 focus:ring-blue-500"
 							>
 								<option value="" className="bg-white text-slate-900">Select</option>
 								<option value="1" className="bg-white text-slate-900">Customer No</option>
@@ -393,19 +315,18 @@ const WatchlistReportPage: React.FC = () => {
 						</div>
 
 						<div>
-							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">
-								Keyword
-							</label>
+							<label className="block text-sm font-medium text-[var(--app-text)] mb-1">Keyword</label>
 							<div className="relative">
 								<input
 									type="text"
 									value={searchByText}
 									onChange={(e) => setSearchByText(e.target.value)}
+									onKeyDown={(e) => { if (e.key === 'Enter') handlePreview(); }}
 									disabled={searchBy === ''}
 									placeholder={searchBy === '' ? 'Choose "Search by" first' : ''}
 									className="w-full pl-3 pr-10 py-2 rounded-lg border border-[var(--app-border)] bg-white text-slate-900 placeholder:text-slate-400 text-sm
-									           focus:outline-none focus:ring-2 focus:ring-emerald-500
-									           disabled:bg-slate-100 disabled:text-slate-500"
+									           focus:outline-none focus:ring-2 focus:ring-blue-500
+									           disabled:bg-slate-100 disabled:text-slate-500 disabled:cursor-not-allowed"
 								/>
 								{searchByText && (
 									<button
@@ -425,57 +346,42 @@ const WatchlistReportPage: React.FC = () => {
 					</div>
 
 					<div className="mb-6">
-						<label className="block text-sm font-medium text-[var(--app-text)] mb-2">
-							View
-						</label>
+						<label className="block text-sm font-medium text-[var(--app-text)] mb-2">View</label>
 						<div className="flex flex-wrap gap-6">
-							<label className="flex items-center gap-2 text-sm text-[var(--app-text)]">
+							<label className="flex items-center gap-2 text-sm text-[var(--app-text)] cursor-pointer">
 								<input
 									type="checkbox"
 									checked={existing}
 									onChange={(e) => setExisting(e.target.checked)}
-									className="h-4 w-4 rounded border-[var(--app-border)] text-emerald-600"
+									className="h-4 w-4 rounded border-[var(--app-border)] accent-blue-600"
 								/>
 								Existing in Watchlist Report
 							</label>
-							<label className="flex items-center gap-2 text-sm text-[var(--app-text)]">
+							<label className="flex items-center gap-2 text-sm text-[var(--app-text)] cursor-pointer">
 								<input
 									type="checkbox"
 									checked={deleted}
 									onChange={(e) => setDeleted(e.target.checked)}
-									className="h-4 w-4 rounded border-[var(--app-border)] text-emerald-600"
+									className="h-4 w-4 rounded border-[var(--app-border)] accent-blue-600"
 								/>
 								Data Deleted from Watchlist Report
 							</label>
 						</div>
 					</div>
 
-					{error && (
-						<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-							{error}
-						</div>
-					)}
-
-					<div className="flex flex-wrap gap-2">
+					<div className="flex flex-wrap gap-3">
 						<button
-							onClick={() => handleSearch(1)}
+							onClick={handlePreview}
 							disabled={loading}
-							className="bg-gradient-to-r from-blue-600 to-indigo-700
-							           hover:from-blue-700 hover:to-indigo-800
-							           text-white px-4 py-2 text-sm rounded-lg font-medium
-							           shadow-md hover:shadow-lg transition-all disabled:opacity-60
-							           flex items-center gap-2"
+							className={`bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-2 rounded-lg font-medium shadow-md transition-all flex items-center gap-2 ${loading ? 'opacity-75 cursor-not-allowed' : ''}`}
 						>
 							{loading ? (
 								<>
-									<svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-										<circle className="opacity-25" cx="12" cy="12" r="10"
-											stroke="currentColor" strokeWidth="4" />
-										<path className="opacity-75" fill="currentColor"
-											d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962
-										         7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+									<svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+										<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+										<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
 									</svg>
-									Loading…
+									Loading...
 								</>
 							) : (
 								'Preview'
@@ -484,120 +390,109 @@ const WatchlistReportPage: React.FC = () => {
 
 						<button
 							onClick={handlePrint}
-							disabled={results.length === 0}
-							className="bg-[var(--app-card)] border border-[var(--app-border)] text-[var(--app-text)]
-							           hover:bg-[var(--app-surface)] px-4 py-2 text-sm rounded-lg font-medium
-							           shadow-sm transition-all disabled:opacity-60"
+							disabled={printing}
+							className={`border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${printing ? 'opacity-60 cursor-not-allowed' : ''}`}
 						>
-							Print
+							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+							</svg>
+							{printing ? 'Preparing...' : 'Print'}
 						</button>
 
 						<button
-							onClick={() => handleExport('excel')}
-							disabled={exportingExcel}
-							className="bg-gradient-to-r from-green-600 to-emerald-700
-							           hover:from-green-700 hover:to-emerald-800
-							           text-white px-4 py-2 text-sm rounded-lg font-medium
-							           shadow-md hover:shadow-lg transition-all disabled:opacity-60"
+							onClick={handleExport}
+							disabled={exporting}
+							className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${exporting ? 'opacity-60 cursor-not-allowed' : ''}`}
 						>
-							{exportingExcel ? 'Exporting…' : 'Export to Excel'}
+							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+							</svg>
+							{exporting ? 'Exporting...' : 'Export to Excel'}
 						</button>
 					</div>
 				</div>
 
-				{hasSearched && (
-					<div id="watchlist-print-area" className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
-						<h2 className="text-xl font-bold text-[var(--app-text)] text-center">
-							WATCHLIST REPORT
-						</h2>
-						<p className="text-center text-sm text-[var(--app-text)] mb-4">
-							As of {asOf.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-						</p>
+				{error && (
+					<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+						{error}
+						{applied && (
+							<button onClick={() => fetchPage(applied, page)} className="ml-4 underline text-red-900">Retry</button>
+						)}
+					</div>
+				)}
 
-						<div className="text-sm text-[var(--app-text)] mb-4 space-y-1">
-							<p><span className="font-medium text-[var(--app-text)]">Branch:</span> Consolidate</p>
-							<p><span className="font-medium text-[var(--app-text)]">Search by:</span> {searchDesc}</p>
-							<p><span className="font-medium text-[var(--app-text)]">View:</span> {viewDesc}</p>
+				{header && (
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+						<div className="relative mb-4">
+							<h2 className="text-xl font-bold text-[var(--app-text)] text-center">WATCHLIST REPORT</h2>
+							<p className="text-center text-sm font-semibold text-[var(--app-text)]">As of {header.as_of_label}</p>
+							{total > 0 && (
+								<span className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+									Total: {total}
+								</span>
+							)}
 						</div>
 
+						<table className="text-sm text-[var(--app-text)] mb-4">
+							<tbody>
+								<tr>
+									<td className="pr-2 py-0.5 font-medium w-24">Branch</td>
+									<td className="pr-2">:</td>
+									<td>Consolidate</td>
+								</tr>
+								<tr>
+									<td className="pr-2 py-0.5 font-medium">Search by</td>
+									<td className="pr-2">:</td>
+									<td>{header.search_desc}</td>
+								</tr>
+								<tr>
+									<td className="pr-2 py-0.5 font-medium">View</td>
+									<td className="pr-2">:</td>
+									<td>{header.view_desc}</td>
+								</tr>
+							</tbody>
+						</table>
+
 						<div className="overflow-x-auto">
-							<table className="w-full text-sm border-collapse">
-								<colgroup>
-									<col style={{ width: '4%' }} />
-									<col style={{ width: '12%' }} />
-									<col style={{ width: '9%' }} />
-									<col style={{ width: '16%' }} />
-									<col style={{ width: '8%' }} />
-									<col style={{ width: '9%' }} />
-									<col style={{ width: '8%' }} />
-									<col style={{ width: '7%' }} />
-									<col style={{ width: '7%' }} />
-									<col style={{ width: '6%' }} />
-									<col style={{ width: '7%' }} />
-									<col style={{ width: '7%' }} />
-								</colgroup>
+							<table className="w-full min-w-[1000px] text-sm border-collapse table-fixed">
+								<ColGroup />
 								<thead>
 									<tr className="bg-[var(--app-surface-alt)] text-[var(--app-text)]">
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">No</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Customer Name</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Customer Number</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Address</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">No Identitas</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Phone</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Reason</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Create By</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Create Date</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Status</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Delete By</th>
-										<th className="border border-[var(--app-border)] px-2 py-2 whitespace-nowrap">Attachment</th>
+										{COLUMNS.map((c) => (
+											<th key={c.label} className="border border-[var(--app-border)] px-2 py-2 text-xs font-semibold">
+												{c.label}
+											</th>
+										))}
 									</tr>
 								</thead>
 								<tbody>
 									{results.length === 0 ? (
 										<tr>
-											<td colSpan={12} className="border border-[var(--app-border)] px-2 py-4 text-center text-red-600 font-medium">
+											<td colSpan={COLUMNS.length} className="border border-[var(--app-border)] px-2 py-6 text-center text-red-600 font-semibold">
 												Data Not Found
 											</td>
 										</tr>
 									) : (
 										results.map((row, idx) => (
 											<tr
-												key={`${row.customer_no}-${row.no}`}
-												className={idx % 2 === 0 ? 'bg-[var(--app-surface)]' : 'bg-[var(--app-card)]'}
+												key={row.no}
+												className={idx % 2 === 0 ? 'bg-[var(--app-card)]' : 'bg-[var(--app-surface)]'}
 											>
-												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.no}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.name}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">
-													{SHOW_CUSTOMER_LINK ? (
-														<button
-															onClick={() => openDetail(row)}
-															className="text-blue-600 hover:underline print:no-underline print:text-inherit"
-														>
-															{row.customer_no}
-														</button>
-													) : (
-														row.customer_no
-													)}
-												</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.address}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.identitas}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.phone}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.reason}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.create_user}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1 whitespace-nowrap">{row.create_date}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1 text-center">
-													<span
-														className={
-															row.status === 'Deleted'
-																? 'text-red-600 font-medium'
-																: 'text-green-700 font-medium'
-														}
-													>
+												<td className={`${cell} text-center`}>{row.no}</td>
+												<td className={`${cell} break-words`}>{row.name}</td>
+												<td className={`${cell} break-words`}>{row.customer_no}</td>
+												<td className={`${cell} break-words`}>{row.address}</td>
+												<td className={`${cell} break-words`}>{row.id_card}</td>
+												<td className={`${cell} break-words`}>{row.phone}</td>
+												<td className={`${cell} break-words`}>{row.reason}</td>
+												<td className={`${cell} break-words`}>{row.create_user}</td>
+												<td className={`${cell} text-center whitespace-nowrap`}>{row.create_date}</td>
+												<td className={`${cell} text-center`}>
+													<span className={row.status === 'Deleted' ? 'text-red-600 font-medium' : 'text-green-600 font-medium'}>
 														{row.status}
 													</span>
 												</td>
-												<td className="border border-[var(--app-border)] px-2 py-1 text-center">{row.delete_by}</td>
-												<td className="border border-[var(--app-border)] px-2 py-1">{row.attachment ?? '-'}</td>
+												<td className={`${cell} text-center break-words`}>{row.delete_by}</td>
 											</tr>
 										))
 									)}
@@ -609,162 +504,17 @@ const WatchlistReportPage: React.FC = () => {
 							<Pagination
 								page={page}
 								totalPages={totalPages}
-								onPageChange={(newPage) => handleSearch(newPage)}
+								onPageChange={handlePageChange}
 								totalItems={total}
 								itemsPerPage={PAGE_SIZE}
-								className="mt-6 print:hidden"
+								className="mt-6"
 							/>
 						)}
 					</div>
 				)}
 			</div>
 
-			{detailOpen && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
-					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-						<div className="flex justify-between items-center p-6 border-b border-[var(--app-border)]">
-							<h2 className="text-xl font-bold text-[var(--app-text)]">Customer Detail Review</h2>
-							<button onClick={() => setDetailOpen(false)} className="text-[var(--app-text)] hover:text-[var(--app-text)]">
-								<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-								</svg>
-							</button>
-						</div>
-
-						<div className="p-6 overflow-y-auto flex-grow min-h-0">
-							{detailLoading && (
-								<div className="flex justify-center py-10">
-									<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500" />
-								</div>
-							)}
-
-							{detailError && (
-								<div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-									{detailError}
-								</div>
-							)}
-
-							{!detailLoading && !detailError && detail && (
-								<div className="space-y-6">
-									<div>
-										<h3 className="text-lg font-bold text-[var(--app-text)]">{detail.name}</h3>
-										<p className="text-sm text-[var(--app-text)]">
-											{detail.lessee_type === 'PR' ? 'Individual (PR)' : 'Company (PT)'}
-											{' · '}{detail.customer_type}
-										</p>
-									</div>
-
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-										<Field label="ID Address"><AddressValue block={detail.id_address} /></Field>
-										<Field label="Correspondence"><AddressValue block={detail.correspondence} /></Field>
-										<Field label="Additional 1"><AddressValue block={detail.additional_1} /></Field>
-										<Field label="Additional 2"><AddressValue block={detail.additional_2} /></Field>
-										<Field label="Mobile">{detail.mobile}</Field>
-										<Field label="Email">{detail.email}</Field>
-										<Field label="NPWP">{detail.npwp}</Field>
-										<Field label="Group">{detail.group_name}</Field>
-										<Field label="Industrial Code">{detail.industrial_code}</Field>
-										<Field label="BI Customer Type">{detail.bi_customer_type}</Field>
-										<Field label="Review Date">{detail.review_date}</Field>
-
-										{detail.lessee_type === 'PR' ? (
-											<>
-												<Field label="Spouse">{detail.spouse}</Field>
-												<Field label="Mother's Maiden Name">{detail.mothers_maiden_name}</Field>
-												<Field label="Date / Place of Birth">
-													{detail.date_of_birth} / {detail.place_of_birth}
-												</Field>
-												<Field label="Gender">{detail.gender}</Field>
-												<Field label="Marital Status">{detail.marital_status}</Field>
-												<Field label="Religion">{detail.religion}</Field>
-												<Field label="Citizenship">{detail.citizenship} / {detail.nationality}</Field>
-												<Field label="ID Card No.">{detail.id_card_no}</Field>
-												<Field label="Family Card No.">{detail.family_card_no}</Field>
-											</>
-										) : (
-											<>
-												<Field label="Contact">{detail.contact}</Field>
-												<Field label="Position">{detail.position}</Field>
-												<Field label="Line of Business">{detail.line_of_business}</Field>
-												<Field label="Establishment Date">{detail.establishment_date}</Field>
-												<Field label="Office Status">{detail.office_status}</Field>
-											</>
-										)}
-
-										<Field label="Other Phone 1">
-											{detail.other_phone_1}{detail.other_phone_1_notes ? ` (${detail.other_phone_1_notes})` : ''}
-										</Field>
-										<Field label="Other Phone 2">
-											{detail.other_phone_2}{detail.other_phone_2_notes ? ` (${detail.other_phone_2_notes})` : ''}
-										</Field>
-									</div>
-
-									{detail.references.length > 0 && (
-										<div>
-											<h4 className="text-sm font-semibold text-[var(--app-text)] mb-2">References</h4>
-											<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
-												<table className="w-full text-sm">
-													<thead className="bg-[var(--app-surface)]">
-														<tr>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">No.</th>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Name</th>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Phone</th>
-															<th className="py-2 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase">Remark</th>
-														</tr>
-													</thead>
-													<tbody className="divide-y divide-[var(--app-border)]">
-														{detail.references.map((ref) => (
-															<tr key={ref.no}>
-																<td className="py-2 px-3">{ref.no}</td>
-																<td className="py-2 px-3">{ref.name}</td>
-																<td className="py-2 px-3">{ref.phone}</td>
-																<td className="py-2 px-3">{ref.remark}</td>
-															</tr>
-														))}
-													</tbody>
-												</table>
-											</div>
-										</div>
-									)}
-
-									<div>
-										<h4 className="text-sm font-semibold text-[var(--app-text)] mb-2">Documents</h4>
-										{detail.lessee_type === 'PR' ? (
-											<>
-												<DocumentList
-													title={detail.documents.citizen_type ?? 'Identity Documents'}
-													rows={detail.documents.citizen_docs}
-												/>
-												<DocumentList title="Dokumen Tambahan" rows={detail.documents.additional_docs} />
-												<DocumentList title="Dokumen BPKB" rows={detail.documents.bpkb_docs} />
-												<DocumentList title="Other" rows={[detail.documents.other_doc]} />
-											</>
-										) : (
-											<>
-												<DocumentList
-													title={`Customer Type: ${detail.documents.org_type ?? '-'}`}
-													rows={detail.documents.org_docs}
-												/>
-												<DocumentList title="Dokumen BPKB" rows={detail.documents.bpkb_docs} />
-												<DocumentList title="Other" rows={[detail.documents.other_doc]} />
-											</>
-										)}
-									</div>
-								</div>
-							)}
-						</div>
-
-						<div className="p-4 border-t border-[var(--app-border)] flex justify-end">
-							<button
-								onClick={() => setDetailOpen(false)}
-								className="px-4 py-2 border border-[var(--app-border)] rounded-md text-sm text-[var(--app-text)] hover:bg-[var(--app-surface)] transition-colors"
-							>
-								Close
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
+			{printReport && <WatchlistPrintPreview report={printReport} onClose={closePrint} />}
 		</div>
 	);
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
+import { alertFillField, showAlert } from '@/helpers/AlertDialog';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import ReportPrintModal, { PRINT_CELL, PRINT_HEAD } from '@/features/cam/components/ReportPrintModal';
 import CamViewTabs from '@/features/cam/pages/Onprocess/View/MainView/CamViewTabs';
@@ -216,7 +217,7 @@ const ListCAMByApproverPage: React.FC = () => {
 
     const handlePreview = async () => {
         if (!startDate && !endDate && !branchCd) {
-            alert('Please Fill The Field');
+            alertFillField();
             return;
         }
         setLoading(true);
@@ -238,7 +239,7 @@ const ListCAMByApproverPage: React.FC = () => {
 
     const handlePrint = async () => {
         if (!startDate && !endDate && !branchCd) {
-            alert('Please Fill The Field');
+            alertFillField();
             return;
         }
         setPrinting(true);
@@ -268,7 +269,7 @@ const ListCAMByApproverPage: React.FC = () => {
 
     const handleExport = async () => {
         if (!startDate && !endDate && !branchCd) {
-            alert('Please Fill The Field');
+            alertFillField();
             return;
         }
         setExporting(true);
@@ -290,7 +291,7 @@ const ListCAMByApproverPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
         } catch (err) {
             console.error('Export error:', err);
-            alert('Failed to export. Please try again.');
+            showAlert('Failed to export. Please try again.', { variant: 'error' });
         } finally {
             setExporting(false);
         }

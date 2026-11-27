@@ -1,6 +1,10 @@
-import React, { useEffect, useState, useCallback, useRef, Suspense, lazy } from "react";
+import React, { useEffect, useState, useCallback, Suspense, lazy } from "react";
 import api from '@/shared/api/axiosInstance';
 import { useBranches } from '@/shared/hooks/useOptions';
+import { filenameFromDisposition } from '@/shared/utils/helpers';
+import { showAlert } from '@/helpers/AlertDialog';
+import PrintPreview, { PRINT_TD, PRINT_TH } from '@/helpers/PrintPreview';
+
 interface DealerDeletedRow {
 	form_no: string;
 	branch_name: string;
@@ -15,6 +19,32 @@ interface DealerDeletedRow {
 }
 
 type SearchType = "1" | "2" | "";
+
+interface AppliedFilter {
+	branch: string;
+	cekcek: SearchType;
+	lempar: string;
+}
+
+type ColumnKey = keyof DealerDeletedRow | "no";
+
+const PRINT_COLUMNS: { key: ColumnKey; label: string; width: string; consolidateWidth: string }[] = [
+	{ key: "no", label: "No.", width: "4%", consolidateWidth: "4%" },
+	{ key: "branch_name", label: "Branch", width: "0%", consolidateWidth: "9%" },
+	{ key: "supp", label: "Dealer ID", width: "8%", consolidateWidth: "8%" },
+	{ key: "name", label: "Dealer Name", width: "15%", consolidateWidth: "13%" },
+	{ key: "address", label: "Address", width: "24%", consolidateWidth: "20%" },
+	{ key: "created_by", label: "Created By", width: "8%", consolidateWidth: "8%" },
+	{ key: "create_date", label: "Create Date", width: "8%", consolidateWidth: "8%" },
+	{ key: "delete_by", label: "Delete By", width: "10%", consolidateWidth: "10%" },
+	{ key: "delete_date", label: "Delete Date", width: "8%", consolidateWidth: "8%" },
+	{ key: "reason", label: "Reason", width: "15%", consolidateWidth: "12%" },
+];
+
+const CENTERED: ColumnKey[] = ["no", "create_date", "delete_date"];
+
+const asOfLabel = () =>
+	new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 
 const SupplierEntryLazy = lazy(() => import("@/features/master-data/pages/Dealer/SupplierEntryPage"));
 
@@ -42,7 +72,7 @@ function DealerDetailModal({ supp, onClose }: { supp: string; onClose: () => voi
 		return () => window.removeEventListener("keydown", onKey);
 	}, [onClose]);
 	return (
-		<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-2 md:p-4 no-print" onClick={onClose}>
+		<div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-2 md:p-4" onClick={onClose}>
 			<div className="relative flex h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-xl bg-[var(--app-card)] text-[var(--app-text)] shadow-2xl" onClick={e => e.stopPropagation()}>
 				<div className="flex items-center justify-between border-b border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-2">
 					<span className="text-sm font-semibold text-[var(--app-text)]">Dealer — {supp}</span>
@@ -60,19 +90,73 @@ function DealerDetailModal({ supp, onClose }: { supp: string; onClose: () => voi
 	);
 }
 
+function DeletedDealerPrint({
+	rows, branchLabel, consolidate, onClose,
+}: { rows: DealerDeletedRow[]; branchLabel: string; consolidate: boolean; onClose: () => void }) {
+	const columns = PRINT_COLUMNS.filter((c) => consolidate || c.key !== "branch_name");
+
+	return (
+		<PrintPreview label={`Dealer Deleted Report — ${branchLabel}`} onClose={onClose}>
+			<div style={{ textAlign: "center", marginBottom: 8 }}>
+				<div style={{ fontSize: 16, fontWeight: "bold" }}>DEALER DELETED REPORT</div>
+				<div>As of {asOfLabel()}</div>
+			</div>
+			<div style={{ marginBottom: 8, fontWeight: "bold" }}>Branch : {branchLabel}</div>
+
+			<table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+				<colgroup>
+					{columns.map((c) => <col key={c.key} style={{ width: consolidate ? c.consolidateWidth : c.width }} />)}
+				</colgroup>
+				<thead>
+					<tr>
+						{columns.map((c) => <th key={c.key} style={PRINT_TH}>{c.label}</th>)}
+					</tr>
+				</thead>
+				<tbody>
+					{rows.length === 0 ? (
+						<tr>
+							<td colSpan={columns.length} style={{ ...PRINT_TD, textAlign: "center", fontWeight: "bold", color: "#dc2626" }}>
+								Data Not Found
+							</td>
+						</tr>
+					) : (
+						rows.map((r, idx) => (
+							<tr key={`${r.form_no}-${r.supp}-${idx}`}>
+								{columns.map((c) => (
+									<td key={c.key} style={{ ...PRINT_TD, textAlign: CENTERED.includes(c.key) ? "center" : "left" }}>
+										{c.key === "no" ? idx + 1 : r[c.key]}
+									</td>
+								))}
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+
+			<div style={{ marginTop: 8, textAlign: "right" }}>
+				Total : <strong>{rows.length}</strong> record{rows.length !== 1 ? "s" : ""}
+			</div>
+		</PrintPreview>
+	);
+}
+
 const DealerDeletedReportPage: React.FC = () => {
 	const { data: branches = [] } = useBranches();
 	const [selectedBranch, setSelectedBranch] = useState<string>("");
 	const [searchType, setSearchType] = useState<SearchType>("");
 	const [searchVal, setSearchVal] = useState("");
 	const [rows, setRows] = useState<DealerDeletedRow[]>([]);
+	const [applied, setApplied] = useState<AppliedFilter | null>(null);
 	const [loading, setLoading] = useState(false);
-	const [searched, setSearched] = useState(false);
+	const [exporting, setExporting] = useState(false);
+	const [printOpen, setPrintOpen] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const printRef = useRef<HTMLDivElement>(null);
 	const [dealerModal, setDealerModal] = useState<string | null>(null);
 
-	const isConsolidate = selectedBranch === "000";
+	const searched = applied !== null;
+	const isConsolidate = applied?.branch === "000";
+	const branchLabel = (code: string) => branches.find((b) => b.branchCd === code)?.branchName ?? code;
+	const appliedBranchLabel = applied ? branchLabel(applied.branch) : "";
 
 	useEffect(() => {
 		if (!selectedBranch && branches.length > 0) {
@@ -81,22 +165,17 @@ const DealerDeletedReportPage: React.FC = () => {
 	}, [branches, selectedBranch]);
 
 	const handleSearch = useCallback(async () => {
+		const filter: AppliedFilter = {
+			branch: selectedBranch,
+			cekcek: searchType,
+			lempar: searchType !== "" ? searchVal.trim() : "",
+		};
 		setLoading(true);
 		setError(null);
-		setSearched(false);
 		try {
-			const res = await api.get(
-				'/MasterData/dealer-deleted-report',
-				{
-					params: {
-						branch: selectedBranch,
-						cekcek: searchType,
-						lempar: searchType !== "" ? searchVal : "",
-					},
-				}
-			);
-			setRows(res.data.data);
-			setSearched(true);
+			const res = await api.get('/MasterData/dealer-deleted-report', { params: filter });
+			setRows(res.data.data || []);
+			setApplied(filter);
 		} catch (err) {
 			console.error(err);
 			setError("Failed to load data. Please try again.");
@@ -106,35 +185,34 @@ const DealerDeletedReportPage: React.FC = () => {
 	}, [selectedBranch, searchType, searchVal]);
 
 	const handleExport = async () => {
-	const XLSX = await import("xlsx");
-		const branchLabel =
-			branches.find((b) => b.branchCd === selectedBranch)?.branchName ?? selectedBranch
-
-		const headers = isConsolidate
-			? ["No.", "Branch", "Dealer ID", "Dealer Name", "Address", "Created By", "Create Date", "Delete By", "Delete Date", "Reason"]
-			: ["No.", "Dealer ID", "Dealer Name", "Address", "Created By", "Create Date", "Delete By", "Delete Date", "Reason"];
-
-		const data = rows.map((r, idx) =>
-			isConsolidate
-				? [idx + 1, r.branch_name, r.supp, r.name, r.address, r.created_by, r.create_date, r.delete_by, r.delete_date, r.reason]
-				: [idx + 1, r.supp, r.name, r.address, r.created_by, r.create_date, r.delete_by, r.delete_date, r.reason]
-		);
-
-		const ws = XLSX.utils.aoa_to_sheet([
-			["DEALER DELETED REPORT"],
-			[`As Of ${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}`],
-			[],
-			[`Branch : ${branchLabel}`],
-			[],
-			headers,
-			...data,
-		]);
-		const wb = XLSX.utils.book_new();
-		XLSX.utils.book_append_sheet(wb, ws, "Dealer Deleted Report");
-		XLSX.writeFile(wb, "Dealer_Deleted_Report.xlsx");
+		if (!applied) return;
+		setExporting(true);
+		try {
+			const res = await api.get('/MasterData/dealer-deleted-report/excel', {
+				params: applied,
+				responseType: 'blob',
+			});
+			const blob = new Blob([res.data], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			});
+			const url = window.URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filenameFromDisposition(res.headers['content-disposition'], 'Dealer_Deleted_Report.xlsx');
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			window.URL.revokeObjectURL(url);
+		} catch (err) {
+			console.error('Export error:', err);
+			showAlert('Failed to export. Please try again.', { variant: 'error' });
+		} finally {
+			setExporting(false);
+		}
 	};
 
-	const handlePrint = () => window.print();
+	const closePrint = useCallback(() => setPrintOpen(false), []);
+	const closeDealer = useCallback(() => setDealerModal(null), []);
 
 	const openDealer = (supp: string) => {
 		if (supp) setDealerModal(supp);
@@ -142,47 +220,25 @@ const DealerDeletedReportPage: React.FC = () => {
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
-			<style>{`
-				@media print {
-					body * { visibility: hidden; }
-					.print-section, .print-section * { visibility: visible; }
-					.print-section {
-						position: absolute;
-						top: 0;
-						left: 0;
-						width: 100%;
-						margin: 0;
-						padding: 0 !important;
-						box-shadow: none !important;
-						border-radius: 0 !important;
-					}
-					.print-section .overflow-x-auto { overflow: visible !important; }
-					.print-section table { width: 100%; }
-					.no-print { display: none !important; }
-					body { font-size: 11px; }
-				}
-				.print-only { display: none; }
-			`}</style>
+			{dealerModal && <DealerDetailModal supp={dealerModal} onClose={closeDealer} />}
 
-				{dealerModal && (
-					<DealerDetailModal supp={dealerModal} onClose={() => setDealerModal(null)} />
-				)}
+			{printOpen && applied && (
+				<DeletedDealerPrint
+					rows={rows}
+					branchLabel={appliedBranchLabel}
+					consolidate={isConsolidate}
+					onClose={closePrint}
+				/>
+			)}
 
 			<div className="max-w-full mx-auto">
-				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6 no-print">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
 						<div>
 							<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)]">
 								Dealer Deleted Report
 							</h1>
-							<p className="text-[var(--app-text)] mt-1 text-sm">
-								As of{" "}
-								{new Date().toLocaleDateString("en-GB", {
-									day: "2-digit",
-									month: "short",
-									year: "numeric",
-								})}
-							</p>
+							<p className="text-[var(--app-text)] mt-1 text-sm">As of {asOfLabel()}</p>
 						</div>
 					</div>
 
@@ -270,8 +326,7 @@ const DealerDeletedReportPage: React.FC = () => {
 						<button
 							onClick={handleSearch}
 							disabled={loading}
-							className={`bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-2.5 rounded-lg font-medium shadow hover:shadow-lg transition-all flex items-center gap-2 ${loading ? "opacity-75 cursor-not-allowed" : ""
-								}`}
+							className={`bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white px-6 py-2.5 rounded-lg font-medium shadow hover:shadow-lg transition-all flex items-center gap-2 ${loading ? "opacity-75 cursor-not-allowed" : ""}`}
 						>
 							{loading ? (
 								<>
@@ -294,7 +349,7 @@ const DealerDeletedReportPage: React.FC = () => {
 						{searched && rows.length > 0 && (
 							<>
 								<button
-									onClick={handlePrint}
+									onClick={() => setPrintOpen(true)}
 									className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white px-6 py-2.5 rounded-lg font-medium shadow hover:shadow-lg transition-all flex items-center gap-2"
 								>
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,12 +360,13 @@ const DealerDeletedReportPage: React.FC = () => {
 
 								<button
 									onClick={handleExport}
-									className="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-6 py-2.5 rounded-lg font-medium shadow hover:shadow-lg transition-all flex items-center gap-2"
+									disabled={exporting}
+									className="bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white px-6 py-2.5 rounded-lg font-medium shadow hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
 								>
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
 									</svg>
-									Export to Excel
+									{exporting ? 'Exporting…' : 'Export to Excel'}
 								</button>
 							</>
 						)}
@@ -318,7 +374,7 @@ const DealerDeletedReportPage: React.FC = () => {
 				</div>
 
 				{error && (
-					<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center justify-between no-print">
+					<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 flex items-center justify-between">
 						<span>{error}</span>
 						<button onClick={handleSearch} className="ml-4 underline text-sm text-red-900">
 							Retry
@@ -327,31 +383,12 @@ const DealerDeletedReportPage: React.FC = () => {
 				)}
 
 				{searched && (
-					<div ref={printRef} className="print-section bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
-						<div className="hidden print:block text-center mb-4">
-							<p className="text-lg font-bold">DEALER DELETED REPORT</p>
-							<p className="text-sm">
-								As of{" "}
-								{new Date().toLocaleDateString("en-GB", {
-									day: "2-digit",
-									month: "short",
-									year: "numeric",
-								})}
-							</p>
-							<p className="text-sm mt-1">
-								Branch:{" "}
-								{branches.find((b) => b.branchCd === selectedBranch)?.branchName ?? selectedBranch}
-							</p>
-						</div>
-
-						<div className="flex items-center justify-between mb-4 no-print">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+						<div className="flex items-center justify-between mb-4">
 							<div>
 								<h2 className="text-lg font-semibold text-[var(--app-text)]">Results</h2>
 								<p className="text-sm text-[var(--app-text)]">
-									Branch:{" "}
-									<span className="font-medium">
-										{branches.find((b) => b.branchCd === selectedBranch)?.branchName ?? selectedBranch}
-									</span>
+									Branch: <span className="font-medium">{appliedBranchLabel}</span>
 									{" — "}
 									<span className="font-medium text-blue-700">
 										{rows.length} record{rows.length !== 1 ? "s" : ""}
@@ -364,47 +401,24 @@ const DealerDeletedReportPage: React.FC = () => {
 							<table className="w-full text-sm">
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-10">
-											No.
-										</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider w-10">No.</th>
 										{isConsolidate && (
-											<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-												Branch
-											</th>
+											<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Branch</th>
 										)}
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Dealer ID
-										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Dealer Name
-										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Address
-										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Created By
-										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Create Date
-										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Delete By
-										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Delete Date
-										</th>
-										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">
-											Reason
-										</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Dealer ID</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Dealer Name</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Address</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Created By</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Create Date</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Delete By</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Delete Date</th>
+										<th className="py-3 px-4 text-left text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider">Reason</th>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-[var(--app-border)]">
 									{rows.length === 0 ? (
 										<tr>
-											<td
-												colSpan={isConsolidate ? 10 : 9}
-												className="py-10 text-center text-[var(--app-text)]"
-											>
+											<td colSpan={isConsolidate ? 10 : 9} className="py-10 text-center text-[var(--app-text)]">
 												<div className="flex flex-col items-center justify-center">
 													<svg className="w-14 h-14 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 														<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -417,32 +431,27 @@ const DealerDeletedReportPage: React.FC = () => {
 									) : (
 										rows.map((row, idx) => (
 											<tr
-												key={idx}
-												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"
-													}`}
+												key={`${row.form_no}-${row.supp}-${idx}`}
+												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
 											>
-												<td className="py-3 px-4 text-center text-[var(--app-text)] font-medium">
-													{idx + 1}
-												</td>
+												<td className="py-3 px-4 text-center text-[var(--app-text)] font-medium">{idx + 1}</td>
 												{isConsolidate && (
 													<td className="py-3 px-4 text-[var(--app-text)]">{row.branch_name}</td>
 												)}
 												<td className="py-3 px-4 font-semibold">
-											<button
-												type="button"
-												onClick={() => openDealer(row.supp)}
-												title="Open dealer detail"
-												className="text-blue-600 hover:text-blue-800 hover:underline font-semibold print:text-[var(--app-text)] print:no-underline"
-											>
-												{row.supp}
-											</button>
-										</td>
+													<button
+														type="button"
+														onClick={() => openDealer(row.supp)}
+														title="Open dealer detail"
+														className="text-blue-600 hover:text-blue-800 hover:underline font-semibold"
+													>
+														{row.supp}
+													</button>
+												</td>
 												<td className="py-3 px-4 text-[var(--app-text)]">{row.name}</td>
 												<td className="py-3 px-4 text-[var(--app-text)] max-w-xs">{row.address}</td>
 												<td className="py-3 px-4 text-[var(--app-text)]">{row.created_by}</td>
-												<td className="py-3 px-4 text-[var(--app-text)] whitespace-nowrap">
-													{row.create_date}
-												</td>
+												<td className="py-3 px-4 text-[var(--app-text)] whitespace-nowrap">{row.create_date}</td>
 												<td className="py-3 px-4 text-[var(--app-text)]">{row.delete_by}</td>
 												<td className="py-3 px-4 whitespace-nowrap">
 													<span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-medium">
@@ -459,8 +468,7 @@ const DealerDeletedReportPage: React.FC = () => {
 
 						{rows.length > 0 && (
 							<p className="text-sm text-[var(--app-text)] mt-3 text-right">
-								Total:{" "}
-								<span className="font-semibold text-[var(--app-text)]">{rows.length}</span>{" "}
+								Total: <span className="font-semibold text-[var(--app-text)]">{rows.length}</span>{" "}
 								record{rows.length !== 1 ? "s" : ""}
 							</p>
 						)}

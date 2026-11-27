@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import api from '@/shared/api/axiosInstance';
+import { alertFillField, showAlert } from '@/helpers/AlertDialog';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import ReportPrintModal, { PRINT_CELL, PRINT_HEAD, fetchAllResponses } from '@/features/cam/components/ReportPrintModal';
 import Pagination from '@/helpers/Pagination';
@@ -158,7 +159,7 @@ const ListInProgressCAMPage: React.FC = () => {
 
 	const handlePreview = async () => {
 		if (isFilterEmpty()) {
-			alert('Please Fill The Field');
+			alertFillField();
 			return;
 		}
 		setHasSearched(true);
@@ -172,7 +173,7 @@ const ListInProgressCAMPage: React.FC = () => {
 
 	const handlePrint = async () => {
 		if (isFilterEmpty()) {
-			alert('Please Fill The Field');
+			alertFillField();
 			return;
 		}
 		setPrinting(true);
@@ -219,7 +220,7 @@ const ListInProgressCAMPage: React.FC = () => {
 			window.URL.revokeObjectURL(url);
 		} catch (err) {
 			console.error('Export error:', err);
-			alert('Failed to export. Please try again.');
+			showAlert('Failed to export. Please try again.', { variant: 'error' });
 		} finally {
 			setExporting(false);
 		}

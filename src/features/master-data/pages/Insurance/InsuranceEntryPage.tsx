@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from '@/shared/api/axiosInstance';
+import { alertFillField } from '@/helpers/AlertDialog';
 
 type Tab = "company" | "prem" | "third" | "clause" | "driver" | "passenger" | "loading";
 
@@ -109,11 +110,51 @@ function PctInput({ value, onChange }: { value: string; onChange: (v: string) =>
     );
 }
 
-function AmtInput({ value, onChange, suffix }: { value: string; onChange: (v: string) => void; suffix?: string }) {
+const toDigits = (v: string): string => {
+    const digits = v.replace(/\D/g, "");
+    return digits.replace(/^0+(?=\d)/, "");
+};
+
+const groupThousand = (digits: string): string => digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
+const amt = (v: string | number | null | undefined): string => {
+    if (v === null || v === undefined || v === "") return "";
+    const n = Number(String(v).replace(/,/g, ""));
+    return Number.isFinite(n) ? String(Math.trunc(n)) : toDigits(String(v));
+};
+
+const fmtAmount = (v: string | number | null | undefined): string => groupThousand(amt(v) || "0");
+
+function AmtInput({ value, onChange, suffix, disabled }: {
+    value: string; onChange: (v: string) => void; suffix?: string; disabled?: boolean;
+}) {
+    const ref = useRef<HTMLInputElement>(null);
+    const caretDigits = useRef<number | null>(null);
+    const display = groupThousand(toDigits(value || ""));
+
+    useLayoutEffect(() => {
+        const el = ref.current;
+        if (!el || caretDigits.current === null || document.activeElement !== el) return;
+        let pos = 0;
+        let seen = 0;
+        while (pos < display.length && seen < caretDigits.current) {
+            if (/\d/.test(display[pos])) seen++;
+            pos++;
+        }
+        el.setSelectionRange(pos, pos);
+        caretDigits.current = null;
+    }, [display]);
+
     return (
         <div className="flex items-center gap-1">
-            <input className={`${inp} text-right`} value={value}
-                onChange={e => onChange(e.target.value.replace(/[^0-9,]/g, ""))} />
+            <input ref={ref} className={`${inp} text-right tabular-nums`} inputMode="numeric"
+                value={display} disabled={disabled}
+                onChange={e => {
+                    const raw = e.target.value;
+                    const caret = e.target.selectionStart ?? raw.length;
+                    caretDigits.current = raw.slice(0, caret).replace(/\D/g, "").length;
+                    onChange(toDigits(raw));
+                }} />
             {suffix && <span className="text-sm text-[var(--app-text)] shrink-0">{suffix}</span>}
         </div>
     );
@@ -313,7 +354,7 @@ const InsuranceEntryPage: React.FC = () => {
         if ((mode === "Edit" || mode === "View") && insCd0) {
             setLoading(true);
             api.get(`/MasterData/insurance/${insCd0}`)
-                .then(r => setCompany({ ...defCompany, ...r.data }))
+                .then(r => setCompany({ ...defCompany, ...r.data, stamp_duty: amt(r.data.stamp_duty) || "0", stamp_dutyins: amt(r.data.stamp_dutyins) || "0" }))
                 .catch(() => setCompMsg({ type: "error", text: "Failed to load insurance data." }))
                 .finally(() => setLoading(false));
         }
@@ -439,7 +480,7 @@ const InsuranceEntryPage: React.FC = () => {
     const openEditPrem = (row: PremiumRow) => {
         setEditPrem(row);
         setEditPremForm({
-            l_amount: row.l_amount, tlo_ar: row.tlo_ar, net_premi: row.net_premi,
+            l_amount: amt(row.l_amount), tlo_ar: row.tlo_ar, net_premi: row.net_premi,
             net_rec_new: row.net_rec_new, net_rec_used: row.net_rec_used, premi: row.premi
         });
         setEditPremMsg(null);
@@ -474,7 +515,7 @@ const InsuranceEntryPage: React.FC = () => {
 
     const openEditTp = (row: ThirdPartyRow) => {
         setEditTp(row);
-        setEditTpForm({ tpl_amt: row.tpl_amt, tpl_fee: row.tpl_fee, tpl_fee2: row.tpl_fee2 });
+        setEditTpForm({ tpl_amt: amt(row.tpl_amt), tpl_fee: amt(row.tpl_fee), tpl_fee2: amt(row.tpl_fee2) });
         setEditTpMsg(null);
     };
 
@@ -554,7 +595,7 @@ const InsuranceEntryPage: React.FC = () => {
 
     const openEditDr = (row: DriverRow) => {
         setEditDr(row);
-        setEditDrForm({ driver_fee_ins: row.driver_fee_ins, driver_fee_cust: row.driver_fee_cust });
+        setEditDrForm({ driver_fee_ins: amt(row.driver_fee_ins), driver_fee_cust: amt(row.driver_fee_cust) });
         setEditDrMsg(null);
     };
 
@@ -571,7 +612,7 @@ const InsuranceEntryPage: React.FC = () => {
     };
 
     const handleDeleteDr = async (row: DriverRow) => {
-        if (!window.confirm(`Delete PA driver record for amount ${parseInt(row.pa_amount).toLocaleString()}?`)) return;
+        if (!window.confirm(`Delete PA driver record for amount ${fmtAmount(row.pa_amount)}?`)) return;
         try {
             const pa = encodeURIComponent(row.pa_amount);
             await api.delete(`/MasterData/insurance/${currentCd}/driver/${pa}`);
@@ -580,18 +621,22 @@ const InsuranceEntryPage: React.FC = () => {
     };
 
     const handleAddPs = async () => {
+        if (!psForm.seat_amount.trim()) { alertFillField("Please fill Seat Amount."); return; }
+        if (!psForm.seat.trim()) { alertFillField("Please fill Seat."); return; }
         setPsSaving(true); setPsMsg(null);
         try {
             const r = await api.post(`/MasterData/insurance/${currentCd}/passenger`, psForm);
             if (r.data.success) { setPsMsg({ type: "success", text: "Record added." }); setPsForm(defPsForm); loadPassengers(); }
             else { setPsMsg({ type: "error", text: r.data.message || "Save failed." }); }
-        } catch { setPsMsg({ type: "error", text: "An error occurred." }); }
+        } catch (e: any) { setPsMsg({ type: "error", text: e.response?.data?.message || "An error occurred." }); }
         finally { setPsSaving(false); }
     };
 
+    const passengerKey = (row: PassengerRow) => ({ seat_amount: row.seat_amount, seat: row.seat });
+
     const openEditPs = (row: PassengerRow) => {
         setEditPs(row);
-        setEditPsForm({ seat_fee_ins: row.seat_fee_ins, seat_fee_cust: row.seat_fee_cust });
+        setEditPsForm({ seat_fee_ins: amt(row.seat_fee_ins), seat_fee_cust: amt(row.seat_fee_cust) });
         setEditPsMsg(null);
     };
     
@@ -599,24 +644,21 @@ const InsuranceEntryPage: React.FC = () => {
         if (!editPs) return;
         setEditPsSaving(true); setEditPsMsg(null);
         try {
-            const sa = encodeURIComponent(editPs.seat_amount);
-            const seat = encodeURIComponent(editPs.seat);
-            const r = await api.put(
-                `/MasterData/insurance/${currentCd}/passenger/${sa}/${seat}`, editPsForm);
+            const r = await api.put(`/MasterData/insurance/${currentCd}/passenger`, editPsForm, {
+                params: passengerKey(editPs),
+            });
             if (r.data.success) { setEditPsMsg({ type: "success", text: "Updated." }); loadPassengers(); setTimeout(() => setEditPs(null), 700); }
             else { setEditPsMsg({ type: "error", text: r.data.message || "Update failed." }); }
-        } catch { setEditPsMsg({ type: "error", text: "An error occurred." }); }
+        } catch (e: any) { setEditPsMsg({ type: "error", text: e.response?.data?.message || "An error occurred." }); }
         finally { setEditPsSaving(false); }
     };
 
     const handleDeletePs = async (row: PassengerRow) => {
-        if (!window.confirm(`Delete PA passenger record: amount ${parseInt(row.seat_amount).toLocaleString()}, seat ${row.seat}?`)) return;
+        if (!window.confirm(`Delete PA passenger record: amount ${fmtAmount(row.seat_amount)}, seat ${row.seat}?`)) return;
         try {
-            const sa = encodeURIComponent(row.seat_amount);
-            const seat = encodeURIComponent(row.seat);
-            await api.delete(`/MasterData/insurance/${currentCd}/passenger/${sa}/${seat}`);
+            await api.delete(`/MasterData/insurance/${currentCd}/passenger`, { params: passengerKey(row) });
             loadPassengers();
-        } catch { setPsMsg({ type: "error", text: "Delete failed." }); }
+        } catch (e: any) { setPsMsg({ type: "error", text: e.response?.data?.message || "Delete failed." }); }
     };
 
     const handleAddLr = async () => {
@@ -642,7 +684,7 @@ const InsuranceEntryPage: React.FC = () => {
             const r = await api.put(`/MasterData/insurance/${currentCd}/loading/${editLr.ID}`, editLrForm);
             if (r.data.success) { setEditLrMsg({ type: "success", text: "Updated." }); loadLoading(); setTimeout(() => setEditLr(null), 700); }
             else { setEditLrMsg({ type: "error", text: r.data.message || "Update failed." }); }
-        } catch { setEditLrMsg({ type: "error", text: "An error occurred." }); }
+        } catch (e: any) { setEditLrMsg({ type: "error", text: e.response?.data?.message || "An error occurred." }); }
         finally { setEditLrSaving(false); }
     };
 
@@ -719,10 +761,10 @@ const InsuranceEntryPage: React.FC = () => {
                                 </Field>
                                 <div className="grid grid-cols-2 gap-3">
                                     <Field label="Stamp Duty">
-                                        <AmtInput value={company.stamp_duty} onChange={v => setCompany(c => ({ ...c, stamp_duty: v }))} />
+                                        <AmtInput value={company.stamp_duty} disabled={!canEdit} onChange={v => setCompany(c => ({ ...c, stamp_duty: v }))} />
                                     </Field>
                                     <Field label="Stamp Duty from Insurance">
-                                        <AmtInput value={company.stamp_dutyins} onChange={v => setCompany(c => ({ ...c, stamp_dutyins: v }))} />
+                                        <AmtInput value={company.stamp_dutyins} disabled={!canEdit} onChange={v => setCompany(c => ({ ...c, stamp_dutyins: v }))} />
                                     </Field>
                                 </div>
                                 <Field label="Address">
@@ -815,7 +857,7 @@ const InsuranceEntryPage: React.FC = () => {
                                     headers={["Area", "Model", "OTR", "Coverage", "Net Premi", "Net Rec New", "Net Rec Used", "Premi", ...(canEdit ? ["Action"] : [])]}
                                     rows={premiums.map(r => [
                                         r.area_name, r.model_nm,
-                                        <span className="tabular-nums">{parseInt(r.l_amount || "0").toLocaleString()}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.l_amount)}</span>,
                                         r.tlo_name, `${r.net_premi}%`, `${r.net_rec_new}%`, `${r.net_rec_used}%`, `${r.premi}%`,
                                         ...(canEdit ? [<><EditBtn onClick={() => openEditPrem(r)} /><DelBtn onClick={() => handleDeletePrem(r)} /></>] : [] as React.ReactNode[]),
                                     ])} />
@@ -856,9 +898,9 @@ const InsuranceEntryPage: React.FC = () => {
                                     headers={["Model", "TPL Amount", "TPL Fee", "TPL Fee 2", ...(canEdit ? ["Action"] : [])]}
                                     rows={thirdParty.map(r => [
                                         r.model_nm,
-                                        <span className="tabular-nums">{parseInt(r.tpl_amt || "0").toLocaleString()}</span>,
-                                        <span className="tabular-nums">{parseInt(r.tpl_fee || "0").toLocaleString()}</span>,
-                                        <span className="tabular-nums">{parseInt(r.tpl_fee2 || "0").toLocaleString()}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.tpl_amt)}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.tpl_fee)}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.tpl_fee2)}</span>,
                                         ...(canEdit ? [<><EditBtn onClick={() => openEditTp(r)} /><DelBtn onClick={() => handleDeleteTp(r)} /></>] : [] as React.ReactNode[]),
                                     ])} />
                             </div>
@@ -939,9 +981,9 @@ const InsuranceEntryPage: React.FC = () => {
                                 <SubTable
                                     headers={["PA Amount", "Driver Fee from Insurance", "Driver Fee for Customer", ...(canEdit ? ["Action"] : [])]}
                                     rows={drivers.map(r => [
-                                        <span className="tabular-nums">{parseInt(r.pa_amount || "0").toLocaleString()}</span>,
-                                        <span className="tabular-nums">{parseInt(r.driver_fee_ins || "0").toLocaleString()}</span>,
-                                        <span className="tabular-nums">{parseInt(r.driver_fee_cust || "0").toLocaleString()}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.pa_amount)}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.driver_fee_ins)}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.driver_fee_cust)}</span>,
                                         ...(canEdit ? [<><EditBtn onClick={() => openEditDr(r)} /><DelBtn onClick={() => handleDeleteDr(r)} /></>] : [] as React.ReactNode[]),
                                     ])} />
                             </div>
@@ -978,10 +1020,10 @@ const InsuranceEntryPage: React.FC = () => {
                                 <SubTable
                                     headers={["Seat Amount", "Seat", "Fee from Insurance", "Fee for Customer", ...(canEdit ? ["Action"] : [])]}
                                     rows={passengers.map(r => [
-                                        <span className="tabular-nums">{parseInt(r.seat_amount || "0").toLocaleString()}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.seat_amount)}</span>,
                                         <span className="tabular-nums">{r.seat}</span>,
-                                        <span className="tabular-nums">{parseInt(r.seat_fee_ins || "0").toLocaleString()}</span>,
-                                        <span className="tabular-nums">{parseInt(r.seat_fee_cust || "0").toLocaleString()}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.seat_fee_ins)}</span>,
+                                        <span className="tabular-nums">{fmtAmount(r.seat_fee_cust)}</span>,
                                         ...(canEdit ? [<><EditBtn onClick={() => openEditPs(r)} /><DelBtn onClick={() => handleDeletePs(r)} /></>] : [] as React.ReactNode[]),
                                     ])} />
                             </div>
@@ -1098,7 +1140,7 @@ const InsuranceEntryPage: React.FC = () => {
                     msg={editDrMsg} onMsgClose={() => setEditDrMsg(null)}>
                     <Field label="PA Amount">
                         <input className={inp} readOnly
-                            value={parseInt(editDr.pa_amount || "0").toLocaleString()}
+                            value={fmtAmount(editDr.pa_amount)}
                             style={{ textAlign: "right" }} />
                     </Field>
                     <Field label="Driver Fee from Insurance">
@@ -1119,7 +1161,7 @@ const InsuranceEntryPage: React.FC = () => {
                     <div className="grid grid-cols-2 gap-3">
                         <Field label="Seat Amount">
                             <input className={inp} readOnly
-                                value={parseInt(editPs.seat_amount || "0").toLocaleString()}
+                                value={fmtAmount(editPs.seat_amount)}
                                 style={{ textAlign: "right" }} />
                         </Field>
                         <Field label="Seat">

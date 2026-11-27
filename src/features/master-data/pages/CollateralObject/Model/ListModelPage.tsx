@@ -1,30 +1,77 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import api from '@/shared/api/axiosInstance';
-import { esc } from '@/shared/utils/helpers';
+import { filenameFromDisposition } from '@/shared/utils/helpers';
+import { showAlert } from '@/helpers/AlertDialog';
+import PrintPreview, { PRINT_TD, PRINT_TH } from '@/helpers/PrintPreview';
 
 interface ModelRow {
+	no: number;
 	MODEL_NM: string;
+}
+
+interface PrintReport {
+	rows: ModelRow[];
+	printBy: string;
+	printDate: string;
+}
+
+function ModelPrintPreview({ report, onClose }: { report: PrintReport; onClose: () => void }) {
+	return (
+		<PrintPreview label="List of Model" onClose={onClose} landscape={false} pageWidth={800}>
+			<div style={{ textAlign: 'center', fontSize: 16, letterSpacing: '0.2em', fontWeight: 'bold' }}>
+				List of Model
+			</div>
+			<div style={{ textAlign: 'center', marginBottom: 8 }}>
+				Print By - Date : {report.printBy} - {report.printDate}
+			</div>
+
+			<table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+				<colgroup>
+					<col style={{ width: '10%' }} />
+					<col style={{ width: '90%' }} />
+				</colgroup>
+				<thead>
+					<tr>
+						<th style={PRINT_TH}>No.</th>
+						<th style={PRINT_TH}>Model</th>
+					</tr>
+				</thead>
+				<tbody>
+					{report.rows.length === 0 ? (
+						<tr>
+							<td colSpan={2} style={{ ...PRINT_TD, textAlign: 'center', color: '#EE0000', fontSize: 16 }}>
+								Data Not Found..
+							</td>
+						</tr>
+					) : (
+						report.rows.map((r) => (
+							<tr key={r.no}>
+								<td style={{ ...PRINT_TD, textAlign: 'center' }}>{r.no}</td>
+								<td style={PRINT_TD}>{r.MODEL_NM}</td>
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+		</PrintPreview>
+	);
 }
 
 const ListModelPage: React.FC = () => {
 	const [rows, setRows] = useState<ModelRow[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [exporting, setExporting] = useState(false);
+	const [printing, setPrinting] = useState(false);
+	const [printReport, setPrintReport] = useState<PrintReport | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [previewed, setPreviewed] = useState(false);
-
-	const fetchData = async (): Promise<ModelRow[]> => {
-		const res = await api.get('/MasterData/list-model', {
-		});
-		return res.data.data;
-	};
 
 	const handlePreview = async () => {
 		setLoading(true);
 		setError(null);
 		try {
-			const data = await fetchData();
-			setRows(data);
+			const res = await api.get('/MasterData/list-model');
+			setRows(res.data.data || []);
 			setPreviewed(true);
 		} catch {
 			setError("Failed to load data. Please try again.");
@@ -34,76 +81,50 @@ const ListModelPage: React.FC = () => {
 	};
 
 	const handlePrint = async () => {
+		setPrinting(true);
 		try {
-			const data = previewed ? rows : await fetchData();
-			const rowsHtml = data.map((r, i) => `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${esc(r.MODEL_NM)}</td>
-                </tr>
-            `).join("");
-
-			const win = window.open("", "_blank");
-			if (!win) return;
-			win.document.write(`
-                <html>
-                <head>
-                    <title>List of Model</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
-                        h2 { text-align: center; margin-bottom: 16px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-                        th { background-color: #f0f0f0; font-weight: bold; }
-                        tr:nth-child(even) { background-color: #f9f9f9; }
-                    </style>
-                </head>
-                <body>
-                    <h2>List of Model</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th width="10%">No.</th>
-                                <th width="90%">Model</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rowsHtml}</tbody>
-                    </table>
-                    <script>window.onload = () => { window.print(); window.close(); }<\/script>
-                </body>
-                </html>
-            `);
-			win.document.close();
+			const { data } = await api.get('/MasterData/list-model/print');
+			setPrintReport({
+				rows: data.data || [],
+				printBy: data.print_by || '',
+				printDate: data.print_date || '',
+			});
 		} catch {
-			alert("Print failed. Please try again.");
+			showAlert('Failed to load print data. Please try again.', { variant: 'error' });
+		} finally {
+			setPrinting(false);
 		}
 	};
 
 	const handleExportExcel = async () => {
 		setExporting(true);
 		try {
-			const data = previewed ? rows : await fetchData();
-			const XLSX = await import("xlsx");
-			const wsData = [
-				["No.", "Model"],
-				...data.map((r, i) => [i + 1, r.MODEL_NM]),
-			];
-			const ws = XLSX.utils.aoa_to_sheet(wsData);
-			const wb = XLSX.utils.book_new();
-			XLSX.utils.book_append_sheet(wb, ws, "List of Model");
-			XLSX.writeFile(wb, "list_of_model.xlsx");
+			const res = await api.get('/MasterData/list-model/excel', { responseType: 'blob' });
+			const blob = new Blob([res.data], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			});
+			const url = window.URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filenameFromDisposition(res.headers['content-disposition'], 'ListofModel.xlsx');
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			window.URL.revokeObjectURL(url);
 		} catch {
-			alert("Export failed. Please try again.");
+			showAlert('Failed to export. Please try again.', { variant: 'error' });
 		} finally {
 			setExporting(false);
 		}
 	};
 
+	const closePrint = useCallback(() => setPrintReport(null), []);
+
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">List of Model</h1>
 
 					<div className="flex flex-wrap gap-3">
@@ -133,19 +154,19 @@ const ListModelPage: React.FC = () => {
 
 						<button
 							onClick={handlePrint}
-							disabled={loading}
-							className="border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2"
+							disabled={printing}
+							className={`border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${printing ? "opacity-60 cursor-not-allowed" : ""}`}
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 							</svg>
-							Print
+							{printing ? "Preparing..." : "Print"}
 						</button>
 
 						<button
 							onClick={handleExportExcel}
-							disabled={loading || exporting}
-							className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${(loading || exporting) ? "opacity-75 cursor-not-allowed" : ""}`}
+							disabled={exporting}
+							className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${exporting ? "opacity-60 cursor-not-allowed" : ""}`}
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -154,6 +175,13 @@ const ListModelPage: React.FC = () => {
 						</button>
 					</div>
 				</div>
+
+				{error && (
+					<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+						{error}
+						<button onClick={handlePreview} className="ml-4 underline text-red-900">Retry</button>
+					</div>
+				)}
 
 				{previewed && (
 					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
@@ -164,18 +192,15 @@ const ListModelPage: React.FC = () => {
 							</span>
 						</div>
 
-						{error && (
-							<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-								{error}
-								<button onClick={handlePreview} className="ml-4 underline text-red-900">Retry</button>
-							</div>
-						)}
-
 						<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
 							<table className="w-full">
+								<colgroup>
+									<col style={{ width: '10%' }} />
+									<col style={{ width: '90%' }} />
+								</colgroup>
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-20">No.</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">No.</th>
 										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Model</th>
 									</tr>
 								</thead>
@@ -189,10 +214,10 @@ const ListModelPage: React.FC = () => {
 									) : (
 										rows.map((row, idx) => (
 											<tr
-												key={idx}
+												key={row.no}
 												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
 											>
-												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{idx + 1}</td>
+												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{row.no}</td>
 												<td className="py-4 px-6 text-sm text-[var(--app-text)] font-medium">{row.MODEL_NM}</td>
 											</tr>
 										))
@@ -203,6 +228,8 @@ const ListModelPage: React.FC = () => {
 					</div>
 				)}
 			</div>
+
+			{printReport && <ModelPrintPreview report={printReport} onClose={closePrint} />}
 		</div>
 	);
 };

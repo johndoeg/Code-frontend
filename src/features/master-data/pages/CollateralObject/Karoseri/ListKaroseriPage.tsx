@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
-import { esc } from '@/shared/utils/helpers';
+import { filenameFromDisposition } from '@/shared/utils/helpers';
+import { alertFillField, showAlert } from '@/helpers/AlertDialog';
+import PrintPreview, { PRINT_TD, PRINT_TH } from '@/helpers/PrintPreview';
 
 interface KaroseriRow {
 	MODEL_NM: string;
@@ -14,16 +16,69 @@ interface ModelOption {
 	label: string;
 }
 
+interface PrintReport {
+	rows: KaroseriRow[];
+	printBy: string;
+	printDate: string;
+}
+
+const MODEL_REQUIRED_MESSAGE = "Please select a Model.";
+
+function KaroseriPrintPreview({ report, onClose }: { report: PrintReport; onClose: () => void }) {
+	return (
+		<PrintPreview label="List of Karoseri" onClose={onClose} landscape={false} pageWidth={900}>
+			<div style={{ textAlign: 'center', fontSize: 16, letterSpacing: '0.2em', fontWeight: 'bold' }}>
+				List of Karoseri
+			</div>
+			<div style={{ textAlign: 'center', marginBottom: 8 }}>
+				Print By - Date : {report.printBy} - {report.printDate}
+			</div>
+
+			<table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+				<colgroup>
+					<col style={{ width: '10%' }} />
+					<col style={{ width: '20%' }} />
+					<col style={{ width: '70%' }} />
+				</colgroup>
+				<thead>
+					<tr>
+						<th style={PRINT_TH}>No.</th>
+						<th style={PRINT_TH}>Model</th>
+						<th style={PRINT_TH}>Karoseri</th>
+					</tr>
+				</thead>
+				<tbody>
+					{report.rows.length === 0 ? (
+						<tr>
+							<td colSpan={3} style={{ ...PRINT_TD, textAlign: 'center', color: '#EE0000', fontSize: 16 }}>
+								Data Not Found..
+							</td>
+						</tr>
+					) : (
+						report.rows.map((r, idx) => (
+							<tr key={idx}>
+								<td style={{ ...PRINT_TD, textAlign: 'center' }}>{idx + 1}</td>
+								<td style={PRINT_TD}>{r.MODEL_NM}</td>
+								<td style={PRINT_TD}>{r.KAROSERI_DESC}</td>
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+		</PrintPreview>
+	);
+}
+
 const ListKaroseriPage: React.FC = () => {
 	const [rows, setRows] = useState<KaroseriRow[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [exporting, setExporting] = useState(false);
+	const [printing, setPrinting] = useState(false);
+	const [printReport, setPrintReport] = useState<PrintReport | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [previewed, setPreviewed] = useState(false);
 
 	const [model, setModel] = useState("");
-	const [appliedModel, setAppliedModel] = useState("");
-
 	const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
 
 	const [page, setPage] = useState(1);
@@ -39,11 +94,12 @@ const ListKaroseriPage: React.FC = () => {
 		fetchOptions();
 	}, []);
 
-	const fetchData = async (modelCode: string): Promise<KaroseriRow[]> => {
-		const res = await api.get('/MasterData/list-karoseri', {
-			params: { model: modelCode },
-		});
-		return res.data.data;
+	const hasModel = () => {
+		if (!model) {
+			alertFillField(MODEL_REQUIRED_MESSAGE);
+			return false;
+		}
+		return true;
 	};
 
 	const handleModelChange = (value: string) => {
@@ -51,25 +107,16 @@ const ListKaroseriPage: React.FC = () => {
 		setPreviewed(false);
 		setRows([]);
 		setPage(1);
-	};
-
-	const handleClearModel = () => {
-		handleModelChange("");
-		setAppliedModel("");
 		setError(null);
 	};
 
 	const handlePreview = async () => {
-		if (!model) {
-			alert("Please select a Model.");
-			return;
-		}
+		if (!hasModel()) return;
 		setLoading(true);
 		setError(null);
 		try {
-			const data = await fetchData(model);
-			setRows(data);
-			setAppliedModel(model);
+			const res = await api.get('/MasterData/list-karoseri', { params: { model } });
+			setRows(res.data.data || []);
 			setPreviewed(true);
 			setPage(1);
 		} catch {
@@ -80,80 +127,49 @@ const ListKaroseriPage: React.FC = () => {
 	};
 
 	const handlePrint = async () => {
-		if (!appliedModel && !model) {
-			alert("Please select a Model.");
-			return;
-		}
+		if (!hasModel()) return;
+		setPrinting(true);
 		try {
-			const data = previewed ? rows : await fetchData(model || appliedModel);
-			const rowsHtml = data.map((r, i) => `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${esc(r.MODEL_NM)}</td>
-                    <td>${esc(r.KAROSERI_DESC)}</td>
-                </tr>
-            `).join("");
-
-			const win = window.open("", "_blank");
-			if (!win) return;
-			win.document.write(`
-                <html>
-                <head>
-                    <title>List of Karoseri</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; font-size: 12px; margin: 20px; }
-                        h2 { text-align: center; margin-bottom: 16px; }
-                        table { width: 100%; border-collapse: collapse; }
-                        th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
-                        th { background-color: #f0f0f0; font-weight: bold; }
-                        tr:nth-child(even) { background-color: #f9f9f9; }
-                    </style>
-                </head>
-                <body>
-                    <h2>List of Karoseri</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th width="10%">No.</th>
-                                <th width="20%">Model</th>
-                                <th width="70%">Karoseri</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rowsHtml}</tbody>
-                    </table>
-                    <script>window.onload = () => { window.print(); window.close(); }<\/script>
-                </body>
-                </html>
-            `);
-			win.document.close();
+			const { data } = await api.get('/MasterData/list-karoseri/print', { params: { model } });
+			setPrintReport({
+				rows: data.data || [],
+				printBy: data.print_by || '',
+				printDate: data.print_date || '',
+			});
 		} catch {
-			alert("Print failed. Please try again.");
+			showAlert('Failed to load print data. Please try again.', { variant: 'error' });
+		} finally {
+			setPrinting(false);
 		}
 	};
 
 	const handleExportExcel = async () => {
-		if (!appliedModel && !model) {
-			alert("Please select a Model.");
-			return;
-		}
+		if (!hasModel()) return;
 		setExporting(true);
 		try {
-			const data = previewed ? rows : await fetchData(model || appliedModel);
-			const XLSX = await import("xlsx");
-			const wsData = [
-				["No.", "Model", "Karoseri"],
-				...data.map((r, i) => [i + 1, r.MODEL_NM, r.KAROSERI_DESC]),
-			];
-			const ws = XLSX.utils.aoa_to_sheet(wsData);
-			const wb = XLSX.utils.book_new();
-			XLSX.utils.book_append_sheet(wb, ws, "List of Karoseri");
-			XLSX.writeFile(wb, "list_of_karoseri.xlsx");
+			const res = await api.get('/MasterData/list-karoseri/excel', {
+				params: { model },
+				responseType: 'blob',
+			});
+			const blob = new Blob([res.data], {
+				type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+			});
+			const url = window.URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filenameFromDisposition(res.headers['content-disposition'], 'ListofKaroseri.xlsx');
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			window.URL.revokeObjectURL(url);
 		} catch {
-			alert("Export failed. Please try again.");
+			showAlert('Failed to export. Please try again.', { variant: 'error' });
 		} finally {
 			setExporting(false);
 		}
 	};
+
+	const closePrint = useCallback(() => setPrintReport(null), []);
 
 	const totalPages = Math.ceil(rows.length / limit);
 	const paginatedRows = rows.slice((page - 1) * limit, page * limit);
@@ -162,7 +178,7 @@ const ListKaroseriPage: React.FC = () => {
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mb-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">List of Karoseri</h1>
 
 					<div className="mb-6">
@@ -181,7 +197,7 @@ const ListKaroseriPage: React.FC = () => {
 							{model && (
 								<button
 									type="button"
-									onClick={handleClearModel}
+									onClick={() => handleModelChange("")}
 									aria-label="Clear model"
 									className="absolute right-8 top-1/2 -translate-y-1/2 rounded-full p-0.5
                              text-slate-500 hover:bg-slate-100 hover:text-slate-900"
@@ -221,19 +237,19 @@ const ListKaroseriPage: React.FC = () => {
 
 						<button
 							onClick={handlePrint}
-							disabled={loading || !previewed}
-							className={`border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${(!previewed || loading) ? "opacity-40 cursor-not-allowed" : ""}`}
+							disabled={printing}
+							className={`border border-[var(--app-border)] text-[var(--app-text)] hover:bg-[var(--app-surface)] px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${printing ? "opacity-60 cursor-not-allowed" : ""}`}
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
 							</svg>
-							Print
+							{printing ? "Preparing..." : "Print"}
 						</button>
 
 						<button
 							onClick={handleExportExcel}
-							disabled={loading || exporting || !previewed}
-							className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${(!previewed || loading || exporting) ? "opacity-40 cursor-not-allowed" : ""}`}
+							disabled={exporting}
+							className={`bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all flex items-center gap-2 ${exporting ? "opacity-60 cursor-not-allowed" : ""}`}
 						>
 							<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -242,6 +258,13 @@ const ListKaroseriPage: React.FC = () => {
 						</button>
 					</div>
 				</div>
+
+				{error && (
+					<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+						{error}
+						<button onClick={handlePreview} className="ml-4 underline text-red-900">Retry</button>
+					</div>
+				)}
 
 				{previewed && (
 					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
@@ -252,19 +275,17 @@ const ListKaroseriPage: React.FC = () => {
 							</span>
 						</div>
 
-						{error && (
-							<div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-								{error}
-								<button onClick={handlePreview} className="ml-4 underline text-red-900">Retry</button>
-							</div>
-						)}
-
 						<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
 							<table className="w-full">
+								<colgroup>
+									<col style={{ width: '10%' }} />
+									<col style={{ width: '20%' }} />
+									<col style={{ width: '70%' }} />
+								</colgroup>
 								<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 									<tr>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-16">No.</th>
-										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-48">Model</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">No.</th>
+										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Model</th>
 										<th className="py-4 px-6 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Karoseri</th>
 									</tr>
 								</thead>
@@ -279,7 +300,7 @@ const ListKaroseriPage: React.FC = () => {
 										paginatedRows.map((row, idx) => (
 											<tr
 												key={(page - 1) * limit + idx}
-												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
+												className={`align-top hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
 											>
 												<td className="py-4 px-6 text-sm text-[var(--app-text)]">{(page - 1) * limit + idx + 1}</td>
 												<td className="py-4 px-6 text-sm font-medium text-[var(--app-text)]">{row.MODEL_NM}</td>
@@ -304,6 +325,8 @@ const ListKaroseriPage: React.FC = () => {
 					</div>
 				)}
 			</div>
+
+			{printReport && <KaroseriPrintPreview report={printReport} onClose={closePrint} />}
 		</div>
 	);
 };

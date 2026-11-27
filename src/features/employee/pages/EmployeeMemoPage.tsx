@@ -63,24 +63,24 @@ const PAGE_SIZE = DEFAULT_PAGE_LIMIT;
 const dateFieldClass =
 	'text-[var(--app-text)] [&_label]:!text-[var(--app-text)] [&_input]:!bg-white [&_input]:!text-slate-900 [&_input]:![color-scheme:light]';
 
-const isoToDate = (iso: string): Date => {
-	if (!iso) return new Date();
-	const d = new Date(iso + "T00:00:00");
-	return isNaN(d.getTime()) ? new Date() : d;
+const ddmmToDate = (v: string): Date | null => {
+	const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(v || "");
+	if (!m) return null;
+	const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]));
+	return isNaN(d.getTime()) ? null : d;
 };
 
-const ddmmToDate = (v: string): Date => {
-	if (!v || v.length !== 10) return new Date();
-	const parts = v.split("-");
-	if (parts[0].length === 4) return isoToDate(v);
-	const [d, m, y] = parts;
-	return isoToDate(`${y}-${m}-${d}`);
-};
-
-const dateToDDMMYYYY = (d: Date): string => {
+const dateToDDMMYYYY = (d: Date | null): string => {
+	if (!d || isNaN(d.getTime())) return "";
 	const day = String(d.getDate()).padStart(2, "0");
 	const month = String(d.getMonth() + 1).padStart(2, "0");
 	return `${day}-${month}-${d.getFullYear()}`;
+};
+
+const startOfToday = (): Date => {
+	const d = new Date();
+	d.setHours(0, 0, 0, 0);
+	return d;
 };
 
 const MEMO_DATE_LABEL: Record<MemoType, string> = {
@@ -108,8 +108,8 @@ const EmployeeMemoPage: React.FC = () => {
 	const [positionsAll, setPositionsAll] = useState<Position[]>([]);
 	const [formPositions, setFormPositions] = useState<Position[]>([]);
 
-	const [memoFrom, setMemoFrom] = useState<Date>(new Date());
-	const [memoTo, setMemoTo] = useState<Date>(new Date());
+	const [memoFrom, setMemoFrom] = useState<Date | null>(null);
+	const [memoTo, setMemoTo] = useState<Date | null>(null);
 
 	const [rows, setRows] = useState<MemoRow[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -126,9 +126,9 @@ const EmployeeMemoPage: React.FC = () => {
 	const [isEditMode, setIsEditMode] = useState(false);
 
 	const [form, setForm] = useState<MemoFormState>(EMPTY_FORM);
-	const [memoDt, setMemoDt] = useState<Date>(new Date());
-	const [emailOffDate, setEmailOffDate] = useState<Date>(new Date());
-	const [appOffDate, setAppOffDate] = useState<Date>(new Date());
+	const [memoDt, setMemoDt] = useState<Date | null>(null);
+	const [emailOffDate, setEmailOffDate] = useState<Date | null>(null);
+	const [appOffDate, setAppOffDate] = useState<Date | null>(null);
 
 	const [cancelId, setCancelId] = useState("");
 	const [cancelReason, setCancelReason] = useState("");
@@ -136,16 +136,35 @@ const EmployeeMemoPage: React.FC = () => {
 	const [emailVal, setEmailVal] = useState("");
 	const [saving, setSaving] = useState(false);
 
+	const runSearch = useCallback(async (from: Date | null, to: Date | null) => {
+		setLoading(true);
+		setError(null);
+		setPage(1);
+		try {
+			const res = await api.get('/Employee/memo/search', {
+				params: from && to
+					? { memo_from: dateToDDMMYYYY(from), memo_to: dateToDDMMYYYY(to) }
+					: { memo_from: "", memo_to: "" },
+			});
+			setRows(Array.isArray(res.data) ? res.data : []);
+		} catch (err: any) {
+			setError(err?.response?.data?.error || "Search failed. Please try again.");
+		} finally {
+			setLoading(false);
+		}
+	}, []);
+
 	useEffect(() => {
+		runSearch(null, null);
 		const load = async () => {
 			try {
 				const [role, types, emps, brs, divs, posAll] = await Promise.all([
-					api.get('/Employee/role'),
-					api.get('/Employee/memo-types'),
-					api.get('/Employee/employees'),
-					api.get('/Employee/branches'),
-					api.get('/Employee/divisions'),
-					api.get('/Employee/positions-all'),
+					api.get('/Employee/memo/role'),
+					api.get('/Employee/memo/memo-types'),
+					api.get('/Employee/memo/employees'),
+					api.get('/Employee/memo/branches'),
+					api.get('/Employee/memo/divisions'),
+					api.get('/Employee/memo/positions-all'),
 				]);
 				setIsHr(role.data.is_hr);
 				setIsIt(role.data.is_it);
@@ -161,36 +180,14 @@ const EmployeeMemoPage: React.FC = () => {
 		load();
 	}, []);
 
-	const handleSearch = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		setPage(1);
-		try {
-			const res = await api.get('/Employee/search', {
-				params: {
-					memo_from: dateToDDMMYYYY(memoFrom),
-					memo_to: dateToDDMMYYYY(memoTo),
-				},
-			});
-			if (!res.data || res.data.length === 0) {
-				setRows([]);
-				alert("Data Not Found!");
-				return;
-			}
-			setRows(res.data);
-		} catch {
-			setError("Search failed. Please try again.");
-		} finally {
-			setLoading(false);
-		}
-	}, [memoFrom, memoTo]);
+	const handleSearch = () => runSearch(memoFrom, memoTo);
 
 	const setField = <K extends keyof MemoFormState>(key: K, val: MemoFormState[K]) =>
 		setForm(f => ({ ...f, [key]: val }));
 
 	const loadPositionsByDiv = async (div_id: string) => {
 		if (!div_id) { setFormPositions([]); return; }
-		const res = await api.get('/Employee/positions', { params: { div_id } });
+		const res = await api.get('/Employee/memo/positions', { params: { div_id } });
 		setFormPositions(res.data);
 	};
 
@@ -204,7 +201,7 @@ const EmployeeMemoPage: React.FC = () => {
 		setField("employee_id_old", employee_id);
 		if (!employee_id) return;
 		try {
-			const res = await api.get(`/Employee/employee/${employee_id}`);
+			const res = await api.get(`/Employee/memo/employee/${employee_id}`);
 			const d = res.data;
 			setForm(f => ({
 				...f,
@@ -216,28 +213,28 @@ const EmployeeMemoPage: React.FC = () => {
 			}));
 			setFormPositions(d.positions);
 		} catch {
-			alert("Failed to load employee data.");
+			alert("Data Not Found!");
 		}
 	};
 
 	const openAddModal = () => {
 		setForm(EMPTY_FORM);
 		setFormPositions([]);
-		setMemoDt(new Date());
-		setEmailOffDate(new Date());
-		setAppOffDate(new Date());
+		setMemoDt(null);
+		setEmailOffDate(null);
+		setAppOffDate(null);
 		setIsEditMode(false);
 		setMemoModalOpen(true);
 	};
 
 	const openEditModal = async (memo_id: string) => {
 		try {
-			const res = await api.get(`/Employee/detail/${memo_id}`);
+			const res = await api.get(`/Employee/memo/detail/${memo_id}`);
 			const d = res.data;
 			setFormPositions(d.positions);
 			setMemoDt(ddmmToDate(d.memo_date));
-			setEmailOffDate(d.email_offdate ? ddmmToDate(d.email_offdate) : new Date());
-			setAppOffDate(d.app_offdate ? ddmmToDate(d.app_offdate) : new Date());
+			setEmailOffDate(ddmmToDate(d.email_offdate));
+			setAppOffDate(ddmmToDate(d.app_offdate));
 			setForm({
 				memo_id,
 				memo_type: d.memo_type as MemoType,
@@ -258,7 +255,7 @@ const EmployeeMemoPage: React.FC = () => {
 			setIsEditMode(true);
 			setMemoModalOpen(true);
 		} catch {
-			alert("Failed to load memo details.");
+			alert("Data Not Found!");
 		}
 	};
 
@@ -285,7 +282,7 @@ const EmployeeMemoPage: React.FC = () => {
 
 		setSaving(true);
 		try {
-			const res = await api.post('/Employee/save', {
+			const res = await api.post('/Employee/memo/save', {
 				memo_id: form.memo_id,
 				memo_type,
 				memo_dt: dateToDDMMYYYY(memoDt),
@@ -297,16 +294,16 @@ const EmployeeMemoPage: React.FC = () => {
 				facility_laptop: form.facility_laptop ? 1 : 0,
 				facility_email: form.facility_email ? 1 : 0,
 				facility_app: form.facility_app ? 1 : 0,
-				new_branch: form.reloc_branch ? form.new_branch : "",
-				new_position: form.reloc_position ? form.new_position : "",
-				email_off: dateToDDMMYYYY(emailOffDate),
-				app_off: dateToDDMMYYYY(appOffDate),
+				new_branch: memo_type === "RL" && form.reloc_branch ? form.new_branch : "",
+				new_position: memo_type === "RL" && form.reloc_position ? form.new_position : "",
+				email_off: memo_type === "RS" ? dateToDDMMYYYY(emailOffDate) : "",
+				app_off: memo_type === "RS" ? dateToDDMMYYYY(appOffDate) : "",
 			});
 			alert(res.data.message);
 			setMemoModalOpen(false);
 			handleSearch();
-		} catch {
-			alert("Save failed. Please try again.");
+		} catch (err: any) {
+			alert(err?.response?.data?.message || "Save failed. Please try again.");
 		} finally {
 			setSaving(false);
 		}
@@ -315,30 +312,30 @@ const EmployeeMemoPage: React.FC = () => {
 	const handleCancelMemo = async () => {
 		if (!cancelReason.trim()) { alert("Please enter a cancel reason."); return; }
 		try {
-			const res = await api.post('/Employee/cancel', {
+			const res = await api.post('/Employee/memo/cancel', {
 				memo_id: cancelId, cancel_reason: cancelReason,
 			});
 			alert(res.data.message);
 			setCancelModalOpen(false);
 			setCancelReason("");
 			handleSearch();
-		} catch {
-			alert("Cancel failed.");
+		} catch (err: any) {
+			alert(err?.response?.data?.message || "Failed");
 		}
 	};
 
 	const handleEmailUpdate = async () => {
 		if (!emailVal.trim()) { alert("Please enter an email."); return; }
 		try {
-			const res = await api.post('/Employee/email', {
+			const res = await api.post('/Employee/memo/email', {
 				memo_id: emailId, email: emailVal,
 			});
 			alert(res.data.message);
 			setEmailModalOpen(false);
 			setEmailVal("");
 			handleSearch();
-		} catch {
-			alert("Update failed.");
+		} catch (err: any) {
+			alert(err?.response?.data?.message || "Failed");
 		}
 	};
 
@@ -378,22 +375,19 @@ const EmployeeMemoPage: React.FC = () => {
 							<AsOfDatePicker
 								label="Memo Date From"
 								value={memoFrom}
-								onChange={(date) => {
-									if (!date) return;
+								onChange={(date: Date | null) => {
 									setMemoFrom(date);
-									if (date > memoTo) setMemoTo(date);
+									if (date && memoTo && date > memoTo) setMemoTo(date);
 								}}
-								maxDate={memoTo}
-								required
+								maxDate={memoTo ?? undefined}
 							/>
 						</div>
 						<div className={dateFieldClass}>
 							<AsOfDatePicker
 								label="Memo Date To"
 								value={memoTo}
-								onChange={(date) => { if (date) setMemoTo(date); }}
-								minDate={memoFrom}
-								required
+								onChange={(date: Date | null) => setMemoTo(date)}
+								minDate={memoFrom ?? undefined}
 							/>
 						</div>
 					</div>
@@ -420,7 +414,7 @@ const EmployeeMemoPage: React.FC = () => {
 									<th className="py-3 px-4 border border-[var(--app-border)]">
 										{isHr && (
 											<button onClick={openAddModal} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-xs font-medium">
-												+ Add
+												Add
 											</button>
 										)}
 									</th>
@@ -458,7 +452,7 @@ const EmployeeMemoPage: React.FC = () => {
 											<td className="py-2 px-4 border-b border-[var(--app-border)]">
 												<div className="flex flex-col gap-1">
 													{row.cancel === "1" ? (
-														<span className="text-xs text-red-500 font-semibold">Cancelled</span>
+														<span className="text-xs text-red-500 font-semibold">Cancel</span>
 													) : (
 														<>
 															{isHr && row.lewat === "0" && (
@@ -473,7 +467,7 @@ const EmployeeMemoPage: React.FC = () => {
 															)}
 															{isIt && row.memo_type === "NW" && row.email === "" && (
 																<button onClick={() => { setEmailId(row.id); setEmailModalOpen(true); }} className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium">
-																	Edit Email
+																	Edit
 																</button>
 															)}
 														</>
@@ -513,7 +507,7 @@ const EmployeeMemoPage: React.FC = () => {
 							</FormRow>
 
 							<FormRow label={MEMO_DATE_LABEL[form.memo_type]}>
-								<div className={dateFieldClass}><AsOfDatePicker label="" value={memoDt} onChange={(d) => { if (d) setMemoDt(d); }} required /></div>
+								<div className={dateFieldClass}><AsOfDatePicker label="" value={memoDt} onChange={(d: Date | null) => setMemoDt(d)} minDate={startOfToday()} required /></div>
 							</FormRow>
 
 							<FormRow label="Employee Fullname *">
@@ -586,12 +580,10 @@ const EmployeeMemoPage: React.FC = () => {
 												className="w-4 h-4 accent-blue-600" />
 											New Branch
 										</label>
-										{form.reloc_branch && (
-											<select value={form.new_branch} onChange={e => setField("new_branch", e.target.value)} className={selectCls}>
-												<option value="">Select</option>
-												{branches.map(b => <option key={b.branch_cd} value={b.branch_cd}>{b.branch_name}</option>)}
-											</select>
-										)}
+										<select value={form.new_branch} onChange={e => setField("new_branch", e.target.value)} className={selectCls}>
+											<option value="">Select</option>
+											{branches.map(b => <option key={b.branch_cd} value={b.branch_cd}>{b.branch_name}</option>)}
+										</select>
 									</div>
 									<div className="space-y-2">
 										<label className="flex items-center gap-2 text-sm text-[var(--app-text)] cursor-pointer">
@@ -600,12 +592,10 @@ const EmployeeMemoPage: React.FC = () => {
 												className="w-4 h-4 accent-blue-600" />
 											New Position
 										</label>
-										{form.reloc_position && (
-											<select value={form.new_position} onChange={e => setField("new_position", e.target.value)} className={selectCls}>
-												<option value="">Select</option>
-												{positionsAll.map(p => <option key={p.position_id} value={p.position_id}>{p.position_desc}</option>)}
-											</select>
-										)}
+										<select value={form.new_position} onChange={e => setField("new_position", e.target.value)} className={selectCls}>
+											<option value="">Select</option>
+											{positionsAll.map(p => <option key={p.position_id} value={p.position_id}>{p.position_desc}</option>)}
+										</select>
 									</div>
 								</div>
 							)}
@@ -614,10 +604,10 @@ const EmployeeMemoPage: React.FC = () => {
 								<div className="border border-[var(--app-border)] rounded-lg p-4 space-y-3 bg-[var(--app-surface)]">
 									<p className="text-xs font-semibold text-[var(--app-text)] uppercase tracking-wider mb-2">Resign Details</p>
 									<FormRow label="Email Off Date">
-										<div className={dateFieldClass}><AsOfDatePicker label="" value={emailOffDate} onChange={(d) => { if (d) setEmailOffDate(d); }} /></div>
+										<div className={dateFieldClass}><AsOfDatePicker label="" value={emailOffDate} onChange={(d: Date | null) => setEmailOffDate(d)} minDate={startOfToday()} /></div>
 									</FormRow>
 									<FormRow label="Application Off Date">
-										<div className={dateFieldClass}><AsOfDatePicker label="" value={appOffDate} onChange={(d) => { if (d) setAppOffDate(d); }} /></div>
+										<div className={dateFieldClass}><AsOfDatePicker label="" value={appOffDate} onChange={(d: Date | null) => setAppOffDate(d)} minDate={startOfToday()} /></div>
 									</FormRow>
 								</div>
 							)}

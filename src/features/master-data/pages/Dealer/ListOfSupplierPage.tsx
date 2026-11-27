@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '@/shared/api/axiosInstance';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
 import { filenameFromDisposition } from '@/shared/utils/helpers';
+import { alertFillField, showAlert } from '@/helpers/AlertDialog';
+import PrintPreview, { PRINT_TD, PRINT_TH } from '@/helpers/PrintPreview';
 
 interface Branch {
 	branchCd: string;
@@ -12,14 +14,80 @@ interface Branch {
 
 interface DealerRecord {
 	no: number;
-	dealerNo: string;
 	name: string;
+	nickname: string;
 	address: string;
+	city: string;
+	phone: string;
+	contact: string;
+	position: string;
 	accNo: string;
-	bankName: string;
+	bank: string;
 	bankBranch: string;
-	npwpNo: string;
-	status: string;
+}
+
+const COLUMNS: { label: string; key: keyof DealerRecord; width: string }[] = [
+	{ label: 'No.', key: 'no', width: '3%' },
+	{ label: 'Name', key: 'name', width: '9%' },
+	{ label: 'Nickname', key: 'nickname', width: '8%' },
+	{ label: 'Address', key: 'address', width: '19%' },
+	{ label: 'City', key: 'city', width: '8%' },
+	{ label: 'Phone', key: 'phone', width: '9%' },
+	{ label: 'Contact', key: 'contact', width: '10%' },
+	{ label: 'Position', key: 'position', width: '6%' },
+	{ label: 'Acc No.', key: 'accNo', width: '7%' },
+	{ label: 'Bank', key: 'bank', width: '10%' },
+	{ label: 'Bank Branch', key: 'bankBranch', width: '11%' },
+];
+
+interface PrintReport {
+	rows: DealerRecord[];
+	printBy: string;
+	printDate: string;
+	branchName: string;
+}
+
+function DealerPrintPreview({ report, onClose }: { report: PrintReport; onClose: () => void }) {
+	return (
+		<PrintPreview label={`List of Dealer — ${report.branchName}`} onClose={onClose}>
+			<div style={{ textAlign: 'center', fontSize: 16, letterSpacing: '0.2em', fontWeight: 'bold' }}>
+				List of Dealer
+			</div>
+			<div style={{ textAlign: 'center', marginBottom: 8 }}>
+				Print By - Date : {report.printBy} - {report.printDate}
+			</div>
+
+			<table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+				<colgroup>
+					{COLUMNS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+				</colgroup>
+				<thead>
+					<tr>
+						{COLUMNS.map((c) => <th key={c.key} style={PRINT_TH}>{c.label}</th>)}
+					</tr>
+				</thead>
+				<tbody>
+					{report.rows.length === 0 ? (
+						<tr>
+							<td colSpan={COLUMNS.length} style={{ ...PRINT_TD, textAlign: 'center', color: '#EE0000', fontSize: 16 }}>
+								Data Not Found..
+							</td>
+						</tr>
+					) : (
+						report.rows.map((r, idx) => (
+							<tr key={`${r.no}-${idx}`}>
+								{COLUMNS.map((c) => (
+									<td key={c.key} style={{ ...PRINT_TD, textAlign: c.key === 'no' ? 'center' : 'left' }}>
+										{r[c.key]}
+									</td>
+								))}
+							</tr>
+						))
+					)}
+				</tbody>
+			</table>
+		</PrintPreview>
+	);
 }
 
 const Spinner: React.FC = () => (
@@ -40,6 +108,7 @@ const ListOfSupplierPage: React.FC = () => {
 	const [hasSearched, setHasSearched] = useState(false);
 	const [printing, setPrinting] = useState(false);
 	const [exporting, setExporting] = useState(false);
+	const [printReport, setPrintReport] = useState<PrintReport | null>(null);
 	const limit = DEFAULT_PAGE_LIMIT;
 
 	useEffect(() => {
@@ -54,6 +123,11 @@ const ListOfSupplierPage: React.FC = () => {
 		};
 		fetchBranches();
 	}, []);
+
+	const sortedBranches = useMemo(
+		() => [...branches].sort((a, b) => a.branchCd.localeCompare(b.branchCd)),
+		[branches]
+	);
 
 	const fetchDealerRecords = useCallback(async (branchOverride?: string, pageOverride?: number) => {
 		const branchToUse = branchOverride ?? selectedBranch;
@@ -91,7 +165,7 @@ const ListOfSupplierPage: React.FC = () => {
 
 	const handlePreview = () => {
 		if (!selectedBranch.trim()) {
-			alert('Please select a branch');
+			alertFillField();
 			return;
 		}
 		setHasSearched(true);
@@ -117,39 +191,34 @@ const ListOfSupplierPage: React.FC = () => {
 
 	const handlePrint = async () => {
 		if (!selectedBranch.trim()) {
-			alert('Please select a branch');
+			alertFillField();
 			return;
 		}
-
-		const printWindow = window.open('', '_blank');
-		if (!printWindow) {
-			alert('Popup blocked. Please allow popups for this site.');
-			return;
-		}
-		printWindow.document.write('<p style="font-family:Arial;padding:20px">Preparing report…</p>');
 
 		setPrinting(true);
 		try {
-			const res = await api.get<string>('/MasterData/dealer-list/print', {
+			const { data } = await api.get('/MasterData/dealer-list/print', {
 				params: { branch_cd: selectedBranch },
-				responseType: 'text',
-				transformResponse: [(data) => data],
 			});
-			printWindow.document.open();
-			printWindow.document.write(res.data);
-			printWindow.document.close();
+			setPrintReport({
+				rows: data.data || [],
+				printBy: data.print_by || '',
+				printDate: data.print_date || '',
+				branchName: branches.find((b) => b.branchCd === selectedBranch)?.branchName || selectedBranch,
+			});
 		} catch (err) {
 			console.error('Failed to load print data:', err);
-			printWindow.close();
-			alert('Failed to load print data. Please try again.');
+			showAlert('Failed to load print data. Please try again.', { variant: 'error' });
 		} finally {
 			setPrinting(false);
 		}
 	};
 
+	const closePrint = useCallback(() => setPrintReport(null), []);
+
 	const handleExportExcel = async () => {
 		if (!selectedBranch.trim()) {
-			alert('Please select a branch');
+			alertFillField();
 			return;
 		}
 		setExporting(true);
@@ -164,14 +233,14 @@ const ListOfSupplierPage: React.FC = () => {
 			const url = window.URL.createObjectURL(blob);
 			const link = document.createElement('a');
 			link.href = url;
-			link.download = filenameFromDisposition(res.headers['content-disposition'], 'List_of_Dealer.xlsx');
+			link.download = filenameFromDisposition(res.headers['content-disposition'], 'ListofDealer.xlsx');
 			document.body.appendChild(link);
 			link.click();
 			document.body.removeChild(link);
 			window.URL.revokeObjectURL(url);
 		} catch (err) {
 			console.error('Failed to export dealer list:', err);
-			alert('Failed to export. Please try again.');
+			showAlert('Failed to export. Please try again.', { variant: 'error' });
 		} finally {
 			setExporting(false);
 		}
@@ -206,7 +275,7 @@ const ListOfSupplierPage: React.FC = () => {
 									className="w-full pl-4 pr-14 py-3 bg-white text-slate-900 border border-[var(--app-border)] rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
 								>
 									<option value="" className="bg-white text-slate-900">Select</option>
-									{branches.map((branch) => (
+									{sortedBranches.map((branch) => (
 										<option key={branch.branchCd} value={branch.branchCd} className="bg-white text-slate-900">
 											{branch.branchName}
 										</option>
@@ -268,65 +337,52 @@ const ListOfSupplierPage: React.FC = () => {
 
 					<div className="overflow-x-auto rounded-lg border border-[var(--app-border)]">
 						<table className="w-full">
+							<colgroup>
+								{COLUMNS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+							</colgroup>
 							<thead className="bg-gradient-to-r from-[var(--app-surface)] to-[var(--app-surface-alt)]">
 								<tr>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider w-12">No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Dealer No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Name</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Address</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Acc No.</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Bank</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Bank Branch</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">NPWP</th>
-									<th className="py-3 px-4 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">Status</th>
+									{COLUMNS.map((c) => (
+										<th key={c.key} className="py-3 px-3 text-left text-xs font-medium text-[var(--app-text)] uppercase tracking-wider">
+											{c.label}
+										</th>
+									))}
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-[var(--app-border)]">
-								{records.length === 0 && !loading ? (
+								{loading ? (
 									<tr>
-										<td colSpan={9} className="py-10 px-4 text-center text-[var(--app-text)]">
-											<div className="flex flex-col items-center justify-center">
-												<p className="text-lg"></p>
+										<td colSpan={COLUMNS.length} className="py-4 px-4 text-center">
+											<div className="flex justify-center">
+												<svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
+													<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+													<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+												</svg>
 											</div>
 										</td>
 									</tr>
+								) : records.length === 0 ? (
+									<tr>
+										<td colSpan={COLUMNS.length} className="py-10 px-4 text-center text-lg font-medium text-red-600">
+											{hasSearched ? 'Data Not Found..' : ''}
+										</td>
+									</tr>
 								) : (
-									<>
-										{records.map((record, idx) => (
-											<tr
-												key={`${record.no}-${record.dealerNo}`}
-												className={`hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
-											>
-												<td className="py-3 px-4 whitespace-nowrap text-sm text-center text-[var(--app-text)]">{record.no}</td>
-												<td className="py-3 px-4 whitespace-nowrap text-sm font-medium text-[var(--app-text)]">{record.dealerNo}</td>
-												<td className="py-3 px-4 whitespace-nowrap text-sm text-[var(--app-text)]">{record.name}</td>
-												<td className="py-3 px-4 text-sm text-[var(--app-text)] max-w-xs break-words">{record.address || '-'}</td>
-												<td className="py-3 px-4 whitespace-nowrap text-sm text-[var(--app-text)] font-mono">{record.accNo || '-'}</td>
-												<td className="py-3 px-4 whitespace-nowrap text-sm text-[var(--app-text)]">{record.bankName || '-'}</td>
-												<td className="py-3 px-4 whitespace-nowrap text-sm text-[var(--app-text)]">{record.bankBranch || '-'}</td>
-												<td className="py-3 px-4 whitespace-nowrap text-sm text-[var(--app-text)] font-mono">{record.npwpNo || '-'}</td>
-												<td className="py-3 px-4 whitespace-nowrap text-sm">
-													<span className={`px-2 py-1 rounded-full text-xs font-medium ${record.status === 'Active'
-														? 'bg-green-100 text-green-800'
-														: 'bg-red-100 text-red-800'}`}>
-														{record.status}
-													</span>
+									records.map((record, idx) => (
+										<tr
+											key={`${record.no}-${idx}`}
+											className={`align-top hover:bg-[var(--app-surface)] transition-colors ${idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]"}`}
+										>
+											{COLUMNS.map((c) => (
+												<td
+													key={c.key}
+													className={`py-3 px-3 text-sm text-[var(--app-text)] break-words ${c.key === 'no' ? 'text-center' : ''} ${c.key === 'accNo' ? 'font-mono' : ''}`}
+												>
+													{record[c.key]}
 												</td>
-											</tr>
-										))}
-										{loading && (
-											<tr>
-												<td colSpan={9} className="py-4 px-4 text-center">
-													<div className="flex justify-center">
-														<svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
-															<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-															<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-														</svg>
-													</div>
-												</td>
-											</tr>
-										)}
-									</>
+											))}
+										</tr>
+									))
 								)}
 							</tbody>
 						</table>
@@ -344,6 +400,8 @@ const ListOfSupplierPage: React.FC = () => {
 					)}
 				</div>
 			</div>
+
+			{printReport && <DealerPrintPreview report={printReport} onClose={closePrint} />}
 		</div>
 	);
 };

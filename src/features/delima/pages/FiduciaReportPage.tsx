@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import api from '@/shared/api/axiosInstance';
+import { alertFillField, showAlert } from '@/helpers/AlertDialog';
 import Pagination from '@/helpers/Pagination';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
@@ -158,7 +159,7 @@ const FiduciaReportPage: React.FC = () => {
 	};
 
 	const handlePrint = useCallback(async () => {
-		if (!certType || !asOf) { alert('Please Fill The Field'); return; }
+		if (!certType || !asOf) { alertFillField(); return; }
 		try {
 			const response = await api.get('/FiduciaReport/fiducia-print', {
 				params: { cert_type: certType, asof: toISO(asOf) },
@@ -170,14 +171,14 @@ const FiduciaReportPage: React.FC = () => {
 			setTimeout(() => URL.revokeObjectURL(url), 10_000);
 		} catch (err) {
 			console.error('Print error:', err);
-			alert('Failed to open the report. Please try again.');
+			showAlert('Failed to open the report. Please try again.', { variant: 'error' });
 		}
 	}, [certType, asOf]);
 
 	const fetchData = useCallback(async (leaseNo = '') => {
-		if (!certType) { alert('Please select a Certificate Type'); return; }
+		if (!certType) { showAlert('Please select a Certificate Type'); return; }
 		if (isPrintOnly) { handlePrint(); return; }
-		if (!searchBy) { alert('Please select an option.'); return; }
+		if (!searchBy) { showAlert('Please select an option.'); return; }
 
 		setLoading(true);
 		setError(null);
@@ -207,7 +208,7 @@ const FiduciaReportPage: React.FC = () => {
 			setPage(1);
 
 			if (normalised.length === 0) {
-				alert('Data Not Found!');
+				showAlert('Data Not Found!', { variant: 'info' });
 			}
 		} catch (err) {
 			console.error(err);
@@ -240,7 +241,7 @@ const FiduciaReportPage: React.FC = () => {
 			});
 
 			const raw = res.data?.data ?? [];
-			if (!raw.length) { alert('Data Not Found!'); return; }
+			if (!raw.length) { showAlert('Data Not Found!', { variant: 'info' }); return; }
 
 			const hit = raw[0];
 			const newRecord: ContractRow = {
@@ -262,7 +263,7 @@ const FiduciaReportPage: React.FC = () => {
 				return next;
 			});
 		} catch {
-			alert('Data Not Found!');
+			showAlert('Data Not Found!', { variant: 'info' });
 		} finally {
 			setLoading(false);
 		}
@@ -281,13 +282,13 @@ const FiduciaReportPage: React.FC = () => {
 			setTimeout(() => URL.revokeObjectURL(url), 10_000);
 		} catch (err) {
 			console.error('View file error:', err);
-			alert('Failed to load the file. Please try again.');
+			showAlert('Failed to load the file. Please try again.', { variant: 'error' });
 		}
 	};
 
 	const handleDownload = async () => {
 		if (!checked.size) {
-			alert('Please select at least one contract!');
+			showAlert('Please select at least one contract!');
 			return;
 		}
 		const leaseList = Array.from(checked).join(',');
@@ -316,7 +317,7 @@ const FiduciaReportPage: React.FC = () => {
 			URL.revokeObjectURL(url);
 		} catch (err) {
 			console.error('Download error:', err);
-			alert('Failed to download the file. Please try again.');
+			showAlert('Failed to download the file. Please try again.', { variant: 'error' });
 		}
 	};
 

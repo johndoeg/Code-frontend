@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api from '@/shared/api/axiosInstance';
+import { alertFillField } from '@/helpers/AlertDialog';
 import AsOfDatePicker from '@/shared/components/AsOfDatePickerComponent';
 import Pagination from '@/helpers/Pagination';
 import { DEFAULT_PAGE_LIMIT } from '@/shared/constants/DefaultValue';
@@ -145,7 +146,7 @@ const ListCAMByDisbursementDatePage: React.FC = () => {
 
 	const handlePreview = async () => {
 		if (!startDate && !endDate && !branch) {
-			alert('Please Fill The Field');
+			alertFillField();
 			return;
 		}
 		setLoading(true);

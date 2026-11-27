@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/shared/api/axiosInstance';
+import { alertFillField, showAlert, showConfirm } from '@/helpers/AlertDialog';
 
 interface Candidate {
 	grnId: string;
@@ -70,7 +71,7 @@ const GuarantorSelectPage: React.FC<GuarantorSelectPageProps> = ({ applNo, onBac
 
 	const runSearch = () => {
 		if (!searchVal.trim()) {
-			alert('Please fill the field');
+			alertFillField();
 			return;
 		}
 		setPage(1);
@@ -84,7 +85,7 @@ const GuarantorSelectPage: React.FC<GuarantorSelectPageProps> = ({ applNo, onBac
 	};
 
 	const handleSelect = async (row: Candidate) => {
-		if (!window.confirm(`Add guarantor "${row.name}" to this CAM?`)) return;
+		if (!(await showConfirm(`Add guarantor "${row.name}" to this CAM?`, { title: 'Add Guarantor', okText: 'Add', variant: 'info' }))) return;
 		setSelectingId(row.precheckingId);
 		try {
 			const res = await api.post<SelectResult>('/CAM/EditIndex/guarantor/select', {
@@ -92,13 +93,13 @@ const GuarantorSelectPage: React.FC<GuarantorSelectPageProps> = ({ applNo, onBac
 				prechecking_id: row.precheckingId,
 			});
 			if (!res.data?.success) {
-				alert(res.data?.message || 'Failed to add the guarantor.');
+				showAlert(res.data?.message || 'Failed to add the guarantor.', { variant: 'error' });
 				return;
 			}
 			onSelected?.(res.data);
 			onBack();
 		} catch (e) {
-			alert(errorMessage(e, 'Failed to add the guarantor. Please try again.'));
+			showAlert(errorMessage(e, 'Failed to add the guarantor. Please try again.'), { variant: 'error' });
 		} finally {
 			setSelectingId(null);
 		}
@@ -173,7 +174,7 @@ const GuarantorSelectPage: React.FC<GuarantorSelectPageProps> = ({ applNo, onBac
 														</button>
 													) : (
 														<button type="button"
-															onClick={() => alert("Repeat Order isn't available yet — this needs a page that hasn't been converted.")}
+															onClick={() => showAlert("Repeat Order isn't available yet — this needs a page that hasn't been converted.", { variant: 'info' })}
 															className="rounded bg-slate-200 px-3 py-1 text-xs font-medium text-[var(--app-text)] hover:bg-slate-300">
 															Repeat Order
 														</button>

@@ -121,35 +121,21 @@ const ListOfInsuranceReportPage: React.FC = () => {
 		}
 	}, [reportType, selIns, selModel]);
 
-	const hasResults = submitted && (premiRows.length > 0 || tplRows.length > 0);
 	const noResults = submitted && premiRows.length === 0 && tplRows.length === 0;
 
 	const totalRows = reportType === "premi" ? premiRows.length : tplRows.length;
 	const totalPages = Math.ceil(totalRows / limit);
 	const pageStart = (page - 1) * limit;
-	const pageRowCls = (idx: number) =>
-		idx >= pageStart && idx < pageStart + limit ? "" : "hidden print:table-row";
+	const pagedPremi = premiRows.slice(pageStart, pageStart + limit);
+	const pagedTpl = tplRows.slice(pageStart, pageStart + limit);
 	const zebra = (idx: number) =>
 		idx % 2 === 0 ? "bg-[var(--app-card)]" : "bg-[var(--app-surface)]";
 
 	return (
 		<div className="min-h-screen bg-gradient-to-br from-[var(--app-surface)] to-[var(--app-surface-alt)] p-4 md:p-6">
-			<style>{`
-				@media print {
-					@page { size: landscape; margin: 10mm; }
-					body * { visibility: hidden !important; }
-					.print-area, .print-area * { visibility: visible !important; }
-					.print-area {
-						position: absolute; left: 0; top: 0; width: 100%;
-						margin: 0; border: none !important; border-radius: 0 !important;
-						overflow: visible !important;
-					}
-					.print-area table { width: 100%; border-collapse: collapse; }
-				}
-			`}</style>
 			<div className="max-w-full mx-auto">
 
-				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 print:hidden">
+				<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-[var(--app-text)] mb-6">
 						List of Insurance Premi
 					</h1>
@@ -243,15 +229,6 @@ const ListOfInsuranceReportPage: React.FC = () => {
 								</span>
 							) : "Preview"}
 						</button>
-
-						{hasResults && (
-							<button
-								onClick={() => window.print()}
-								className="px-5 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-sm font-medium transition-colors"
-							>
-								🖨 Print
-							</button>
-						)}
 					</div>
 
 					{error && (
@@ -262,14 +239,14 @@ const ListOfInsuranceReportPage: React.FC = () => {
 				</div>
 
 				{submitted && (
-					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mt-6 print:mt-0">
+					<div className="bg-[var(--app-card)] text-[var(--app-text)] rounded-2xl shadow-lg p-6 mt-6">
 
 						<div className="relative mb-6">
 							<h2 className="text-xl font-bold text-[var(--app-text)] text-center tracking-widest uppercase">
 								List of Insurance
 							</h2>
 							{totalRows > 0 && (
-								<span className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium print:hidden">
+								<span className="absolute right-0 top-1/2 -translate-y-1/2 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
 									Total: {totalRows}
 								</span>
 							)}
@@ -286,7 +263,7 @@ const ListOfInsuranceReportPage: React.FC = () => {
 						)}
 
 						{reportType === "premi" && premiRows.length > 0 && (
-							<div className="print-area overflow-x-auto rounded-xl border border-[var(--app-border)]">
+							<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
 								<table className="w-full text-sm">
 									<thead>
 										<tr>
@@ -299,12 +276,12 @@ const ListOfInsuranceReportPage: React.FC = () => {
 										</tr>
 									</thead>
 									<tbody>
-										{premiRows.map((row, idx) => (
+										{pagedPremi.map((row, idx) => (
 											<tr
-												key={row.id ?? idx}
-												className={`${zebra(idx)} ${pageRowCls(idx)}`}
+												key={row.id ?? pageStart + idx}
+												className={zebra(idx)}
 											>
-												<Td className="text-center">{idx + 1}</Td>
+												<Td className="text-center">{pageStart + idx + 1}</Td>
 												<Td>{row.ins_co}</Td>
 												<Td>{row.model_nm}</Td>
 												<Td>{row.coverage}</Td>
@@ -318,7 +295,7 @@ const ListOfInsuranceReportPage: React.FC = () => {
 						)}
 
 						{reportType === "tpl" && tplRows.length > 0 && (
-							<div className="print-area overflow-x-auto rounded-xl border border-[var(--app-border)]">
+							<div className="overflow-x-auto rounded-xl border border-[var(--app-border)]">
 								<table className="w-full text-sm">
 									<thead>
 										<tr>
@@ -331,12 +308,12 @@ const ListOfInsuranceReportPage: React.FC = () => {
 										</tr>
 									</thead>
 									<tbody>
-										{tplRows.map((row, idx) => (
+										{pagedTpl.map((row, idx) => (
 											<tr
-												key={`${row.ins_co}-${row.model_nm}-${idx}`}
-												className={`${zebra(idx)} ${pageRowCls(idx)}`}
+												key={`${row.ins_co}-${row.model_nm}-${pageStart + idx}`}
+												className={zebra(idx)}
 											>
-												<Td className="text-center">{idx + 1}</Td>
+												<Td className="text-center">{pageStart + idx + 1}</Td>
 												<Td>{row.ins_co}</Td>
 												<Td>{row.model_nm}</Td>
 												<Td className="text-right font-mono">{row.tpl_amt}</Td>
@@ -350,16 +327,14 @@ const ListOfInsuranceReportPage: React.FC = () => {
 						)}
 
 						{totalRows > 0 && (
-							<div className="print:hidden">
-								<Pagination
-									page={page}
-									totalPages={totalPages}
-									onPageChange={setPage}
-									totalItems={totalRows}
-									itemsPerPage={limit}
-									className="mt-5"
-								/>
-							</div>
+							<Pagination
+								page={page}
+								totalPages={totalPages}
+								onPageChange={setPage}
+								totalItems={totalRows}
+								itemsPerPage={limit}
+								className="mt-5"
+							/>
 						)}
 					</div>
 				)}
